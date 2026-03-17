@@ -1,3 +1,4 @@
+#include <exception>
 #include <iostream>
 #include <string>
 
@@ -12,8 +13,13 @@ int main(int argc, char* argv[]) {
     }
 
     const std::string expression = argv[1];
-    const double result = parser.evaluate(expression);
-    std::cout << result << '\n';
+    try {
+        const double result = parser.evaluate(expression);
+        std::cout << result << '\n';
+    } catch (const std::exception& ex) {
+        std::cerr << "error: " << ex.what() << '\n';
+        return 1;
+    }
 
     return 0;
 }
