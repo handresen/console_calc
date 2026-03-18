@@ -24,12 +24,17 @@ if(CONSOLE_CALC_ENABLE_CLANG_TIDY)
 endif()
 
 add_library(console_calc_lib
+    src/expression_ast_parser.cpp
+    src/expression_evaluator.cpp
     src/expression_parser.cpp
+    src/expression_tokenizer.cpp
 )
 
 target_include_directories(console_calc_lib
     PUBLIC
         ${PROJECT_SOURCE_DIR}/include
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/src
 )
 
 target_compile_features(console_calc_lib PUBLIC cxx_std_20)
