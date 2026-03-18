@@ -79,6 +79,9 @@ int ConsoleSession::handle_line(std::string_view line) {
             command.kind == ConsoleCommandKind::list_variables ||
             command.kind == ConsoleCommandKind::list_constants ||
             command.kind == ConsoleCommandKind::list_functions ||
+            command.kind == ConsoleCommandKind::display_decimal ||
+            command.kind == ConsoleCommandKind::display_hexadecimal ||
+            command.kind == ConsoleCommandKind::display_binary ||
             command.kind == ConsoleCommandKind::duplicate ||
             command.kind == ConsoleCommandKind::drop ||
             command.kind == ConsoleCommandKind::swap ||
@@ -125,7 +128,7 @@ void ConsoleSession::print_prompt() const {
 }
 
 void ConsoleSession::print_stack() const {
-    output_ << format_stack_listing(result_stack_);
+    output_ << format_stack_listing(result_stack_, display_mode_);
 }
 
 void ConsoleSession::print_variables() const {
@@ -142,7 +145,7 @@ void ConsoleSession::print_functions() const {
 
 void ConsoleSession::print_result(const Value& value) {
     if (const auto* integer = std::get_if<std::int64_t>(&value)) {
-        output_ << *integer << '\n';
+        output_ << format_scalar(ScalarValue{*integer}, display_mode_) << '\n';
         return;
     }
 
@@ -151,7 +154,7 @@ void ConsoleSession::print_result(const Value& value) {
         return;
     }
 
-    output_ << format_value(value) << '\n';
+    output_ << format_value(value, display_mode_) << '\n';
 }
 
 void ConsoleSession::execute_stack_command(ConsoleCommandKind command) {
@@ -169,6 +172,18 @@ void ConsoleSession::execute_stack_command(ConsoleCommandKind command) {
     }
     if (command == ConsoleCommandKind::list_functions) {
         print_functions();
+        return;
+    }
+    if (command == ConsoleCommandKind::display_decimal) {
+        set_display_mode(IntegerDisplayMode::decimal);
+        return;
+    }
+    if (command == ConsoleCommandKind::display_hexadecimal) {
+        set_display_mode(IntegerDisplayMode::hexadecimal);
+        return;
+    }
+    if (command == ConsoleCommandKind::display_binary) {
+        set_display_mode(IntegerDisplayMode::binary);
         return;
     }
     if (command == ConsoleCommandKind::duplicate) {
@@ -217,6 +232,10 @@ void ConsoleSession::push_result(Value result) {
     }
 
     result_stack_.push_back(std::move(result));
+}
+
+void ConsoleSession::set_display_mode(IntegerDisplayMode mode) {
+    display_mode_ = mode;
 }
 
 double ConsoleSession::apply_stack_operator(char op) {

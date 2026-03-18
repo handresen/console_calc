@@ -11,6 +11,7 @@
 #include "console_line_editor.h"
 #include "expression_environment.h"
 #include "console_calc/value.h"
+#include "console_calc/value_format.h"
 
 namespace console_calc {
 
@@ -36,6 +37,7 @@ private:
     void assign_definition(std::string_view name, std::string_view expression,
                            const std::optional<Value>& result_reference);
     void push_result(Value result);
+    void set_display_mode(IntegerDisplayMode mode);
     double apply_stack_operator(char op);
     std::optional<Value> top_result() const;
 
@@ -46,6 +48,7 @@ private:
     std::ostream& error_;
     std::vector<Value> result_stack_;
     DefinitionTable definitions_;
+    IntegerDisplayMode display_mode_ = IntegerDisplayMode::decimal;
     ConsoleHistory history_;
     ConsoleLineEditor line_editor_;
 };

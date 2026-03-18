@@ -326,6 +326,42 @@ bool expect_console_mode_list_result_reference() {
     return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
 
+bool expect_console_mode_map_builtin_identifier() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("l:{1,2,3}\nmap(l,sin)\nsum(map({1,2,3},sin))\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) +
+        prompt(0) + "{0.8414709848078965, 0.90929742682568171, 0.14112000805986721}\n" +
+        prompt(1) + "1.89189\n" +
+        prompt(2);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+}
+
+bool expect_console_mode_integer_display_modes() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("255\nhex\ns\nbin\ns\n1.5\ns\ndec\ns\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) + "255\n" +
+        prompt(1) +
+        prompt(1) + "0:0xff\n" +
+        prompt(1) +
+        prompt(1) + "0:0b11111111\n" +
+        prompt(1) + "1.5\n" +
+        prompt(2) + "0:0b11111111\n1:1.5\n" +
+        prompt(2) +
+        prompt(2) + "0:255\n1:1.5\n" +
+        prompt(2);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+}
+
 bool expect_console_mode_circular_reference_error() {
     const std::vector<std::string_view> args;
     std::istringstream input("a:1\nb:a+1\na:b+1\na\nq\n");
@@ -425,23 +461,24 @@ bool expect_console_mode_list_variables_and_functions() {
         prompt(0) + "sx:sin(x)\ntotal:sum(vals)\nvals:{1, 2, 3}\nx:pi+1\n" +
         prompt(0) +
         "Scalar functions\n"
-        "cos/1\n"
-        "cosd/1\n"
-        "pow/2\n"
-        "sin/1\n"
-        "sind/1\n"
-        "tan/1\n"
-        "tand/1\n"
+        "  cos/1      cosine in radians\n"
+        "  cosd/1     cosine in degrees\n"
+        "  pow/2      power\n"
+        "  sin/1      sine in radians\n"
+        "  sind/1     sine in degrees\n"
+        "  tan/1      tangent in radians\n"
+        "  tand/1     tangent in degrees\n"
+        "\n"
         "List functions\n"
-        "avg/1\n"
-        "drop/2\n"
-        "first/2\n"
-        "len/1\n"
-        "map/2\n"
-        "max/1\n"
-        "min/1\n"
-        "product/1\n"
-        "sum/1\n" +
+        "  avg/1      average of list elements\n"
+        "  drop/2     drop first n list elements\n"
+        "  first/2    first n list elements\n"
+        "  len/1      list length\n"
+        "  map/2      map unary scalar builtin over list\n"
+        "  max/1      maximum list element\n"
+        "  min/1      minimum list element\n"
+        "  product/1  product of list elements\n"
+        "  sum/1      sum list elements\n" +
         prompt(0);
     return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
@@ -526,6 +563,14 @@ int main() {
     }
 
     if (!expect_console_mode_list_result_reference()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_map_builtin_identifier()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_integer_display_modes()) {
         return EXIT_FAILURE;
     }
 

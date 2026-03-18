@@ -19,6 +19,12 @@ bool expect_command_classification() {
                ConsoleCommandKind::list_constants &&
            console_calc::classify_console_command("funcs").kind ==
                ConsoleCommandKind::list_functions &&
+           console_calc::classify_console_command("dec").kind ==
+               ConsoleCommandKind::display_decimal &&
+           console_calc::classify_console_command("hex").kind ==
+               ConsoleCommandKind::display_hexadecimal &&
+           console_calc::classify_console_command("bin").kind ==
+               ConsoleCommandKind::display_binary &&
            console_calc::classify_console_command("+").kind ==
                ConsoleCommandKind::stack_operator &&
            console_calc::classify_console_command("x:1").kind ==

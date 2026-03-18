@@ -33,11 +33,15 @@ std::string format_named_listing(const Table& table, Formatter formatter) {
 }  // namespace
 
 std::string format_stack_listing(std::span<const Value> values) {
+    return format_stack_listing(values, IntegerDisplayMode::decimal);
+}
+
+std::string format_stack_listing(std::span<const Value> values, IntegerDisplayMode mode) {
     std::string output;
     for (std::size_t index = 0; index < values.size(); ++index) {
         output += std::to_string(index);
         output += ':';
-        output += format_value(values[index]);
+        output += format_value(values[index], mode);
         output += '\n';
     }
 
@@ -57,17 +61,19 @@ std::string format_constant_listing(const ConstantTable& constants) {
 }
 
 std::string format_builtin_function_listing(std::span<const BuiltinFunctionInfo> functions) {
-    std::vector<std::pair<std::string, std::string>> scalar_entries;
-    std::vector<std::pair<std::string, std::string>> list_entries;
+    std::vector<std::pair<std::string, BuiltinFunctionInfo>> scalar_entries;
+    std::vector<std::pair<std::string, BuiltinFunctionInfo>> list_entries;
     scalar_entries.reserve(functions.size());
     list_entries.reserve(functions.size());
+    std::size_t label_width = 0;
 
     for (const auto& function : functions) {
-        std::string line = std::string(function.name) + '/' + std::to_string(function.arity);
+        std::string label = std::string(function.name) + '/' + std::to_string(function.arity);
+        label_width = std::max(label_width, label.size());
         if (function.category == BuiltinFunctionCategory::list) {
-            list_entries.emplace_back(std::string(function.name), std::move(line));
+            list_entries.emplace_back(std::string(function.name), function);
         } else {
-            scalar_entries.emplace_back(std::string(function.name), std::move(line));
+            scalar_entries.emplace_back(std::string(function.name), function);
         }
     }
 
@@ -80,17 +86,24 @@ std::string format_builtin_function_listing(std::span<const BuiltinFunctionInfo>
     sort_entries(scalar_entries);
     sort_entries(list_entries);
 
-    std::string output = "Scalar functions\n";
-    for (const auto& entry : scalar_entries) {
-        output += entry.second;
-        output += '\n';
-    }
+    auto append_entries = [&](std::string& output, const auto& entries) {
+        for (const auto& entry : entries) {
+            const std::string label =
+                std::string(entry.second.name) + '/' + std::to_string(entry.second.arity);
+            output += "  ";
+            output += label;
+            output.append(label_width - label.size(), ' ');
+            output += "  ";
+            output += entry.second.summary;
+            output += '\n';
+        }
+    };
 
+    std::string output = "Scalar functions\n";
+    append_entries(output, scalar_entries);
+    output += '\n';
     output += "List functions\n";
-    for (const auto& entry : list_entries) {
-        output += entry.second;
-        output += '\n';
-    }
+    append_entries(output, list_entries);
 
     return output;
 }

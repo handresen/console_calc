@@ -1,6 +1,7 @@
 #include "console_calc/value_format.h"
 
 #include <cstdint>
+#include <algorithm>
 #include <iomanip>
 #include <limits>
 #include <sstream>
@@ -8,8 +9,35 @@
 namespace console_calc {
 
 std::string format_scalar(const ScalarValue& value) {
+    return format_scalar(value, IntegerDisplayMode::decimal);
+}
+
+std::string format_scalar(const ScalarValue& value, IntegerDisplayMode mode) {
     if (const auto* integer = std::get_if<std::int64_t>(&value)) {
-        return std::to_string(*integer);
+        if (mode == IntegerDisplayMode::decimal) {
+            return std::to_string(*integer);
+        }
+
+        const bool negative = *integer < 0;
+        std::uint64_t magnitude = negative ? static_cast<std::uint64_t>(-(*integer + 1)) + 1U
+                                           : static_cast<std::uint64_t>(*integer);
+        std::string digits;
+        if (mode == IntegerDisplayMode::hexadecimal) {
+            static constexpr char k_hex_digits[] = "0123456789abcdef";
+            do {
+                digits.push_back(k_hex_digits[magnitude & 0xfU]);
+                magnitude >>= 4U;
+            } while (magnitude != 0);
+            std::reverse(digits.begin(), digits.end());
+            return std::string(negative ? "-0x" : "0x") + digits;
+        }
+
+        do {
+            digits.push_back((magnitude & 1U) != 0 ? '1' : '0');
+            magnitude >>= 1U;
+        } while (magnitude != 0);
+        std::reverse(digits.begin(), digits.end());
+        return std::string(negative ? "-0b" : "0b") + digits;
     }
 
     std::ostringstream stream;
@@ -19,27 +47,35 @@ std::string format_scalar(const ScalarValue& value) {
 }
 
 std::string format_list(const ListValue& values) {
+    return format_list(values, IntegerDisplayMode::decimal);
+}
+
+std::string format_list(const ListValue& values, IntegerDisplayMode mode) {
     std::string result = "{";
     for (std::size_t index = 0; index < values.size(); ++index) {
         if (index != 0) {
             result += ", ";
         }
-        result += format_scalar(values[index]);
+        result += format_scalar(values[index], mode);
     }
     result += '}';
     return result;
 }
 
 std::string format_value(const Value& value) {
+    return format_value(value, IntegerDisplayMode::decimal);
+}
+
+std::string format_value(const Value& value, IntegerDisplayMode mode) {
     if (const auto* integer = std::get_if<std::int64_t>(&value)) {
-        return format_scalar(ScalarValue{*integer});
+        return format_scalar(ScalarValue{*integer}, mode);
     }
 
     if (const auto* scalar = std::get_if<double>(&value)) {
-        return format_scalar(ScalarValue{*scalar});
+        return format_scalar(ScalarValue{*scalar}, mode);
     }
 
-    return format_list(std::get<ListValue>(value));
+    return format_list(std::get<ListValue>(value), mode);
 }
 
 }  // namespace console_calc

@@ -58,6 +58,8 @@ operator   = "+" | "-" | "*" | "/" | "%" | "^" | "&" | "|" ;
 
 Accepted numeric forms include:
 - integer literals such as `42`
+- hexadecimal integer literals such as `0xff` and `0x10aa10`
+- binary integer literals such as `0b1010` and `0b10010110`
 - decimal literals such as `3.14`, `.25`, and `10.`
 - exponent literals such as `1e6`, `2.5e-3`, and `.8E+2`
 
@@ -69,7 +71,7 @@ Expressions use these precedence levels, from highest to lowest: function calls,
 
 Where a scalar is required, a one-element list is accepted and coerced to that element. Multi-element lists are still rejected in scalar positions. List literals themselves remain flat: each list element must evaluate directly to a scalar, so nested lists are still rejected.
 
-Integer-valued decimal literals such as `42` are preserved as intrinsic integer values. Decimal literals with a fractional part or exponent such as `3.14` or `1e3` are evaluated as floating-point values.
+Integer-valued decimal literals such as `42`, hexadecimal literals such as `0xff`, and binary literals such as `0b1010` are preserved as intrinsic integer values. Decimal literals with a fractional part or exponent such as `3.14` or `1e3` are evaluated as floating-point values.
 
 Builtin functions:
 - `sin(x)`, `cos(x)`, `tan(x)` use radians
@@ -116,6 +118,7 @@ Examples:
 - `(2 + 3) * 4` => `20`
 - `20 / 5 - 1` => `3`
 - `2 * 3 + 4 * 5` => `26`
+- `0xff & 0b1010` => `10`
 
 ## Valid Examples
 
@@ -127,6 +130,8 @@ Examples:
 - `-3`
 - `2*-3`
 - `.5 * 8`
+- `0xff`
+- `0b1010`
 - `1.3e10 / 2`
 - `sin(0)`
 - `sind(30)`
@@ -166,5 +171,9 @@ Examples:
 - `0 ^ (1 - 2)`
 - `1.5 & 1`
 - `.`
+- `0x`
+- `0b`
+- `0xg`
+- `0b102`
 - `1e`
 - `1e+`

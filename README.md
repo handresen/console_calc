@@ -70,6 +70,7 @@ Notes:
 - `%` uses floating-point modulo
 - `&` and `|` require integer-valued operands
 - plain decimal integers such as `42` are kept as integer values
+- hexadecimal literals such as `0xff` and binary literals such as `0b1010` are kept as integer values
 - decimal values with a fractional part or exponent are floating-point values
 - one-element lists are accepted in scalar positions
 - list literals are currently flat; nested lists are rejected
@@ -87,6 +88,7 @@ Examples:
 2 + 3 * 4           => 14
 -2^2                => -4
 (-2)^2              => 4
+0xff & 0b1010       => 10
 10 % 3              => 1
 6 & 3 | 8           => 10
 first(1, {2, 3})+4  => 6
@@ -196,6 +198,12 @@ Examples:
   Swap the top two stack values
 - `clear`
   Clear the stack
+- `dec`
+  Display integers in decimal
+- `hex`
+  Display integers in hexadecimal
+- `bin`
+  Display integers in binary
 - single operator line: `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
   Apply that operator to the top two scalar stack values
 
@@ -260,6 +268,35 @@ Rules:
 - redefining a builtin constant name is rejected
 - redefining an existing user definition replaces it
 - circular references are rejected
+
+## Integer Display Modes
+
+Console mode keeps decimal as the default display format.
+
+You can switch integer display with:
+- `dec`
+- `hex`
+- `bin`
+
+Only intrinsic integer values change representation. Floating-point values continue to display in decimal.
+
+Example:
+
+```text
+0> 255
+255
+1> hex
+1> s
+0:0xff
+1> bin
+1> s
+0:0b11111111
+1> 1.5
+1.5
+2> s
+0:0b11111111
+1:1.5
+```
 
 ## Keyboard Support In Console Mode
 

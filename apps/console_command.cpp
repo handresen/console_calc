@@ -28,6 +28,15 @@ ConsoleCommand classify_console_command(std::string_view text) {
     if (text == "funcs") {
         return {.kind = ConsoleCommandKind::list_functions};
     }
+    if (text == "dec") {
+        return {.kind = ConsoleCommandKind::display_decimal};
+    }
+    if (text == "hex") {
+        return {.kind = ConsoleCommandKind::display_hexadecimal};
+    }
+    if (text == "bin") {
+        return {.kind = ConsoleCommandKind::display_binary};
+    }
     if (text == "dup") {
         return {.kind = ConsoleCommandKind::duplicate};
     }
