@@ -1,6 +1,7 @@
 #include "expression_environment.h"
 
 #include "console_calc/builtin_function.h"
+#include "console_calc/expression_parser.h"
 #include "console_calc/value_format.h"
 
 #include <cctype>

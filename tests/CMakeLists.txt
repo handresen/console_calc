@@ -22,6 +22,12 @@ add_executable(console_calc_app_test
     console_calc_app_test.cpp
 )
 
+target_include_directories(console_calc_app_test
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/apps
+        ${PROJECT_SOURCE_DIR}/include
+)
+
 target_link_libraries(console_calc_app_test
     PRIVATE
         console_calc_app_lib

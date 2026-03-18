@@ -4,8 +4,11 @@
 #include <string_view>
 #include <vector>
 
+#include "console_command.h"
 #include "console_history.h"
+#include "expression_environment.h"
 #include "console_calc_app.h"
+#include "console_calc/expression_parser.h"
 
 namespace {
 
@@ -55,6 +58,58 @@ bool expect_console_history_limit() {
 
     return newest.has_value() && oldest.has_value() && *newest == "cmd11" &&
            *oldest == "cmd2";
+}
+
+bool expect_console_history_reset_navigation() {
+    console_calc::ConsoleHistory history;
+    history.record("one");
+    history.record("two");
+    (void)history.previous();
+    history.reset_navigation();
+
+    const auto latest = history.previous();
+    return latest.has_value() && *latest == "two";
+}
+
+bool expect_console_history_ignores_empty() {
+    console_calc::ConsoleHistory history;
+    history.record("");
+    history.record("one");
+
+    const auto latest = history.previous();
+    const auto oldest = history.previous();
+    return latest.has_value() && oldest.has_value() && *latest == "one" && *oldest == "one";
+}
+
+bool expect_console_command_classification() {
+    using console_calc::ConsoleCommandKind;
+    return console_calc::classify_console_command("q").kind == ConsoleCommandKind::quit &&
+           console_calc::classify_console_command("s").kind == ConsoleCommandKind::list_stack &&
+           console_calc::classify_console_command("consts").kind ==
+               ConsoleCommandKind::list_constants &&
+           console_calc::classify_console_command("dup").kind == ConsoleCommandKind::duplicate &&
+           console_calc::classify_console_command("+").kind ==
+               ConsoleCommandKind::stack_operator &&
+           console_calc::classify_console_command("x:1").kind ==
+               ConsoleCommandKind::assignment &&
+           console_calc::classify_console_command("sin(pi)").kind ==
+               ConsoleCommandKind::expression;
+}
+
+bool expect_expanded_expression_helper() {
+    console_calc::ExpressionParser parser;
+    const console_calc::ConstantTable constants{
+        {"pi", 3.14159265358979323846},
+    };
+    const console_calc::VariableTable variables{
+        {"x", "pi + 1"},
+        {"y", "sin(x)"},
+    };
+
+    const auto value =
+        console_calc::evaluate_expanded_expression(parser, "y", constants, variables, std::nullopt);
+    const auto* scalar = std::get_if<double>(&value);
+    return scalar != nullptr && *scalar < -0.84 && *scalar > -0.85;
 }
 
 bool expect_argument_mode_failure() {
@@ -224,6 +279,23 @@ bool expect_console_mode_list_variables() {
     return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
 
+bool expect_console_mode_late_bound_list_variables() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("xs:1,2,3\ntotal:sum(xs)\ntotal\nxs:4,5\ntotal\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) +
+        prompt(0) +
+        prompt(0) + "6\n" +
+        prompt(1) +
+        prompt(1) + "9\n" +
+        prompt(2);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+}
+
 bool expect_console_mode_list_stack_values() {
     const std::vector<std::string_view> args;
     std::istringstream input("{1,2,3}\ns\nq\n");
@@ -284,7 +356,21 @@ bool expect_console_mode_circular_reference_error() {
         prompt(0) + "1\n" +
         prompt(1);
     return exit_code == 0 && output.str() == expected_output &&
-           error.str() == "error: circular variable reference: a\n";
+           error.str() == "error: circular variable reference: b\n";
+}
+
+bool expect_console_mode_self_circular_reference_error() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("a:a+1\na\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output = prompt(0) + prompt(0) + prompt(0);
+    return exit_code == 0 && output.str() == expected_output &&
+           error.str() ==
+               "error: circular variable reference: a\n"
+               "error: unknown identifier: a\n";
 }
 
 bool expect_console_mode_variable_constant_conflict() {
@@ -350,6 +436,22 @@ int main() {
         return EXIT_FAILURE;
     }
 
+    if (!expect_console_history_reset_navigation()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_history_ignores_empty()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_command_classification()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_expanded_expression_helper()) {
+        return EXIT_FAILURE;
+    }
+
     if (!expect_argument_mode_success()) {
         return EXIT_FAILURE;
     }
@@ -394,6 +496,10 @@ int main() {
         return EXIT_FAILURE;
     }
 
+    if (!expect_console_mode_late_bound_list_variables()) {
+        return EXIT_FAILURE;
+    }
+
     if (!expect_console_mode_list_stack_values()) {
         return EXIT_FAILURE;
     }
@@ -407,6 +513,10 @@ int main() {
     }
 
     if (!expect_console_mode_circular_reference_error()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_self_circular_reference_error()) {
         return EXIT_FAILURE;
     }
 

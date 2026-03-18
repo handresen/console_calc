@@ -5,10 +5,11 @@
 #include <string_view>
 #include <unordered_map>
 
-#include "console_calc/expression_parser.h"
 #include "console_calc/value.h"
 
 namespace console_calc {
+
+class ExpressionParser;
 
 using ConstantTable = std::unordered_map<std::string, double>;
 using VariableTable = std::unordered_map<std::string, std::string>;

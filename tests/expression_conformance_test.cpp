@@ -67,6 +67,12 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
         return false;
     }
 
+    try {
+        (void)parser.evaluate_value("sum({})");
+    } catch (const std::exception&) {
+        return false;
+    }
+
     return true;
 }
 
