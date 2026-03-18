@@ -2,7 +2,10 @@
 
 #include "console_calc/expression_error.h"
 
+#include <charconv>
 #include <cctype>
+#include <cerrno>
+#include <cstdint>
 #include <cstdlib>
 
 namespace console_calc {
@@ -72,6 +75,7 @@ Token Tokenizer::next() {
 }
 
 Token Tokenizer::parse_number() {
+    const std::size_t begin_index = position_;
     const char* begin = input_.data() + position_;
     char* end = nullptr;
     const double value = std::strtod(begin, &end);
@@ -81,6 +85,19 @@ Token Tokenizer::parse_number() {
     }
 
     position_ = static_cast<std::size_t>(end - input_.data());
+    const std::string_view token_text = input_.substr(begin_index, position_ - begin_index);
+    if (token_text.find_first_of(".eE") == std::string_view::npos) {
+        std::int64_t integer_value = 0;
+        const auto [ptr, ec] = std::from_chars(
+            token_text.data(), token_text.data() + token_text.size(), integer_value);
+        if (ec == std::errc{} && ptr == token_text.data() + token_text.size()) {
+            return {
+                .kind = TokenKind::number,
+                .number_value = integer_value,
+            };
+        }
+    }
+
     return {
         .kind = TokenKind::number,
         .number_value = value,

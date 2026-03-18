@@ -5,6 +5,7 @@
 This initial grammar exists to exercise the parser pipeline with the smallest useful expression language.
 
 Current scope:
+- intrinsic integer and floating-point scalar values
 - integer and floating-point numeric literals
 - unary `-`
 - binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
@@ -68,6 +69,8 @@ Expressions use these precedence levels, from highest to lowest: function calls,
 
 Where a scalar is required, a one-element list is accepted and coerced to that element. Multi-element lists are still rejected in scalar positions. List literals themselves remain flat: each list element must evaluate directly to a scalar, so nested lists are still rejected.
 
+Integer-valued decimal literals such as `42` are preserved as intrinsic integer values. Decimal literals with a fractional part or exponent such as `3.14` or `1e3` are evaluated as floating-point values.
+
 Builtin functions:
 - `sin(x)`, `cos(x)`, `tan(x)` use radians
 - `sind(x)`, `cosd(x)`, `tand(x)` use degrees
@@ -80,6 +83,14 @@ Builtin functions:
 - `first(n, list)` returns the first `n` items as a list
 - `drop(n, list)` returns the list without its first `n` items
 - `map(list, func)` applies a unary scalar builtin function to each list item and returns a list of the same length
+
+Integer-preserving behavior:
+- `+`, `-`, and `*` preserve integer results when both operands are integers and the result fits in 64 bits
+- `/` always produces a floating-point result
+- `%` produces an integer result when both operands are integers, otherwise floating-point modulo is used
+- `len(list)` returns an integer
+- `sum(list)` and `product(list)` preserve integer results when all inputs remain integral
+- trig functions always return floating-point results
 
 For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, `func` must name a unary scalar builtin such as `sin` or `cosd`; list functions and multi-argument functions are rejected.
 

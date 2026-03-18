@@ -4,6 +4,8 @@
 #include <vector>
 #include <variant>
 
+#include "console_calc/value.h"
+
 namespace console_calc {
 
 enum class BinaryOperator {
@@ -20,7 +22,7 @@ enum class BinaryOperator {
 struct Expression;
 
 struct NumberLiteral {
-    double value = 0.0;
+    ScalarValue value = std::int64_t{0};
 };
 
 struct UnaryExpression {

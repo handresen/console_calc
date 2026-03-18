@@ -13,6 +13,26 @@ bool almost_equal(double lhs, double rhs) {
     return std::fabs(lhs - rhs) < 1e-12;
 }
 
+double scalar_to_double(const console_calc::ScalarValue& value) {
+    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
+        return static_cast<double>(*integer);
+    }
+
+    return std::get<double>(value);
+}
+
+bool almost_equal(const console_calc::ScalarValue& lhs, double rhs) {
+    return almost_equal(scalar_to_double(lhs), rhs);
+}
+
+double value_to_double(const console_calc::Value& value) {
+    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
+        return static_cast<double>(*integer);
+    }
+
+    return std::get<double>(value);
+}
+
 bool expect_value(console_calc::ExpressionParser& parser, const std::string& expression,
                   double expected) {
     try {
@@ -35,8 +55,7 @@ bool expect_invalid(console_calc::ExpressionParser& parser, const std::string& e
 
 bool expect_value_api(console_calc::ExpressionParser& parser) {
     const console_calc::Value scalar = parser.evaluate_value("1 + 2");
-    const auto* scalar_value = std::get_if<double>(&scalar);
-    if (scalar_value == nullptr || !almost_equal(*scalar_value, 3.0)) {
+    if (!std::holds_alternative<std::int64_t>(scalar) || !almost_equal(value_to_double(scalar), 3.0)) {
         return false;
     }
 
@@ -46,8 +65,9 @@ bool expect_value_api(console_calc::ExpressionParser& parser) {
         return false;
     }
 
-    return almost_equal((*list_value)[0], 1.0) && almost_equal((*list_value)[1], 2.0) &&
-           almost_equal((*list_value)[2], 3.0);
+    return almost_equal(scalar_to_double((*list_value)[0]), 1.0) &&
+           almost_equal(scalar_to_double((*list_value)[1]), 2.0) &&
+           almost_equal(scalar_to_double((*list_value)[2]), 3.0);
 }
 
 bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
@@ -76,14 +96,16 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
     const console_calc::Value first_list = parser.evaluate_value("first(2, {1, 2, 3})");
     const auto* first_values = std::get_if<console_calc::ListValue>(&first_list);
     if (first_values == nullptr || first_values->size() != 2 ||
-        !almost_equal((*first_values)[0], 1.0) || !almost_equal((*first_values)[1], 2.0)) {
+        !almost_equal(scalar_to_double((*first_values)[0]), 1.0) ||
+        !almost_equal(scalar_to_double((*first_values)[1]), 2.0)) {
         return false;
     }
 
     const console_calc::Value dropped_list = parser.evaluate_value("drop(2, {1, 2, 3, 4})");
     const auto* dropped_values = std::get_if<console_calc::ListValue>(&dropped_list);
     if (dropped_values == nullptr || dropped_values->size() != 2 ||
-        !almost_equal((*dropped_values)[0], 3.0) || !almost_equal((*dropped_values)[1], 4.0)) {
+        !almost_equal(scalar_to_double((*dropped_values)[0]), 3.0) ||
+        !almost_equal(scalar_to_double((*dropped_values)[1]), 4.0)) {
         return false;
     }
 
@@ -102,7 +124,8 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
     const console_calc::Value mapped_list = parser.evaluate_value("map({0, 1.5707963267948966}, sin)");
     const auto* mapped_values = std::get_if<console_calc::ListValue>(&mapped_list);
     if (mapped_values == nullptr || mapped_values->size() != 2 ||
-        !almost_equal((*mapped_values)[0], 0.0) || !almost_equal((*mapped_values)[1], 1.0)) {
+        !almost_equal(scalar_to_double((*mapped_values)[0]), 0.0) ||
+        !almost_equal(scalar_to_double((*mapped_values)[1]), 1.0)) {
         return false;
     }
 

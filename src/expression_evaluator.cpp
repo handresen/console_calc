@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <limits>
 #include <numbers>
+#include <span>
 #include <type_traits>
 #include <variant>
 
@@ -14,7 +15,26 @@ namespace console_calc {
 
 namespace {
 
-[[nodiscard]] double require_scalar(const Value& value) {
+[[nodiscard]] Value to_value(const ScalarValue& value) {
+    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
+        return *integer;
+    }
+
+    return std::get<double>(value);
+}
+
+[[nodiscard]] double scalar_to_double(const ScalarValue& value) {
+    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
+        return static_cast<double>(*integer);
+    }
+
+    return std::get<double>(value);
+}
+
+[[nodiscard]] ScalarValue require_scalar_value(const Value& value) {
+    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
+        return *integer;
+    }
     if (const auto* scalar = std::get_if<double>(&value)) {
         return *scalar;
     }
@@ -22,11 +42,13 @@ namespace {
     throw EvaluationError("list value cannot be used as a scalar");
 }
 
-[[nodiscard]] double require_scalar_or_singleton_list(const Value& value) {
+[[nodiscard]] ScalarValue require_scalar_or_singleton_list_value(const Value& value) {
+    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
+        return *integer;
+    }
     if (const auto* scalar = std::get_if<double>(&value)) {
         return *scalar;
     }
-
     if (const auto* list = std::get_if<ListValue>(&value)) {
         if (list->size() == 1) {
             return (*list)[0];
@@ -44,26 +66,48 @@ namespace {
     throw EvaluationError("list value required");
 }
 
-[[nodiscard]] std::size_t require_list_index(double value) {
+[[nodiscard]] bool is_exact_integer_double(double value) {
     if (!std::isfinite(value)) {
+        return false;
+    }
+
+    double integral_part = 0.0;
+    return std::modf(value, &integral_part) == 0.0;
+}
+
+[[nodiscard]] std::size_t require_list_index(const ScalarValue& value) {
+    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
+        if (*integer < 0) {
+            throw EvaluationError("list count must be a non-negative integer");
+        }
+        return static_cast<std::size_t>(*integer);
+    }
+
+    const double numeric_value = std::get<double>(value);
+    if (!std::isfinite(numeric_value)) {
         throw EvaluationError("list count must be a non-negative integer");
     }
 
     double integral_part = 0.0;
-    if (std::modf(value, &integral_part) != 0.0 || integral_part < 0.0) {
+    if (std::modf(numeric_value, &integral_part) != 0.0 || integral_part < 0.0) {
         throw EvaluationError("list count must be a non-negative integer");
     }
 
     return static_cast<std::size_t>(integral_part);
 }
 
-[[nodiscard]] std::int64_t require_integer_operand(double value) {
-    if (!std::isfinite(value)) {
+[[nodiscard]] std::int64_t require_integer_operand(const ScalarValue& value) {
+    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
+        return *integer;
+    }
+
+    const double numeric_value = std::get<double>(value);
+    if (!std::isfinite(numeric_value)) {
         throw EvaluationError("bitwise operators require 64-bit integer operands");
     }
 
     double integral_part = 0.0;
-    if (std::modf(value, &integral_part) != 0.0) {
+    if (std::modf(numeric_value, &integral_part) != 0.0) {
         throw EvaluationError("bitwise operators require 64-bit integer operands");
     }
 
@@ -87,6 +131,177 @@ namespace {
 
 [[nodiscard]] double degrees_to_radians(double value) {
     return value * std::numbers::pi_v<double> / 180.0;
+}
+
+[[nodiscard]] bool add_int64(std::int64_t lhs, std::int64_t rhs, std::int64_t& result) {
+    if ((rhs > 0 && lhs > std::numeric_limits<std::int64_t>::max() - rhs) ||
+        (rhs < 0 && lhs < std::numeric_limits<std::int64_t>::min() - rhs)) {
+        return false;
+    }
+
+    result = lhs + rhs;
+    return true;
+}
+
+[[nodiscard]] bool subtract_int64(std::int64_t lhs, std::int64_t rhs, std::int64_t& result) {
+    if ((rhs < 0 && lhs > std::numeric_limits<std::int64_t>::max() + rhs) ||
+        (rhs > 0 && lhs < std::numeric_limits<std::int64_t>::min() + rhs)) {
+        return false;
+    }
+
+    result = lhs - rhs;
+    return true;
+}
+
+[[nodiscard]] bool multiply_int64(std::int64_t lhs, std::int64_t rhs, std::int64_t& result) {
+    if (lhs == 0 || rhs == 0) {
+        result = 0;
+        return true;
+    }
+
+    if (lhs == -1) {
+        if (rhs == std::numeric_limits<std::int64_t>::min()) {
+            return false;
+        }
+        result = -rhs;
+        return true;
+    }
+    if (rhs == -1) {
+        if (lhs == std::numeric_limits<std::int64_t>::min()) {
+            return false;
+        }
+        result = -lhs;
+        return true;
+    }
+
+    if (lhs > 0) {
+        if ((rhs > 0 && lhs > std::numeric_limits<std::int64_t>::max() / rhs) ||
+            (rhs < 0 && rhs < std::numeric_limits<std::int64_t>::min() / lhs)) {
+            return false;
+        }
+    } else {
+        if ((rhs > 0 && lhs < std::numeric_limits<std::int64_t>::min() / rhs) ||
+            (rhs < 0 && lhs != 0 && rhs < std::numeric_limits<std::int64_t>::max() / lhs)) {
+            return false;
+        }
+    }
+
+    result = lhs * rhs;
+    return true;
+}
+
+[[nodiscard]] bool power_int64(std::int64_t base, std::int64_t exponent, std::int64_t& result) {
+    if (exponent < 0) {
+        return false;
+    }
+
+    std::int64_t total = 1;
+    std::int64_t factor = base;
+    std::int64_t remaining = exponent;
+    while (remaining > 0) {
+        if ((remaining & 1) != 0) {
+            if (!multiply_int64(total, factor, total)) {
+                return false;
+            }
+        }
+        remaining >>= 1;
+        if (remaining > 0 && !multiply_int64(factor, factor, factor)) {
+            return false;
+        }
+    }
+
+    result = total;
+    return true;
+}
+
+[[nodiscard]] ScalarValue add_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
+    if (const auto* lhs_integer = std::get_if<std::int64_t>(&lhs)) {
+        if (const auto* rhs_integer = std::get_if<std::int64_t>(&rhs)) {
+            std::int64_t result = 0;
+            if (add_int64(*lhs_integer, *rhs_integer, result)) {
+                return result;
+            }
+        }
+    }
+
+    return require_finite_result(scalar_to_double(lhs) + scalar_to_double(rhs));
+}
+
+[[nodiscard]] ScalarValue subtract_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
+    if (const auto* lhs_integer = std::get_if<std::int64_t>(&lhs)) {
+        if (const auto* rhs_integer = std::get_if<std::int64_t>(&rhs)) {
+            std::int64_t result = 0;
+            if (subtract_int64(*lhs_integer, *rhs_integer, result)) {
+                return result;
+            }
+        }
+    }
+
+    return require_finite_result(scalar_to_double(lhs) - scalar_to_double(rhs));
+}
+
+[[nodiscard]] ScalarValue multiply_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
+    if (const auto* lhs_integer = std::get_if<std::int64_t>(&lhs)) {
+        if (const auto* rhs_integer = std::get_if<std::int64_t>(&rhs)) {
+            std::int64_t result = 0;
+            if (multiply_int64(*lhs_integer, *rhs_integer, result)) {
+                return result;
+            }
+        }
+    }
+
+    return require_finite_result(scalar_to_double(lhs) * scalar_to_double(rhs));
+}
+
+[[nodiscard]] ScalarValue divide_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
+    const double rhs_numeric = scalar_to_double(rhs);
+    if (rhs_numeric == 0.0) {
+        throw EvaluationError("division by zero");
+    }
+
+    return require_finite_result(scalar_to_double(lhs) / rhs_numeric);
+}
+
+[[nodiscard]] ScalarValue modulo_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
+    if (const auto* lhs_integer = std::get_if<std::int64_t>(&lhs)) {
+        if (const auto* rhs_integer = std::get_if<std::int64_t>(&rhs)) {
+            if (*rhs_integer == 0) {
+                throw EvaluationError("modulo by zero");
+            }
+            return *lhs_integer % *rhs_integer;
+        }
+    }
+
+    const double rhs_numeric = scalar_to_double(rhs);
+    if (rhs_numeric == 0.0) {
+        throw EvaluationError("modulo by zero");
+    }
+
+    return require_finite_result(std::fmod(scalar_to_double(lhs), rhs_numeric));
+}
+
+[[nodiscard]] ScalarValue power_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
+    if (const auto* lhs_integer = std::get_if<std::int64_t>(&lhs)) {
+        if (const auto* rhs_integer = std::get_if<std::int64_t>(&rhs)) {
+            std::int64_t result = 0;
+            if (power_int64(*lhs_integer, *rhs_integer, result)) {
+                return result;
+            }
+        }
+    }
+
+    return require_finite_result(std::pow(scalar_to_double(lhs), scalar_to_double(rhs)));
+}
+
+[[nodiscard]] ScalarValue negate_scalar(const ScalarValue& value) {
+    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
+        if (*integer == std::numeric_limits<std::int64_t>::min()) {
+            return require_finite_result(-static_cast<double>(*integer));
+        }
+        return -*integer;
+    }
+
+    return require_finite_result(-std::get<double>(value));
 }
 
 [[nodiscard]] double evaluate_unary_scalar_builtin(Function function, double argument) {
@@ -128,30 +343,30 @@ namespace {
     case Function::cosd:
     case Function::tand:
         return evaluate_unary_scalar_builtin(
-            function, require_scalar_or_singleton_list(arguments[0]));
+            function, scalar_to_double(require_scalar_or_singleton_list_value(arguments[0])));
     case Function::pow:
-        return require_finite_result(
-            std::pow(require_scalar_or_singleton_list(arguments[0]),
-                     require_scalar_or_singleton_list(arguments[1])));
+        return to_value(power_scalars(
+            require_scalar_or_singleton_list_value(arguments[0]),
+            require_scalar_or_singleton_list_value(arguments[1])));
     case Function::sum: {
         const ListValue values = require_list(arguments[0]);
-        double total = 0.0;
-        for (const double value : values) {
-            total = require_finite_result(total + value);
+        ScalarValue total = std::int64_t{0};
+        for (const auto& value : values) {
+            total = add_scalars(total, value);
         }
-        return total;
+        return to_value(total);
     }
     case Function::len: {
         const ListValue values = require_list(arguments[0]);
-        return static_cast<double>(values.size());
+        return static_cast<std::int64_t>(values.size());
     }
     case Function::product: {
         const ListValue values = require_list(arguments[0]);
-        double total = 1.0;
-        for (const double value : values) {
-            total = require_finite_result(total * value);
+        ScalarValue total = std::int64_t{1};
+        for (const auto& value : values) {
+            total = multiply_scalars(total, value);
         }
-        return total;
+        return to_value(total);
     }
     case Function::avg: {
         const ListValue values = require_list(arguments[0]);
@@ -160,8 +375,8 @@ namespace {
         }
 
         double total = 0.0;
-        for (const double value : values) {
-            total = require_finite_result(total + value);
+        for (const auto& value : values) {
+            total = require_finite_result(total + scalar_to_double(value));
         }
         return require_finite_result(total / static_cast<double>(values.size()));
     }
@@ -171,11 +386,13 @@ namespace {
             throw EvaluationError("min() requires a non-empty list");
         }
 
-        double result = values.front();
+        ScalarValue result = values.front();
         for (std::size_t index = 1; index < values.size(); ++index) {
-            result = std::min(result, values[index]);
+            if (scalar_to_double(values[index]) < scalar_to_double(result)) {
+                result = values[index];
+            }
         }
-        return result;
+        return to_value(result);
     }
     case Function::max: {
         const ListValue values = require_list(arguments[0]);
@@ -183,20 +400,24 @@ namespace {
             throw EvaluationError("max() requires a non-empty list");
         }
 
-        double result = values.front();
+        ScalarValue result = values.front();
         for (std::size_t index = 1; index < values.size(); ++index) {
-            result = std::max(result, values[index]);
+            if (scalar_to_double(values[index]) > scalar_to_double(result)) {
+                result = values[index];
+            }
         }
-        return result;
+        return to_value(result);
     }
     case Function::first: {
-        const std::size_t count = require_list_index(require_scalar_or_singleton_list(arguments[0]));
+        const std::size_t count =
+            require_list_index(require_scalar_or_singleton_list_value(arguments[0]));
         const ListValue values = require_list(arguments[1]);
         const std::size_t result_size = std::min(count, values.size());
         return ListValue(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(result_size));
     }
     case Function::drop: {
-        const std::size_t count = require_list_index(require_scalar_or_singleton_list(arguments[0]));
+        const std::size_t count =
+            require_list_index(require_scalar_or_singleton_list_value(arguments[0]));
         const ListValue values = require_list(arguments[1]);
         const std::size_t skip = std::min(count, values.size());
         return ListValue(values.begin() + static_cast<std::ptrdiff_t>(skip), values.end());
@@ -216,15 +437,15 @@ Value evaluate_expression(const Expression& expression) {
             using Node = std::decay_t<decltype(node)>;
 
             if constexpr (std::is_same_v<Node, NumberLiteral>) {
-                return node.value;
+                return to_value(node.value);
             } else if constexpr (std::is_same_v<Node, UnaryExpression>) {
-                return require_finite_result(
-                    -require_scalar_or_singleton_list(evaluate_expression(*node.operand)));
+                return to_value(negate_scalar(
+                    require_scalar_or_singleton_list_value(evaluate_expression(*node.operand))));
             } else if constexpr (std::is_same_v<Node, ListLiteral>) {
                 ListValue values;
                 values.reserve(node.elements.size());
                 for (const auto& element : node.elements) {
-                    values.push_back(require_scalar(evaluate_expression(*element)));
+                    values.push_back(require_scalar_value(evaluate_expression(*element)));
                 }
                 return values;
             } else if constexpr (std::is_same_v<Node, FunctionCall>) {
@@ -242,43 +463,35 @@ Value evaluate_expression(const Expression& expression) {
                 const ListValue input_values = require_list(evaluate_expression(*node.list_argument));
                 ListValue mapped_values;
                 mapped_values.reserve(input_values.size());
-                for (const double value : input_values) {
-                    const Value scalar_value = value;
-                    mapped_values.push_back(require_scalar(
+                for (const auto& value : input_values) {
+                    const Value scalar_value = to_value(value);
+                    mapped_values.push_back(require_scalar_value(
                         evaluate_builtin_function(node.mapped_function, std::span{&scalar_value, 1})));
                 }
                 return mapped_values;
             } else {
-                const double lhs = require_scalar_or_singleton_list(evaluate_expression(*node.left));
-                const double rhs = require_scalar_or_singleton_list(evaluate_expression(*node.right));
+                const ScalarValue lhs =
+                    require_scalar_or_singleton_list_value(evaluate_expression(*node.left));
+                const ScalarValue rhs =
+                    require_scalar_or_singleton_list_value(evaluate_expression(*node.right));
 
                 switch (node.op) {
                 case BinaryOperator::add:
-                    return require_finite_result(lhs + rhs);
+                    return to_value(add_scalars(lhs, rhs));
                 case BinaryOperator::subtract:
-                    return require_finite_result(lhs - rhs);
+                    return to_value(subtract_scalars(lhs, rhs));
                 case BinaryOperator::multiply:
-                    return require_finite_result(lhs * rhs);
+                    return to_value(multiply_scalars(lhs, rhs));
                 case BinaryOperator::divide:
-                    if (rhs == 0.0) {
-                        throw EvaluationError("division by zero");
-                    }
-
-                    return require_finite_result(lhs / rhs);
+                    return to_value(divide_scalars(lhs, rhs));
                 case BinaryOperator::modulo:
-                    if (rhs == 0.0) {
-                        throw EvaluationError("modulo by zero");
-                    }
-
-                    return require_finite_result(std::fmod(lhs, rhs));
+                    return to_value(modulo_scalars(lhs, rhs));
                 case BinaryOperator::power:
-                    return require_finite_result(std::pow(lhs, rhs));
+                    return to_value(power_scalars(lhs, rhs));
                 case BinaryOperator::bitwise_and:
-                    return static_cast<double>(require_integer_operand(lhs) &
-                                               require_integer_operand(rhs));
+                    return require_integer_operand(lhs) & require_integer_operand(rhs);
                 case BinaryOperator::bitwise_or:
-                    return static_cast<double>(require_integer_operand(lhs) |
-                                               require_integer_operand(rhs));
+                    return require_integer_operand(lhs) | require_integer_operand(rhs);
                 }
 
                 throw EvaluationError("unknown binary operator");
@@ -288,7 +501,7 @@ Value evaluate_expression(const Expression& expression) {
 }
 
 double evaluate_scalar_expression(const Expression& expression) {
-    return require_scalar_or_singleton_list(evaluate_expression(expression));
+    return scalar_to_double(require_scalar_or_singleton_list_value(evaluate_expression(expression)));
 }
 
 }  // namespace console_calc

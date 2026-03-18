@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <string_view>
 
+#include "console_calc/value.h"
+
 namespace console_calc {
 
 enum class TokenKind {
@@ -26,7 +28,7 @@ enum class TokenKind {
 
 struct Token {
     TokenKind kind;
-    double number_value = 0.0;
+    ScalarValue number_value = std::int64_t{0};
     std::string_view identifier_text;
 };
 

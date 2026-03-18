@@ -141,6 +141,11 @@ void ConsoleSession::print_functions() const {
 }
 
 void ConsoleSession::print_result(const Value& value) {
+    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
+        output_ << *integer << '\n';
+        return;
+    }
+
     if (const auto* scalar = std::get_if<double>(&value)) {
         output_ << *scalar << '\n';
         return;
@@ -224,20 +229,34 @@ double ConsoleSession::apply_stack_operator(char op) {
     const Value lhs_value = result_stack_.back();
     result_stack_.pop_back();
 
-    const auto* rhs = std::get_if<double>(&rhs_value);
-    const auto* lhs = std::get_if<double>(&lhs_value);
-    if (lhs == nullptr || rhs == nullptr) {
+    if (!std::holds_alternative<std::int64_t>(lhs_value) &&
+        !std::holds_alternative<double>(lhs_value)) {
+        result_stack_.push_back(lhs_value);
+        result_stack_.push_back(rhs_value);
+        throw std::invalid_argument("stack operator requires scalar values");
+    }
+    if (!std::holds_alternative<std::int64_t>(rhs_value) &&
+        !std::holds_alternative<double>(rhs_value)) {
         result_stack_.push_back(lhs_value);
         result_stack_.push_back(rhs_value);
         throw std::invalid_argument("stack operator requires scalar values");
     }
 
-    const std::string expression =
-        format_scalar(*lhs) + ' ' + op + ' ' + format_scalar(*rhs);
+    const ScalarValue lhs = std::holds_alternative<std::int64_t>(lhs_value)
+                                ? ScalarValue{std::get<std::int64_t>(lhs_value)}
+                                : ScalarValue{std::get<double>(lhs_value)};
+    const ScalarValue rhs = std::holds_alternative<std::int64_t>(rhs_value)
+                                ? ScalarValue{std::get<std::int64_t>(rhs_value)}
+                                : ScalarValue{std::get<double>(rhs_value)};
+
+    const std::string expression = format_scalar(lhs) + ' ' + op + ' ' + format_scalar(rhs);
     try {
-        const double result = parser_.evaluate(expression);
+        const Value result = parser_.evaluate_value(expression);
         result_stack_.push_back(result);
-        return result;
+        if (const auto* integer = std::get_if<std::int64_t>(&result)) {
+            return static_cast<double>(*integer);
+        }
+        return std::get<double>(result);
     } catch (...) {
         result_stack_.push_back(lhs_value);
         result_stack_.push_back(rhs_value);

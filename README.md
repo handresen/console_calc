@@ -46,7 +46,7 @@ Start interactive console mode:
 ## Expression Language
 
 Supported values:
-- numbers
+- intrinsic integer and floating-point scalars
 - lists like `{1, 2, 3}`
 
 Supported operators:
@@ -69,8 +69,17 @@ Notes:
 - `^` is right-associative
 - `%` uses floating-point modulo
 - `&` and `|` require integer-valued operands
+- plain decimal integers such as `42` are kept as integer values
+- decimal values with a fractional part or exponent are floating-point values
 - one-element lists are accepted in scalar positions
 - list literals are currently flat; nested lists are rejected
+
+Current integer-preserving behavior:
+- `+`, `-`, and `*` keep integer results when both inputs are integers and the result fits in 64 bits
+- `/` always yields a floating-point result
+- `%` yields an integer result when both inputs are integers
+- `len(...)` returns an integer
+- trig functions return floating-point values
 
 Examples:
 

@@ -6,7 +6,7 @@
 
 namespace console_calc {
 
-[[nodiscard]] std::string format_scalar(double value);
+[[nodiscard]] std::string format_scalar(const ScalarValue& value);
 [[nodiscard]] std::string format_list(const ListValue& values);
 [[nodiscard]] std::string format_value(const Value& value);
 
