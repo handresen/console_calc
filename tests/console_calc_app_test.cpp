@@ -4,6 +4,7 @@
 #include <string_view>
 #include <vector>
 
+#include "console_history.h"
 #include "console_calc_app.h"
 
 namespace {
@@ -24,6 +25,36 @@ bool expect_argument_mode_success() {
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
     return exit_code == 0 && output.str() == "9\n" && error.str().empty();
+}
+
+bool expect_console_history_previous() {
+    console_calc::ConsoleHistory history;
+    history.record("one");
+    history.record("two");
+    history.record("three");
+
+    const auto first = history.previous();
+    const auto second = history.previous();
+    const auto third = history.previous();
+
+    return first.has_value() && second.has_value() && third.has_value() &&
+           *first == "three" && *second == "two" && *third == "one";
+}
+
+bool expect_console_history_limit() {
+    console_calc::ConsoleHistory history;
+    for (int index = 1; index <= 11; ++index) {
+        history.record("cmd" + std::to_string(index));
+    }
+
+    const auto newest = history.previous();
+    for (int index = 0; index < 8; ++index) {
+        (void)history.previous();
+    }
+    const auto oldest = history.previous();
+
+    return newest.has_value() && oldest.has_value() && *newest == "cmd11" &&
+           *oldest == "cmd2";
 }
 
 bool expect_argument_mode_failure() {
@@ -294,6 +325,14 @@ bool expect_console_mode_list_constants() {
 }  // namespace
 
 int main() {
+    if (!expect_console_history_previous()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_history_limit()) {
+        return EXIT_FAILURE;
+    }
+
     if (!expect_argument_mode_success()) {
         return EXIT_FAILURE;
     }
