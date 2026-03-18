@@ -1,7 +1,8 @@
 #include "expression_ast_parser.h"
 
+#include "console_calc/expression_error.h"
+
 #include <memory>
-#include <stdexcept>
 #include <utility>
 
 #include "expression_tokenizer.h"
@@ -35,7 +36,7 @@ namespace {
         break;
     }
 
-    throw std::invalid_argument("expected binary operator");
+    throw ParseError("expected binary operator");
 }
 
 [[nodiscard]] std::unique_ptr<Expression> make_expression(Expression expression) {
@@ -52,12 +53,12 @@ public:
 
     [[nodiscard]] Expression parse() {
         if (!starts_primary_expression(current_.kind)) {
-            throw std::invalid_argument("expression must start with a number or '('");
+            throw ParseError("expression must start with a number or '('");
         }
 
         Expression expression = parse_bitwise_or_expression();
         if (current_.kind != TokenKind::end) {
-            throw std::invalid_argument("expected binary operator");
+            throw ParseError("expected binary operator");
         }
 
         return expression;
@@ -72,7 +73,7 @@ private:
             advance();
 
             if (!starts_primary_expression(current_.kind)) {
-                throw std::invalid_argument("expected number after operator");
+                throw ParseError("expected number after operator");
             }
 
             expression = Expression{
@@ -94,7 +95,7 @@ private:
             advance();
 
             if (!starts_primary_expression(current_.kind)) {
-                throw std::invalid_argument("expected number after operator");
+                throw ParseError("expected number after operator");
             }
 
             expression = Expression{
@@ -116,7 +117,7 @@ private:
             advance();
 
             if (!starts_primary_expression(current_.kind)) {
-                throw std::invalid_argument("expected number after operator");
+                throw ParseError("expected number after operator");
             }
 
             expression = Expression{
@@ -139,7 +140,7 @@ private:
             advance();
 
             if (!starts_primary_expression(current_.kind)) {
-                throw std::invalid_argument("expected number after operator");
+                throw ParseError("expected number after operator");
             }
 
             expression = Expression{
@@ -160,7 +161,7 @@ private:
             advance();
 
             if (!starts_primary_expression(current_.kind)) {
-                throw std::invalid_argument("expected number after operator");
+                throw ParseError("expected number after operator");
             }
 
             expression = Expression{
@@ -179,7 +180,7 @@ private:
             advance();
             Expression expression = parse_bitwise_or_expression();
             if (current_.kind != TokenKind::right_paren) {
-                throw std::invalid_argument("expected ')'");
+                throw ParseError("expected ')'");
             }
 
             advance();
@@ -187,7 +188,7 @@ private:
         }
 
         if (current_.kind != TokenKind::number) {
-            throw std::invalid_argument("expected number after operator");
+            throw ParseError("expected number after operator");
         }
 
         Expression expression{NumberLiteral{.value = current_.number_value}};

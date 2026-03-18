@@ -1,9 +1,10 @@
 #include "expression_evaluator.h"
 
+#include "console_calc/expression_error.h"
+
 #include <cmath>
 #include <cstdint>
 #include <limits>
-#include <stdexcept>
 #include <type_traits>
 #include <variant>
 
@@ -13,19 +14,19 @@ namespace {
 
 [[nodiscard]] std::int64_t require_integer_operand(double value) {
     if (!std::isfinite(value)) {
-        throw std::invalid_argument("bitwise operators require 64-bit integer operands");
+        throw EvaluationError("bitwise operators require 64-bit integer operands");
     }
 
     double integral_part = 0.0;
     if (std::modf(value, &integral_part) != 0.0) {
-        throw std::invalid_argument("bitwise operators require 64-bit integer operands");
+        throw EvaluationError("bitwise operators require 64-bit integer operands");
     }
 
     const long double integral_value = static_cast<long double>(integral_part);
     const long double min_value = static_cast<long double>(std::numeric_limits<std::int64_t>::min());
     const long double max_value = static_cast<long double>(std::numeric_limits<std::int64_t>::max());
     if (integral_value < min_value || integral_value > max_value) {
-        throw std::invalid_argument("bitwise operators require 64-bit integer operands");
+        throw EvaluationError("bitwise operators require 64-bit integer operands");
     }
 
     return static_cast<std::int64_t>(integral_part);
@@ -33,7 +34,7 @@ namespace {
 
 [[nodiscard]] double require_finite_result(double value) {
     if (!std::isfinite(value)) {
-        throw std::invalid_argument("expression produced a non-finite result");
+        throw EvaluationError("expression produced a non-finite result");
     }
 
     return value;
@@ -61,13 +62,13 @@ double evaluate_expression(const Expression& expression) {
                     return require_finite_result(lhs * rhs);
                 case BinaryOperator::divide:
                     if (rhs == 0.0) {
-                        throw std::invalid_argument("division by zero");
+                        throw EvaluationError("division by zero");
                     }
 
                     return require_finite_result(lhs / rhs);
                 case BinaryOperator::modulo:
                     if (rhs == 0.0) {
-                        throw std::invalid_argument("modulo by zero");
+                        throw EvaluationError("modulo by zero");
                     }
 
                     return require_finite_result(std::fmod(lhs, rhs));
@@ -81,7 +82,7 @@ double evaluate_expression(const Expression& expression) {
                                                require_integer_operand(rhs));
                 }
 
-                throw std::invalid_argument("unknown binary operator");
+                throw EvaluationError("unknown binary operator");
             }
         },
         expression.node);

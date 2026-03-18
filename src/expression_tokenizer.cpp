@@ -1,8 +1,9 @@
 #include "expression_tokenizer.h"
 
+#include "console_calc/expression_error.h"
+
 #include <cctype>
 #include <cstdlib>
-#include <stdexcept>
 
 namespace console_calc {
 
@@ -55,7 +56,7 @@ Token Tokenizer::next() {
         return parse_number();
     }
 
-    throw std::invalid_argument("unexpected character in expression");
+    throw ParseError("unexpected character in expression");
 }
 
 Token Tokenizer::parse_number() {
@@ -64,7 +65,7 @@ Token Tokenizer::parse_number() {
     const double value = std::strtod(begin, &end);
 
     if (end == begin) {
-        throw std::invalid_argument("invalid number literal");
+        throw ParseError("invalid number literal");
     }
 
     position_ = static_cast<std::size_t>(end - input_.data());
