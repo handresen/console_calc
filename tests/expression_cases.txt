@@ -41,6 +41,8 @@
 "tand(45)", 1.0
 "pow(2, 3)", 8.0
 "pow(2, 1 + 2)", 8.0
+"sum({1, 2, 3})", 6.0
+"sum({1, 2, sin(0)})", 3.0
 
 # invalid cases
 "", INVALID
@@ -68,4 +70,6 @@
 "sin()", INVALID
 "pow(2)", INVALID
 "pow(2, 3, 4)", INVALID
+"sum(1)", INVALID
+"sum({1} + 2)", INVALID
 "foo(1)", INVALID

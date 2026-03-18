@@ -44,6 +44,65 @@ struct VariableAssignment {
     std::string expression;
 };
 
+[[nodiscard]] std::vector<std::string> split_top_level_items(std::string_view text) {
+    std::vector<std::string> items;
+    std::size_t item_begin = 0;
+    int paren_depth = 0;
+    int brace_depth = 0;
+
+    for (std::size_t index = 0; index < text.size(); ++index) {
+        switch (text[index]) {
+        case '(':
+            ++paren_depth;
+            break;
+        case ')':
+            --paren_depth;
+            break;
+        case '{':
+            ++brace_depth;
+            break;
+        case '}':
+            --brace_depth;
+            break;
+        case ',':
+            if (paren_depth == 0 && brace_depth == 0) {
+                items.push_back(trim(text.substr(item_begin, index - item_begin)));
+                item_begin = index + 1;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    items.push_back(trim(text.substr(item_begin)));
+    return items;
+}
+
+[[nodiscard]] bool is_braced_list_literal(std::string_view text) {
+    if (text.size() < 2 || text.front() != '{' || text.back() != '}') {
+        return false;
+    }
+
+    int depth = 0;
+    for (std::size_t index = 0; index < text.size(); ++index) {
+        if (text[index] == '{') {
+            ++depth;
+        } else if (text[index] == '}') {
+            --depth;
+            if (depth == 0 && index + 1 != text.size()) {
+                return false;
+            }
+        }
+
+        if (depth < 0) {
+            return false;
+        }
+    }
+
+    return depth == 0;
+}
+
 [[nodiscard]] bool is_stack_operator(std::string_view text) {
     return text.size() == 1 &&
            (text[0] == '+' || text[0] == '-' || text[0] == '*' || text[0] == '/' ||
@@ -105,6 +164,39 @@ enum class StackCommand {
     }
 
     return VariableAssignment{name, expression};
+}
+
+[[nodiscard]] VariableValue evaluate_assignment_value(const ExpressionParser& parser,
+                                                      std::string_view expression) {
+    const std::string trimmed = trim(expression);
+    if (is_braced_list_literal(trimmed)) {
+        const std::vector<std::string> items =
+            split_top_level_items(std::string_view(trimmed).substr(1, trimmed.size() - 2));
+        std::vector<double> values;
+        values.reserve(items.size());
+        for (const auto& item : items) {
+            if (item.empty()) {
+                throw std::invalid_argument("expected expression after ','");
+            }
+            values.push_back(parser.evaluate(item));
+        }
+        return values;
+    }
+
+    const std::vector<std::string> items = split_top_level_items(trimmed);
+    if (items.size() == 1) {
+        return parser.evaluate(trimmed);
+    }
+
+    std::vector<double> values;
+    values.reserve(items.size());
+    for (const auto& item : items) {
+        if (item.empty()) {
+            throw std::invalid_argument("expected expression after ','");
+        }
+        values.push_back(parser.evaluate(item));
+    }
+    return values;
 }
 
 void print_stack(const std::vector<double>& result_stack, std::ostream& output) {
@@ -231,9 +323,10 @@ int run_console_mode(const ExpressionParser& parser, const ConstantTable& consta
                 if (constants.contains(assignment->name)) {
                     throw std::invalid_argument("cannot redefine constant: " + assignment->name);
                 }
-                const double value = parser.evaluate(expand_expression_identifiers(
-                    assignment->expression, constants, variables, result_reference));
-                variables[assignment->name] = value;
+                const std::string expanded_expression = expand_expression_identifiers(
+                    assignment->expression, constants, variables, result_reference);
+                variables[assignment->name] =
+                    evaluate_assignment_value(parser, expanded_expression);
                 continue;
             }
 

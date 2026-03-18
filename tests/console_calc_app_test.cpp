@@ -160,6 +160,22 @@ bool expect_console_mode_variables() {
     return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
 
+bool expect_console_mode_list_variables() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("vals:1,2,3,4,5,7.0,sin(pi+0.1)\nsum(vals)\nvals:4,5\nsum(vals)\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) +
+        prompt(0) + "21.9002\n" +
+        prompt(1) +
+        prompt(1) + "9\n" +
+        prompt(2);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+}
+
 bool expect_console_mode_variable_constant_conflict() {
     const std::vector<std::string_view> args;
     std::istringstream input("pi:7\nq\n");
@@ -248,6 +264,10 @@ int main() {
     }
 
     if (!expect_console_mode_variables()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_list_variables()) {
         return EXIT_FAILURE;
     }
 

@@ -48,6 +48,12 @@ Token Tokenizer::next() {
     case ')':
         ++position_;
         return {.kind = TokenKind::right_paren};
+    case '{':
+        ++position_;
+        return {.kind = TokenKind::left_brace};
+    case '}':
+        ++position_;
+        return {.kind = TokenKind::right_brace};
     case ',':
         ++position_;
         return {.kind = TokenKind::comma};

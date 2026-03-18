@@ -25,6 +25,18 @@ namespace {
     return stream.str();
 }
 
+[[nodiscard]] std::string format_list_literal(const std::vector<double>& values) {
+    std::string result = "{";
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        if (index != 0) {
+            result += ", ";
+        }
+        result += format_number(values[index]);
+    }
+    result += "}";
+    return result;
+}
+
 [[nodiscard]] bool is_followed_by_call(std::string_view expression, std::size_t index) {
     while (index < expression.size() &&
            std::isspace(static_cast<unsigned char>(expression[index]))) {
@@ -52,7 +64,7 @@ bool is_identifier(std::string_view text) {
 
 bool is_builtin_function_name(std::string_view text) {
     return text == "sin" || text == "cos" || text == "tan" || text == "sind" ||
-           text == "cosd" || text == "tand" || text == "pow";
+           text == "cosd" || text == "tand" || text == "pow" || text == "sum";
 }
 
 std::string expand_expression_identifiers(std::string_view expression,
@@ -85,7 +97,11 @@ std::string expand_expression_identifiers(std::string_view expression,
             }
             expanded += format_number(*result_reference);
         } else if (const auto found = variables.find(identifier); found != variables.end()) {
-            expanded += format_number(found->second);
+            if (const auto* scalar_value = std::get_if<double>(&found->second)) {
+                expanded += format_number(*scalar_value);
+            } else {
+                expanded += format_list_literal(std::get<std::vector<double>>(found->second));
+            }
         } else if (const auto found = constants.find(identifier); found != constants.end()) {
             expanded += format_number(found->second);
         } else {

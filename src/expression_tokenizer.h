@@ -18,6 +18,8 @@ enum class TokenKind {
     bitwise_or,
     left_paren,
     right_paren,
+    left_brace,
+    right_brace,
     comma,
     end,
 };

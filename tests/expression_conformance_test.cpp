@@ -232,6 +232,34 @@ bool expect_function_ast_shape(console_calc::ExpressionParser& parser) {
            almost_equal(rhs_left->value, 3.0) && almost_equal(rhs_right->value, 4.0);
 }
 
+bool expect_sum_ast_shape(console_calc::ExpressionParser& parser) {
+    using console_calc::Expression;
+    using console_calc::Function;
+    using console_calc::FunctionCall;
+    using console_calc::ListLiteral;
+    using console_calc::NumberLiteral;
+
+    const Expression ast = parser.parse("sum({2, 3, 4})");
+    const auto* root = std::get_if<FunctionCall>(&ast.node);
+    if (root == nullptr || root->function != Function::sum || root->arguments.size() != 1) {
+        return false;
+    }
+
+    const auto* list = std::get_if<ListLiteral>(&root->arguments[0]->node);
+    if (list == nullptr || list->elements.size() != 3) {
+        return false;
+    }
+
+    for (std::size_t index = 0; index < list->elements.size(); ++index) {
+        const auto* element = std::get_if<NumberLiteral>(&list->elements[index]->node);
+        if (element == nullptr || !almost_equal(element->value, static_cast<double>(index + 2))) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 }  // namespace
 
 int main() {
@@ -262,6 +290,10 @@ int main() {
     }
 
     if (!expect_function_ast_shape(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_sum_ast_shape(parser)) {
         return EXIT_FAILURE;
     }
 

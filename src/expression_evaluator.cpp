@@ -45,6 +45,19 @@ namespace {
     return value * std::numbers::pi_v<double> / 180.0;
 }
 
+[[nodiscard]] std::vector<double> evaluate_list_expression(const Expression& expression) {
+    if (const auto* list = std::get_if<ListLiteral>(&expression.node)) {
+        std::vector<double> values;
+        values.reserve(list->elements.size());
+        for (const auto& element : list->elements) {
+            values.push_back(evaluate_expression(*element));
+        }
+        return values;
+    }
+
+    throw EvaluationError("list value required");
+}
+
 }  // namespace
 
 double evaluate_expression(const Expression& expression) {
@@ -56,6 +69,8 @@ double evaluate_expression(const Expression& expression) {
                 return node.value;
             } else if constexpr (std::is_same_v<Node, UnaryExpression>) {
                 return require_finite_result(-evaluate_expression(*node.operand));
+            } else if constexpr (std::is_same_v<Node, ListLiteral>) {
+                throw EvaluationError("list value cannot be used as a scalar");
             } else if constexpr (std::is_same_v<Node, FunctionCall>) {
                 switch (node.function) {
                 case Function::sin:
@@ -76,6 +91,14 @@ double evaluate_expression(const Expression& expression) {
                 case Function::pow:
                     return require_finite_result(std::pow(evaluate_expression(*node.arguments[0]),
                                                           evaluate_expression(*node.arguments[1])));
+                case Function::sum: {
+                    const std::vector<double> values = evaluate_list_expression(*node.arguments[0]);
+                    double total = 0.0;
+                    for (const double value : values) {
+                        total = require_finite_result(total + value);
+                    }
+                    return total;
+                }
                 }
 
                 throw EvaluationError("unknown function");

@@ -35,6 +35,7 @@ enum class Function {
     cosd,
     tand,
     pow,
+    sum,
 };
 
 struct BinaryExpression {
@@ -43,13 +44,17 @@ struct BinaryExpression {
     std::unique_ptr<Expression> right;
 };
 
+struct ListLiteral {
+    std::vector<std::unique_ptr<Expression>> elements;
+};
+
 struct FunctionCall {
     Function function;
     std::vector<std::unique_ptr<Expression>> arguments;
 };
 
 struct Expression {
-    std::variant<NumberLiteral, UnaryExpression, BinaryExpression, FunctionCall> node;
+    std::variant<NumberLiteral, UnaryExpression, BinaryExpression, ListLiteral, FunctionCall> node;
 };
 
 }  // namespace console_calc

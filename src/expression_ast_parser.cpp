@@ -37,6 +37,8 @@ namespace {
     case TokenKind::identifier:
     case TokenKind::left_paren:
     case TokenKind::right_paren:
+    case TokenKind::left_brace:
+    case TokenKind::right_brace:
     case TokenKind::comma:
     case TokenKind::end:
         break;
@@ -67,6 +69,9 @@ namespace {
     if (name == "pow") {
         return Function::pow;
     }
+    if (name == "sum") {
+        return Function::sum;
+    }
 
     return std::nullopt;
 }
@@ -82,6 +87,8 @@ namespace {
         return 1;
     case Function::pow:
         return 2;
+    case Function::sum:
+        return 1;
     }
 
     throw ParseError("unknown function");
@@ -103,6 +110,8 @@ namespace {
         return "tand";
     case Function::pow:
         return "pow";
+    case Function::sum:
+        return "sum";
     }
 
     throw ParseError("unknown function");
@@ -114,7 +123,7 @@ namespace {
 
 [[nodiscard]] bool starts_primary_expression(TokenKind kind) {
     return kind == TokenKind::number || kind == TokenKind::identifier ||
-           kind == TokenKind::left_paren;
+           kind == TokenKind::left_paren || kind == TokenKind::left_brace;
 }
 
 [[nodiscard]] bool starts_operand_expression(TokenKind kind) {
@@ -127,7 +136,7 @@ public:
 
     [[nodiscard]] Expression parse() {
         if (!starts_operand_expression(current_.kind)) {
-            throw ParseError("expression must start with a number, function, '-' or '('");
+            throw ParseError("expression must start with a number, function, '-', '(' or '{'");
         }
 
         Expression expression = parse_bitwise_or_expression();
@@ -271,6 +280,10 @@ private:
             return parse_function_call();
         }
 
+        if (current_.kind == TokenKind::left_brace) {
+            return parse_list_literal();
+        }
+
         if (current_.kind == TokenKind::left_paren) {
             advance();
             Expression expression = parse_bitwise_or_expression();
@@ -305,13 +318,17 @@ private:
         advance();
         std::vector<std::unique_ptr<Expression>> arguments;
         if (current_.kind != TokenKind::right_paren) {
-            arguments.push_back(make_expression(parse_bitwise_or_expression()));
-            while (current_.kind == TokenKind::comma) {
-                advance();
-                if (!starts_operand_expression(current_.kind)) {
-                    throw ParseError("expected expression after ','");
-                }
+            if (*function == Function::sum) {
+                arguments.push_back(make_expression(parse_sum_argument()));
+            } else {
                 arguments.push_back(make_expression(parse_bitwise_or_expression()));
+                while (current_.kind == TokenKind::comma) {
+                    advance();
+                    if (!starts_operand_expression(current_.kind)) {
+                        throw ParseError("expected expression after ','");
+                    }
+                    arguments.push_back(make_expression(parse_bitwise_or_expression()));
+                }
             }
         }
 
@@ -332,6 +349,41 @@ private:
                 .function = *function,
                 .arguments = std::move(arguments),
             }};
+    }
+
+    [[nodiscard]] Expression parse_sum_argument() {
+        if (current_.kind == TokenKind::left_brace) {
+            return parse_list_literal();
+        }
+
+        return parse_bitwise_or_expression();
+    }
+
+    [[nodiscard]] Expression parse_list_literal() {
+        advance();
+
+        std::vector<std::unique_ptr<Expression>> elements;
+        if (current_.kind != TokenKind::right_brace) {
+            if (!starts_operand_expression(current_.kind)) {
+                throw ParseError("expected expression after '{'");
+            }
+
+            elements.push_back(make_expression(parse_bitwise_or_expression()));
+            while (current_.kind == TokenKind::comma) {
+                advance();
+                if (!starts_operand_expression(current_.kind)) {
+                    throw ParseError("expected expression after ','");
+                }
+                elements.push_back(make_expression(parse_bitwise_or_expression()));
+            }
+        }
+
+        if (current_.kind != TokenKind::right_brace) {
+            throw ParseError("expected '}'");
+        }
+
+        advance();
+        return Expression{ListLiteral{.elements = std::move(elements)}};
     }
 
     void advance() {

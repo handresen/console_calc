@@ -9,7 +9,8 @@ Current scope:
 - unary `-`
 - binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - parentheses for grouping
-- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`
+- list literals with `{ ... }`
+- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `sum`
 - optional whitespace between tokens
 
 Explicitly out of scope for this first version:
@@ -25,7 +26,7 @@ Explicitly out of scope for this first version:
 - `unary operator`
   - `-`
 - `grouping`
-  - `(` and `)`
+  - `(` `)` and `{` `}`
 - `separator`
   - `,`
 - `identifier`
@@ -41,8 +42,9 @@ sum        = term , { ( "+" | "-" ) , term } ;
 term       = unary , { ( "*" | "/" | "%" ) , unary } ;
 unary      = [ "-" ] , power ;
 power      = primary , [ "^" , unary ] ;
-primary    = number | function_call | "(" , expression , ")" ;
+primary    = number | function_call | list | "(" , expression , ")" ;
 function_call = identifier , "(" , expression , { "," , expression } , ")" ;
+list       = "{" , expression , { "," , expression } , "}" ;
 number     = mantissa , [ exponent ] ;
 mantissa   = digits , [ "." , [ digits ] ]
            | "." , digits ;
@@ -59,7 +61,7 @@ Accepted numeric forms include:
 
 ## Evaluation Rule
 
-Expressions use these precedence levels, from highest to lowest: function calls and parentheses, `^`, unary `-`, `*` `/` `%`, `+` `-`, `&`, `|`. `^` is right-associative. The other operators are left-associative.
+Expressions use these precedence levels, from highest to lowest: function calls, list literals, and parentheses, `^`, unary `-`, `*` `/` `%`, `+` `-`, `&`, `|`. `^` is right-associative. The other operators are left-associative.
 
 `%` uses floating-point modulo via `fmod`. `&` and `|` require integer-valued operands; non-integer operands are rejected. Division by zero, modulo by zero, and non-finite evaluation results are rejected.
 
@@ -67,6 +69,7 @@ Builtin functions:
 - `sin(x)`, `cos(x)`, `tan(x)` use radians
 - `sind(x)`, `cosd(x)`, `tand(x)` use degrees
 - `pow(x, y)` is equivalent to `x ^ y`
+- `sum(list)` sums a list value
 
 Examples:
 - `2 + 3` => `5`
@@ -77,6 +80,7 @@ Examples:
 - `sin(0)` => `0`
 - `sind(30)` => `0.5`
 - `pow(2, 3)` => `8`
+- `sum({1, 2, 3})` => `6`
 - `10 % 3` => `1`
 - `6 & 3 | 8` => `10`
 - `(2 + 3) * 4` => `20`
@@ -97,6 +101,7 @@ Examples:
 - `sin(0)`
 - `sind(30)`
 - `pow(2, 3)`
+- `sum({1, 2, 3})`
 - `2 ^ 3`
 - `10 % 3`
 - `6 & 3 | 8`
@@ -112,6 +117,7 @@ Examples:
 -  `()`
 - `sin()`
 - `pow(2)`
+- `sum(1)`
 - `1 / 0`
 - `1 % 0`
 - `0 ^ (1 - 2)`
