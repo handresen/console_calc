@@ -9,6 +9,7 @@
 - Dependency source: `vcpkg` in manifest mode
 - Language preference: `C++20` or later
 - Test framework: add through `vcpkg` when tests are introduced; do not hand-roll a custom test runner unless explicitly requested
+- Linting and formatting: `clang-tidy` and `clang-format`
 
 ## Repository Layout
 - `CMakeLists.txt`
@@ -25,6 +26,7 @@
   - unit and integration tests
 - `docs/`
   - grammar notes, roadmap, and design decisions
+  - developer workflow notes
 
 ## Design Direction
 - Keep CLI concerns separate from parsing and evaluation logic.
@@ -38,6 +40,16 @@
 - Use third-party packages for heavier capabilities that are out of scope for the core parser, such as symbolic manipulation, advanced numeric methods, or similar specialized features.
 - Introduce external dependencies only when they clearly improve correctness, maintainability, test quality, or provide substantial heavy-lifting functionality.
 
+## Current Language Scope
+- The CLI supports both one-shot evaluation from command-line arguments and an interactive console mode when started with no arguments.
+- Supported binary operators are `+`, `-`, `*`, `/`, `%`, `^`, `&`, and `|`.
+- Parentheses are supported for grouping.
+- Operator precedence is currently: parentheses, `^`, `*` `/` `%`, `+` `-`, `&`, `|`.
+- `^` is right-associative. The other binary operators are left-associative.
+- `%` uses floating-point modulo semantics.
+- `&` and `|` require integer-valued operands and should reject non-integer inputs.
+- Unary operators, functions, variables, and constants are still out of scope.
+
 ## Working Rules For Agents
 - Follow the existing CMake and `vcpkg` structure unless the user asks to replace it.
 - Prefer small, reviewable commits and isolated edits.
@@ -45,15 +57,18 @@
 - Keep include paths explicit and target-scoped in CMake.
 - Add tests alongside behavior changes when practical.
 - Avoid parser generators unless explicitly requested.
+- Keep `.clang-format` and `.clang-tidy` in sync with the project's actual conventions.
 - Keep implementations compact, but do not trade away readability for terseness.
 - Do not outsource tokenizing, parsing, or other core expression-processing logic to external libraries unless explicitly requested.
 - Keep platform-specific code out of the core library unless there is no reasonable alternative.
 - Treat the console application as a thin adapter over the core library.
 - Document grammar and operator-precedence assumptions as they become concrete.
+- Keep the interactive console behavior in the app layer rather than mixing REPL concerns into the parser library.
+- Keep the expression test corpus in `tests/expression_cases.txt` using quoted expressions, a comma, and an expected result token per line, with `#` comments for section headers.
+- When parser behavior changes, update both `docs/grammar.md` and the externalized expression test data.
 
 ## Near-Term Priorities
-1. Finalize the initial project scaffold.
-2. Define the first supported grammar.
-3. Implement tokenization.
-4. Implement parsing.
-5. Implement evaluation and user-facing error reporting.
+1. Preserve correctness while extending the grammar in small, test-backed steps.
+2. Add remaining planned expression features such as unary operators when requested.
+3. Refine console-mode behavior and future result-stack semantics without coupling them to the parser core.
+4. Keep grammar notes, external test data, and parser behavior synchronized.
