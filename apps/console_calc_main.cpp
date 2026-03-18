@@ -1,25 +1,15 @@
-#include <exception>
 #include <iostream>
-#include <string>
+#include <string_view>
+#include <vector>
 
-#include "console_calc/expression_parser.h"
+#include "console_calc_app.h"
 
 int main(int argc, char* argv[]) {
-    console_calc::ExpressionParser parser;
-
-    if (argc < 2) {
-        std::cerr << "usage: console_calc <expression>\n";
-        return 1;
+    std::vector<std::string_view> args;
+    args.reserve(argc > 0 ? static_cast<std::size_t>(argc - 1) : 0U);
+    for (int index = 1; index < argc; ++index) {
+        args.emplace_back(argv[index]);
     }
 
-    const std::string expression = argv[1];
-    try {
-        const double result = parser.evaluate(expression);
-        std::cout << result << '\n';
-    } catch (const std::exception& ex) {
-        std::cerr << "error: " << ex.what() << '\n';
-        return 1;
-    }
-
-    return 0;
+    return console_calc::run_console_calc(args, std::cin, std::cout, std::cerr);
 }
