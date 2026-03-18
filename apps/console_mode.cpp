@@ -1,6 +1,7 @@
 #include "console_mode.h"
 
 #include <cctype>
+#include <algorithm>
 #include <exception>
 #include <iomanip>
 #include <istream>
@@ -13,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include "expression_environment.h"
 #include "console_calc/expression_parser.h"
 
 namespace console_calc {
@@ -45,6 +47,7 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
 
 enum class StackCommand {
     list,
+    list_constants,
     duplicate,
     drop,
     swap,
@@ -54,6 +57,9 @@ enum class StackCommand {
 [[nodiscard]] std::optional<StackCommand> parse_stack_command(std::string_view text) {
     if (text == "s") {
         return StackCommand::list;
+    }
+    if (text == "consts") {
+        return StackCommand::list_constants;
     }
     if (text == "dup") {
         return StackCommand::duplicate;
@@ -77,34 +83,22 @@ enum class StackCommand {
     return stream.str();
 }
 
-[[nodiscard]] std::string expand_result_reference(std::string_view expression,
-                                                  const std::vector<double>& result_stack) {
-    if (expression.find('r') == std::string_view::npos) {
-        return std::string(expression);
-    }
-
-    if (result_stack.empty()) {
-        throw std::invalid_argument("result reference requires at least one value");
-    }
-
-    const std::string replacement = format_number(result_stack.back());
-    std::string expanded;
-    expanded.reserve(expression.size() + replacement.size());
-
-    for (const char ch : expression) {
-        if (ch == 'r') {
-            expanded += replacement;
-        } else {
-            expanded += ch;
-        }
-    }
-
-    return expanded;
-}
-
 void print_stack(const std::vector<double>& result_stack, std::ostream& output) {
     for (std::size_t index = 0; index < result_stack.size(); ++index) {
         output << index << ':' << format_number(result_stack[index]) << '\n';
+    }
+}
+
+void print_constants(const ConstantTable& constants, std::ostream& output) {
+    std::vector<std::string> names;
+    names.reserve(constants.size());
+    for (const auto& [name, _] : constants) {
+        names.push_back(name);
+    }
+
+    std::sort(names.begin(), names.end());
+    for (const auto& name : names) {
+        output << name << ':' << format_number(constants.at(name)) << '\n';
     }
 }
 
@@ -136,11 +130,14 @@ double apply_stack_operator(const ExpressionParser& parser, std::vector<double>&
     }
 }
 
-void execute_stack_command(StackCommand command, std::vector<double>& result_stack,
-                           std::ostream& output) {
+void execute_stack_command(StackCommand command, const ConstantTable& constants,
+                           std::vector<double>& result_stack, std::ostream& output) {
     switch (command) {
     case StackCommand::list:
         print_stack(result_stack, output);
+        return;
+    case StackCommand::list_constants:
+        print_constants(constants, output);
         return;
     case StackCommand::duplicate:
         if (result_stack.empty()) {
@@ -171,8 +168,8 @@ void execute_stack_command(StackCommand command, std::vector<double>& result_sta
 
 }  // namespace
 
-int run_console_mode(const ExpressionParser& parser, std::istream& input, std::ostream& output,
-                     std::ostream& error) {
+int run_console_mode(const ExpressionParser& parser, const ConstantTable& constants,
+                     std::istream& input, std::ostream& output, std::ostream& error) {
     std::vector<double> result_stack;
     std::string line;
     while (true) {
@@ -194,7 +191,7 @@ int run_console_mode(const ExpressionParser& parser, std::istream& input, std::o
 
         try {
             if (const auto command = parse_stack_command(trimmed)) {
-                execute_stack_command(*command, result_stack, output);
+                execute_stack_command(*command, constants, result_stack, output);
                 continue;
             }
 
@@ -203,8 +200,10 @@ int run_console_mode(const ExpressionParser& parser, std::istream& input, std::o
                 continue;
             }
 
+            const std::optional<double> result_reference =
+                result_stack.empty() ? std::nullopt : std::optional<double>{result_stack.back()};
             const double result =
-                parser.evaluate(expand_result_reference(trimmed, result_stack));
+                parser.evaluate(expand_expression_identifiers(trimmed, constants, result_reference));
             if (result_stack.size() >= k_max_stack_depth) {
                 throw std::invalid_argument("stack is full");
             }

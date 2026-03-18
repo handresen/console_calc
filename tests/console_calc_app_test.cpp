@@ -17,38 +17,39 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
 }
 
 bool expect_argument_mode_success() {
-    const std::vector<std::string_view> args = {"(", "2", "+", "3", ")", "*", "4"};
+    const std::vector<std::string_view> args = {"pi", "*", "2"};
     std::istringstream input;
     std::ostringstream output;
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 0 && output.str() == "20\n" && error.str().empty();
+    return exit_code == 0 && output.str() == "6.28319\n" && error.str().empty();
 }
 
 bool expect_argument_mode_failure() {
-    const std::vector<std::string_view> args = {"1", "+"};
+    const std::vector<std::string_view> args = {"unknown_name", "+", "1"};
     std::istringstream input;
     std::ostringstream output;
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 1 && output.str().empty() && error.str() == "error: expected number after operator\n";
+    return exit_code == 1 && output.str().empty() &&
+           error.str() == "error: unknown identifier: unknown_name\n";
 }
 
 bool expect_console_mode_success() {
     const std::vector<std::string_view> args;
-    std::istringstream input("1+1\n(2 + 3) * 4\ns\n+\ns\nq\n");
+    std::istringstream input("pi\n(2 + 3) * 4\ns\n+\ns\nq\n");
     std::ostringstream output;
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
     const std::string expected_output =
-        prompt(0) + "2\n" +
+        prompt(0) + "3.14159\n" +
         prompt(1) + "20\n" +
-        prompt(2) + "0:2\n1:20\n" +
-        prompt(2) + "22\n" +
-        prompt(1) + "0:22\n" +
+        prompt(2) + "0:3.1415926535897931\n1:20\n" +
+        prompt(2) + "23.1416\n" +
+        prompt(1) + "0:23.141592653589793\n" +
         prompt(1);
     return exit_code == 0 &&
            output.str() == expected_output &&
@@ -130,15 +131,15 @@ bool expect_console_mode_stack_command_errors() {
 
 bool expect_console_mode_result_reference() {
     const std::vector<std::string_view> args;
-    std::istringstream input("5\nr*2\nr+r\nq\n");
+    std::istringstream input("pi\nr*2\ne+r\nq\n");
     std::ostringstream output;
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
     const std::string expected_output =
-        prompt(0) + "5\n" +
-        prompt(1) + "10\n" +
-        prompt(2) + "20\n" +
+        prompt(0) + "3.14159\n" +
+        prompt(1) + "6.28319\n" +
+        prompt(2) + "9.00147\n" +
         prompt(3);
     return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
@@ -153,6 +154,34 @@ bool expect_console_mode_result_reference_error() {
     const std::string expected_output = prompt(0) + prompt(0);
     return exit_code == 0 && output.str() == expected_output &&
            error.str() == "error: result reference requires at least one value\n";
+}
+
+bool expect_console_mode_unknown_identifier_error() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("foo+1\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output = prompt(0) + prompt(0);
+    return exit_code == 0 && output.str() == expected_output &&
+           error.str() == "error: unknown identifier: foo\n";
+}
+
+bool expect_console_mode_list_constants() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("consts\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) +
+        "e:2.7182818284590451\n"
+        "pi:3.1415926535897931\n"
+        "tau:6.2831853071795862\n" +
+        prompt(0);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
 
 }  // namespace
@@ -191,6 +220,14 @@ int main() {
     }
 
     if (!expect_console_mode_result_reference_error()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_unknown_identifier_error()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_list_constants()) {
         return EXIT_FAILURE;
     }
 
