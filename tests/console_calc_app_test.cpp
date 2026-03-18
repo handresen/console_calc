@@ -108,6 +108,7 @@ bool expect_console_mode_stack_commands() {
         prompt(3) +
         prompt(2) + "0:1\n1:2\n" +
         prompt(2) +
+        prompt(0) +
         prompt(0);
     return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
@@ -125,6 +126,33 @@ bool expect_console_mode_stack_command_errors() {
                "error: stack requires at least one value\n"
                "error: stack requires at least one value\n"
                "error: stack requires at least two values\n";
+}
+
+bool expect_console_mode_result_reference() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("5\nr*2\nr+r\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) + "5\n" +
+        prompt(1) + "10\n" +
+        prompt(2) + "20\n" +
+        prompt(3);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+}
+
+bool expect_console_mode_result_reference_error() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("r*2\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output = prompt(0) + prompt(0);
+    return exit_code == 0 && output.str() == expected_output &&
+           error.str() == "error: result reference requires at least one value\n";
 }
 
 }  // namespace
@@ -155,6 +183,14 @@ int main() {
     }
 
     if (!expect_console_mode_stack_command_errors()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_result_reference()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_result_reference_error()) {
         return EXIT_FAILURE;
     }
 

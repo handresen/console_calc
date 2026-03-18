@@ -77,6 +77,31 @@ enum class StackCommand {
     return stream.str();
 }
 
+[[nodiscard]] std::string expand_result_reference(std::string_view expression,
+                                                  const std::vector<double>& result_stack) {
+    if (expression.find('r') == std::string_view::npos) {
+        return std::string(expression);
+    }
+
+    if (result_stack.empty()) {
+        throw std::invalid_argument("result reference requires at least one value");
+    }
+
+    const std::string replacement = format_number(result_stack.back());
+    std::string expanded;
+    expanded.reserve(expression.size() + replacement.size());
+
+    for (const char ch : expression) {
+        if (ch == 'r') {
+            expanded += replacement;
+        } else {
+            expanded += ch;
+        }
+    }
+
+    return expanded;
+}
+
 void print_stack(const std::vector<double>& result_stack, std::ostream& output) {
     for (std::size_t index = 0; index < result_stack.size(); ++index) {
         output << index << ':' << format_number(result_stack[index]) << '\n';
@@ -178,7 +203,8 @@ int run_console_mode(const ExpressionParser& parser, std::istream& input, std::o
                 continue;
             }
 
-            const double result = parser.evaluate(trimmed);
+            const double result =
+                parser.evaluate(expand_result_reference(trimmed, result_stack));
             if (result_stack.size() >= k_max_stack_depth) {
                 throw std::invalid_argument("stack is full");
             }
