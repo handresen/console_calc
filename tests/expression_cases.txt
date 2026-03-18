@@ -43,6 +43,10 @@
 "()", INVALID
 "2 * ()", INVALID
 "2*-3", INVALID
+"1 / 0", INVALID
+"1 % 0", INVALID
+"0 ^ (1 - 2)", INVALID
+"1e308 * 1e308", INVALID
 "1.5 & 1", INVALID
 "2 | 1.25", INVALID
 "2a+1", INVALID

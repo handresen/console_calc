@@ -319,6 +319,14 @@ private:
     return static_cast<std::int64_t>(integral_part);
 }
 
+[[nodiscard]] double require_finite_result(double value) {
+    if (!std::isfinite(value)) {
+        throw std::invalid_argument("expression produced a non-finite result");
+    }
+
+    return value;
+}
+
 [[nodiscard]] double evaluate_expression(const Expression& expression) {
     return std::visit(
         [](const auto& node) -> double {
@@ -332,17 +340,25 @@ private:
 
                 switch (node.op) {
                 case BinaryOperator::add:
-                    return lhs + rhs;
+                    return require_finite_result(lhs + rhs);
                 case BinaryOperator::subtract:
-                    return lhs - rhs;
+                    return require_finite_result(lhs - rhs);
                 case BinaryOperator::multiply:
-                    return lhs * rhs;
+                    return require_finite_result(lhs * rhs);
                 case BinaryOperator::divide:
-                    return lhs / rhs;
+                    if (rhs == 0.0) {
+                        throw std::invalid_argument("division by zero");
+                    }
+
+                    return require_finite_result(lhs / rhs);
                 case BinaryOperator::modulo:
-                    return std::fmod(lhs, rhs);
+                    if (rhs == 0.0) {
+                        throw std::invalid_argument("modulo by zero");
+                    }
+
+                    return require_finite_result(std::fmod(lhs, rhs));
                 case BinaryOperator::power:
-                    return std::pow(lhs, rhs);
+                    return require_finite_result(std::pow(lhs, rhs));
                 case BinaryOperator::bitwise_and:
                     return static_cast<double>(require_integer_operand(lhs) &
                                                require_integer_operand(rhs));

@@ -41,7 +41,7 @@ mantissa   = digits , [ "." , [ digits ] ]
 exponent   = ( "e" | "E" ) , [ "+" | "-" ] , digits ;
 digits     = digit , { digit } ;
 digit      = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
-operator   = "+" | "-" | "*" | "/" ;
+operator   = "+" | "-" | "*" | "/" | "%" | "^" | "&" | "|" ;
 ```
 
 Accepted numeric forms include:
@@ -53,7 +53,7 @@ Accepted numeric forms include:
 
 Expressions use these precedence levels, from highest to lowest: parentheses, `^`, `*` `/` `%`, `+` `-`, `&`, `|`. `^` is right-associative. The other binary operators are left-associative.
 
-`%` uses floating-point modulo via `fmod`. `&` and `|` require integer-valued operands; non-integer operands are rejected.
+`%` uses floating-point modulo via `fmod`. `&` and `|` require integer-valued operands; non-integer operands are rejected. Division by zero, modulo by zero, and non-finite evaluation results are rejected.
 
 Examples:
 - `2 + 3` => `5`
@@ -89,6 +89,9 @@ Examples:
 - `(1+2`
 -  `()`
 - `2*-3`
+- `1 / 0`
+- `1 % 0`
+- `0 ^ (1 - 2)`
 - `1.5 & 1`
 - `.`
 - `1e`
