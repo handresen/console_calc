@@ -38,11 +38,13 @@ bool expect_command_classification() {
 bool expect_builtin_function_listing() {
     return console_calc::format_builtin_function_listing(console_calc::builtin_functions()) ==
            "Scalar functions\n"
+           "  abs/1       absolute value\n"
            "  cos/1       cosine in radians\n"
            "  cosd/1      cosine in degrees\n"
            "  pow/2       power\n"
            "  sin/1       sine in radians\n"
            "  sind/1      sine in degrees\n"
+           "  sqrt/1      square root\n"
            "  tan/1       tangent in radians\n"
            "  tand/1      tangent in degrees\n"
            "\n"
@@ -51,8 +53,10 @@ bool expect_builtin_function_listing() {
            "  drop/2      drop first n list elements\n"
            "  first/2     first n list elements\n"
            "  len/1       list length\n"
+           "  list_add/2  add matching list elements\n"
            "  list_div/2  divide matching list elements\n"
            "  list_mul/2  multiply matching list elements\n"
+           "  list_sub/2  subtract matching list elements\n"
            "  map/2       map unary scalar builtin over list\n"
            "  max/1       maximum list element\n"
            "  min/1       minimum list element\n"
@@ -92,8 +96,12 @@ bool expect_constant_and_definition_listing() {
 
 bool expect_builtin_function_metadata() {
     const auto sum_info = console_calc::builtin_function_info(console_calc::Function::sum);
+    const auto abs_info = console_calc::builtin_function_info(console_calc::Function::abs);
+    const auto sqrt_info = console_calc::builtin_function_info(console_calc::Function::sqrt);
+    const auto list_add_info = console_calc::builtin_function_info(console_calc::Function::list_add);
     const auto list_div_info = console_calc::builtin_function_info(console_calc::Function::list_div);
     const auto list_mul_info = console_calc::builtin_function_info(console_calc::Function::list_mul);
+    const auto list_sub_info = console_calc::builtin_function_info(console_calc::Function::list_sub);
     const auto reduce_info = console_calc::builtin_function_info(console_calc::Function::reduce);
     const auto map_info = console_calc::builtin_function_info(console_calc::Function::map);
     const auto range_info = console_calc::builtin_function_info(console_calc::Function::range);
@@ -101,9 +109,19 @@ bool expect_builtin_function_metadata() {
     const auto repeat_info = console_calc::builtin_function_info(console_calc::Function::repeat);
     const auto linspace_info = console_calc::builtin_function_info(console_calc::Function::linspace);
     const auto powers_info = console_calc::builtin_function_info(console_calc::Function::powers);
-    return sum_info.name == "sum" && sum_info.min_arity == 1 && sum_info.max_arity == 1 &&
+    return abs_info.name == "abs" && abs_info.min_arity == 1 && abs_info.max_arity == 1 &&
+           abs_info.category == console_calc::BuiltinFunctionCategory::scalar &&
+           abs_info.summary == "absolute value" && abs_info.mappable &&
+           sqrt_info.name == "sqrt" && sqrt_info.min_arity == 1 && sqrt_info.max_arity == 1 &&
+           sqrt_info.category == console_calc::BuiltinFunctionCategory::scalar &&
+           sqrt_info.summary == "square root" && sqrt_info.mappable &&
+           sum_info.name == "sum" && sum_info.min_arity == 1 && sum_info.max_arity == 1 &&
            sum_info.category == console_calc::BuiltinFunctionCategory::list &&
            sum_info.summary == "sum list elements" && !sum_info.mappable &&
+           list_add_info.name == "list_add" && list_add_info.min_arity == 2 &&
+           list_add_info.max_arity == 2 &&
+           list_add_info.category == console_calc::BuiltinFunctionCategory::list &&
+           list_add_info.summary == "add matching list elements" &&
            list_div_info.name == "list_div" && list_div_info.min_arity == 2 &&
            list_div_info.max_arity == 2 &&
            list_div_info.category == console_calc::BuiltinFunctionCategory::list &&
@@ -112,6 +130,10 @@ bool expect_builtin_function_metadata() {
            list_mul_info.max_arity == 2 &&
            list_mul_info.category == console_calc::BuiltinFunctionCategory::list &&
            list_mul_info.summary == "multiply matching list elements" &&
+           list_sub_info.name == "list_sub" && list_sub_info.min_arity == 2 &&
+           list_sub_info.max_arity == 2 &&
+           list_sub_info.category == console_calc::BuiltinFunctionCategory::list &&
+           list_sub_info.summary == "subtract matching list elements" &&
            reduce_info.name == "reduce" && reduce_info.min_arity == 2 &&
            reduce_info.max_arity == 2 &&
            reduce_info.category == console_calc::BuiltinFunctionCategory::list &&
@@ -135,13 +157,19 @@ bool expect_builtin_function_metadata() {
 
 bool expect_builtin_function_helpers() {
     return console_calc::is_scalar_function(console_calc::Function::sin) &&
+           console_calc::is_scalar_function(console_calc::Function::abs) &&
            !console_calc::is_scalar_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::sum) &&
+           console_calc::is_list_function(console_calc::Function::list_add) &&
            console_calc::is_list_function(console_calc::Function::range) &&
            !console_calc::is_list_function(console_calc::Function::pow) &&
            console_calc::is_unary_scalar_function(console_calc::Function::sin) &&
+           console_calc::is_unary_scalar_function(console_calc::Function::abs) &&
+           console_calc::is_unary_scalar_function(console_calc::Function::sqrt) &&
            !console_calc::is_unary_scalar_function(console_calc::Function::pow) &&
            console_calc::is_mappable_unary_scalar_function(console_calc::Function::sin) &&
+           console_calc::is_mappable_unary_scalar_function(console_calc::Function::abs) &&
+           console_calc::is_mappable_unary_scalar_function(console_calc::Function::sqrt) &&
            !console_calc::is_mappable_unary_scalar_function(console_calc::Function::pow) &&
            !console_calc::is_mappable_unary_scalar_function(console_calc::Function::sum);
 }

@@ -8,13 +8,15 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<BuiltinFunctionInfo, 24> k_builtin_functions = {{
+constexpr std::array<BuiltinFunctionInfo, 28> k_builtin_functions = {{
+    {Function::abs, "abs", 1, 1, BuiltinFunctionCategory::scalar, true, "absolute value"},
     {Function::sin, "sin", 1, 1, BuiltinFunctionCategory::scalar, true, "sine in radians"},
     {Function::cos, "cos", 1, 1, BuiltinFunctionCategory::scalar, true, "cosine in radians"},
     {Function::tan, "tan", 1, 1, BuiltinFunctionCategory::scalar, true, "tangent in radians"},
     {Function::sind, "sind", 1, 1, BuiltinFunctionCategory::scalar, true, "sine in degrees"},
     {Function::cosd, "cosd", 1, 1, BuiltinFunctionCategory::scalar, true, "cosine in degrees"},
     {Function::tand, "tand", 1, 1, BuiltinFunctionCategory::scalar, true, "tangent in degrees"},
+    {Function::sqrt, "sqrt", 1, 1, BuiltinFunctionCategory::scalar, true, "square root"},
     {Function::pow, "pow", 2, 2, BuiltinFunctionCategory::scalar, false, "power"},
     {Function::sum, "sum", 1, 1, BuiltinFunctionCategory::list, false, "sum list elements"},
     {Function::len, "len", 1, 1, BuiltinFunctionCategory::list, false, "list length"},
@@ -24,6 +26,10 @@ constexpr std::array<BuiltinFunctionInfo, 24> k_builtin_functions = {{
     {Function::max, "max", 1, 1, BuiltinFunctionCategory::list, false, "maximum list element"},
     {Function::first, "first", 2, 2, BuiltinFunctionCategory::list, false, "first n list elements"},
     {Function::drop, "drop", 2, 2, BuiltinFunctionCategory::list, false, "drop first n list elements"},
+    {Function::list_add, "list_add", 2, 2, BuiltinFunctionCategory::list, false,
+     "add matching list elements"},
+    {Function::list_sub, "list_sub", 2, 2, BuiltinFunctionCategory::list, false,
+     "subtract matching list elements"},
     {Function::list_div, "list_div", 2, 2, BuiltinFunctionCategory::list, false,
      "divide matching list elements"},
     {Function::list_mul, "list_mul", 2, 2, BuiltinFunctionCategory::list, false,

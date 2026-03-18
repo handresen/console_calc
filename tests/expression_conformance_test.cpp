@@ -164,6 +164,16 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
         return false;
     }
 
+    const console_calc::Value added_lists =
+        parser.evaluate_value("list_add({2, 3, 4}, {5, 6, 7})");
+    const auto* added_values = std::get_if<console_calc::ListValue>(&added_lists);
+    if (added_values == nullptr || added_values->size() != 3 ||
+        !almost_equal(console_calc::scalar_to_double((*added_values)[0]), 7.0) ||
+        !almost_equal(console_calc::scalar_to_double((*added_values)[1]), 9.0) ||
+        !almost_equal(console_calc::scalar_to_double((*added_values)[2]), 11.0)) {
+        return false;
+    }
+
     const console_calc::Value multiplied_lists =
         parser.evaluate_value("list_mul({2, 3, 4}, {5, 6, 7})");
     const auto* multiplied_values = std::get_if<console_calc::ListValue>(&multiplied_lists);
@@ -184,9 +194,31 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
         return false;
     }
 
+    const console_calc::Value subtracted_lists =
+        parser.evaluate_value("list_sub({8, 9, 10}, {2, 3, 5})");
+    const auto* subtracted_values = std::get_if<console_calc::ListValue>(&subtracted_lists);
+    if (subtracted_values == nullptr || subtracted_values->size() != 3 ||
+        !almost_equal(console_calc::scalar_to_double((*subtracted_values)[0]), 6.0) ||
+        !almost_equal(console_calc::scalar_to_double((*subtracted_values)[1]), 6.0) ||
+        !almost_equal(console_calc::scalar_to_double((*subtracted_values)[2]), 5.0)) {
+        return false;
+    }
+
     const console_calc::Value reduced_list = parser.evaluate_value("reduce({2, 3, 4}, *)");
     if (!std::holds_alternative<std::int64_t>(reduced_list) ||
         std::get<std::int64_t>(reduced_list) != 24) {
+        return false;
+    }
+
+    const console_calc::Value absolute_value = parser.evaluate_value("abs(-3)");
+    if (!std::holds_alternative<std::int64_t>(absolute_value) ||
+        std::get<std::int64_t>(absolute_value) != 3) {
+        return false;
+    }
+
+    const console_calc::Value square_root_value = parser.evaluate_value("sqrt(9)");
+    if (!std::holds_alternative<double>(square_root_value) ||
+        !almost_equal(std::get<double>(square_root_value), 3.0)) {
         return false;
     }
 
@@ -381,14 +413,14 @@ bool expect_function_ast_shape(console_calc::ExpressionParser& parser) {
     using console_calc::FunctionCall;
     using console_calc::NumberLiteral;
 
-    const Expression ast = parser.parse("sin(2) + pow(3, 4)");
+    const Expression ast = parser.parse("abs(2) + sqrt(9)");
     const auto* root = std::get_if<BinaryExpression>(&ast.node);
     if (root == nullptr || root->op != BinaryOperator::add) {
         return false;
     }
 
     const auto* lhs = std::get_if<FunctionCall>(&root->left->node);
-    if (lhs == nullptr || lhs->function != Function::sin || lhs->arguments.size() != 1) {
+    if (lhs == nullptr || lhs->function != Function::abs || lhs->arguments.size() != 1) {
         return false;
     }
 
@@ -398,14 +430,12 @@ bool expect_function_ast_shape(console_calc::ExpressionParser& parser) {
     }
 
     const auto* rhs = std::get_if<FunctionCall>(&root->right->node);
-    if (rhs == nullptr || rhs->function != Function::pow || rhs->arguments.size() != 2) {
+    if (rhs == nullptr || rhs->function != Function::sqrt || rhs->arguments.size() != 1) {
         return false;
     }
 
-    const auto* rhs_left = std::get_if<NumberLiteral>(&rhs->arguments[0]->node);
-    const auto* rhs_right = std::get_if<NumberLiteral>(&rhs->arguments[1]->node);
-    return rhs_left != nullptr && rhs_right != nullptr &&
-           almost_equal(rhs_left->value, 3.0) && almost_equal(rhs_right->value, 4.0);
+    const auto* rhs_arg = std::get_if<NumberLiteral>(&rhs->arguments[0]->node);
+    return rhs_arg != nullptr && almost_equal(rhs_arg->value, 9.0);
 }
 
 bool expect_sum_ast_shape(console_calc::ExpressionParser& parser) {
@@ -544,10 +574,24 @@ bool expect_generator_ast_shapes(console_calc::ExpressionParser& parser) {
         return false;
     }
 
+    const Expression list_add_ast = parser.parse("list_add({1, 2}, {3, 4})");
+    const auto* list_add_call = std::get_if<FunctionCall>(&list_add_ast.node);
+    if (list_add_call == nullptr || list_add_call->function != Function::list_add ||
+        list_add_call->arguments.size() != 2) {
+        return false;
+    }
+
     const Expression list_div_ast = parser.parse("list_div({8, 9}, {2, 3})");
     const auto* list_div_call = std::get_if<FunctionCall>(&list_div_ast.node);
-    return list_div_call != nullptr && list_div_call->function == Function::list_div &&
-           list_div_call->arguments.size() == 2;
+    if (list_div_call == nullptr || list_div_call->function != Function::list_div ||
+        list_div_call->arguments.size() != 2) {
+        return false;
+    }
+
+    const Expression list_sub_ast = parser.parse("list_sub({8, 9}, {2, 3})");
+    const auto* list_sub_call = std::get_if<FunctionCall>(&list_sub_ast.node);
+    return list_sub_call != nullptr && list_sub_call->function == Function::list_sub &&
+           list_sub_call->arguments.size() == 2;
 }
 
 bool expect_integer_semantics(console_calc::ExpressionParser& parser) {

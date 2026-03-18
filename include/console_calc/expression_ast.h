@@ -30,12 +30,14 @@ struct UnaryExpression {
 };
 
 enum class Function {
+    abs,
     sin,
     cos,
     tan,
     sind,
     cosd,
     tand,
+    sqrt,
     pow,
     sum,
     len,
@@ -45,6 +47,8 @@ enum class Function {
     max,
     first,
     drop,
+    list_add,
+    list_sub,
     list_div,
     list_mul,
     reduce,

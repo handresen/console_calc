@@ -113,6 +113,8 @@ namespace {
 
 [[nodiscard]] double evaluate_unary_scalar_builtin(Function function, double argument) {
     switch (function) {
+    case Function::abs:
+        return require_finite_result(std::fabs(argument));
     case Function::sin:
         return require_finite_result(std::sin(argument));
     case Function::cos:
@@ -125,6 +127,11 @@ namespace {
         return require_finite_result(std::cos(degrees_to_radians(argument)));
     case Function::tand:
         return require_finite_result(std::tan(degrees_to_radians(argument)));
+    case Function::sqrt:
+        if (argument < 0.0) {
+            throw EvaluationError("sqrt() requires a non-negative input");
+        }
+        return require_finite_result(std::sqrt(argument));
     case Function::pow:
     case Function::sum:
     case Function::len:
@@ -134,6 +141,8 @@ namespace {
     case Function::max:
     case Function::first:
     case Function::drop:
+    case Function::list_add:
+    case Function::list_sub:
     case Function::list_div:
     case Function::list_mul:
     case Function::reduce:
@@ -151,12 +160,14 @@ namespace {
 
 [[nodiscard]] Value evaluate_builtin_function(Function function, std::span<const Value> arguments) {
     switch (function) {
+    case Function::abs:
     case Function::sin:
     case Function::cos:
     case Function::tan:
     case Function::sind:
     case Function::cosd:
     case Function::tand:
+    case Function::sqrt:
         return evaluate_unary_scalar_builtin(
             function, scalar_to_double(require_scalar_or_singleton_list_value(arguments[0])));
     case Function::pow:
@@ -236,6 +247,34 @@ namespace {
         const ListValue values = require_list(arguments[1]);
         const std::size_t skip = std::min(count, values.size());
         return ListValue(values.begin() + static_cast<std::ptrdiff_t>(skip), values.end());
+    }
+    case Function::list_add: {
+        const ListValue lhs = require_list(arguments[0]);
+        const ListValue rhs = require_list(arguments[1]);
+        if (lhs.size() != rhs.size()) {
+            throw EvaluationError("list_add() requires lists of equal length");
+        }
+
+        ListValue values;
+        values.reserve(lhs.size());
+        for (std::size_t index = 0; index < lhs.size(); ++index) {
+            values.push_back(add_scalars(lhs[index], rhs[index]));
+        }
+        return values;
+    }
+    case Function::list_sub: {
+        const ListValue lhs = require_list(arguments[0]);
+        const ListValue rhs = require_list(arguments[1]);
+        if (lhs.size() != rhs.size()) {
+            throw EvaluationError("list_sub() requires lists of equal length");
+        }
+
+        ListValue values;
+        values.reserve(lhs.size());
+        for (std::size_t index = 0; index < lhs.size(); ++index) {
+            values.push_back(subtract_scalars(lhs[index], rhs[index]));
+        }
+        return values;
     }
     case Function::list_div: {
         const ListValue lhs = require_list(arguments[0]);
