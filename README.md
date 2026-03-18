@@ -8,27 +8,6 @@
 
 The project is intentionally compact and library-first. Parsing and evaluation live in the core library, while REPL behavior stays in the app layer.
 
-## Build
-
-Configure and build with CMake:
-
-```bash
-cmake --preset default
-cmake --build --preset default
-```
-
-Run tests:
-
-```bash
-ctest --preset default
-```
-
-Executable path:
-
-```bash
-./build/default/console_calc
-```
-
 ## Quick Start
 
 Evaluate a single expression:
@@ -399,3 +378,24 @@ Examples:
   Grammar and development notes
 
 For implementation details, see [docs/grammar.md](docs/grammar.md) and [docs/development.md](docs/development.md).
+
+## Build
+
+Configure and build with CMake:
+
+```bash
+cmake --preset default
+cmake --build --preset default
+```
+
+Run tests:
+
+```bash
+ctest --preset default
+```
+
+Executable path:
+
+```bash
+./build/default/console_calc
+```
