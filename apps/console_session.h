@@ -27,7 +27,9 @@ private:
     void print_prompt() const;
     [[nodiscard]] std::string prompt_text() const;
     void print_stack() const;
+    void print_variables() const;
     void print_constants() const;
+    void print_functions() const;
     void print_result(const Value& value);
     void execute_stack_command(ConsoleCommandKind command);
     double apply_stack_operator(char op);

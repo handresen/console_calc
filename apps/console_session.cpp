@@ -1,5 +1,6 @@
 #include "console_session.h"
 
+#include <cctype>
 #include <algorithm>
 #include <exception>
 #include <istream>
@@ -10,6 +11,7 @@
 #include <vector>
 
 #include "console_assignment.h"
+#include "console_calc/builtin_function.h"
 #include "console_calc/expression_parser.h"
 #include "console_calc/value_format.h"
 
@@ -73,7 +75,9 @@ int ConsoleSession::handle_line(std::string_view line) {
 
     try {
         if (command.kind == ConsoleCommandKind::list_stack ||
+            command.kind == ConsoleCommandKind::list_variables ||
             command.kind == ConsoleCommandKind::list_constants ||
+            command.kind == ConsoleCommandKind::list_functions ||
             command.kind == ConsoleCommandKind::duplicate ||
             command.kind == ConsoleCommandKind::drop ||
             command.kind == ConsoleCommandKind::swap ||
@@ -135,6 +139,19 @@ void ConsoleSession::print_stack() const {
     }
 }
 
+void ConsoleSession::print_variables() const {
+    std::vector<std::string> names;
+    names.reserve(variables_.size());
+    for (const auto& [name, _] : variables_) {
+        names.push_back(name);
+    }
+
+    std::sort(names.begin(), names.end());
+    for (const auto& name : names) {
+        output_ << name << ':' << variables_.at(name) << '\n';
+    }
+}
+
 void ConsoleSession::print_constants() const {
     std::vector<std::string> names;
     names.reserve(constants_.size());
@@ -145,6 +162,36 @@ void ConsoleSession::print_constants() const {
     std::sort(names.begin(), names.end());
     for (const auto& name : names) {
         output_ << name << ':' << format_scalar(constants_.at(name)) << '\n';
+    }
+}
+
+void ConsoleSession::print_functions() const {
+    std::vector<std::string> scalar_names;
+    std::vector<std::string> list_names;
+    scalar_names.reserve(builtin_functions().size());
+    list_names.reserve(builtin_functions().size());
+    for (const Function function : builtin_functions()) {
+        std::string name(builtin_function_name(function));
+        if (is_list_function(function)) {
+            list_names.push_back(std::move(name));
+        } else {
+            scalar_names.push_back(std::move(name));
+        }
+    }
+
+    std::sort(scalar_names.begin(), scalar_names.end());
+    std::sort(list_names.begin(), list_names.end());
+
+    output_ << "Scalar functions\n";
+    for (const auto& name : scalar_names) {
+        const auto function = parse_builtin_function(name);
+        output_ << name << '/' << builtin_function_arity(*function) << '\n';
+    }
+
+    output_ << "List functions\n";
+    for (const auto& name : list_names) {
+        const auto function = parse_builtin_function(name);
+        output_ << name << '/' << builtin_function_arity(*function) << '\n';
     }
 }
 
@@ -162,8 +209,16 @@ void ConsoleSession::execute_stack_command(ConsoleCommandKind command) {
         print_stack();
         return;
     }
+    if (command == ConsoleCommandKind::list_variables) {
+        print_variables();
+        return;
+    }
     if (command == ConsoleCommandKind::list_constants) {
         print_constants();
+        return;
+    }
+    if (command == ConsoleCommandKind::list_functions) {
+        print_functions();
         return;
     }
     if (command == ConsoleCommandKind::duplicate) {

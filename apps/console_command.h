@@ -8,7 +8,9 @@ namespace console_calc {
 enum class ConsoleCommandKind {
     quit,
     list_stack,
+    list_variables,
     list_constants,
+    list_functions,
     duplicate,
     drop,
     swap,

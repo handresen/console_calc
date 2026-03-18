@@ -85,8 +85,12 @@ bool expect_console_command_classification() {
     using console_calc::ConsoleCommandKind;
     return console_calc::classify_console_command("q").kind == ConsoleCommandKind::quit &&
            console_calc::classify_console_command("s").kind == ConsoleCommandKind::list_stack &&
+           console_calc::classify_console_command("vars").kind ==
+               ConsoleCommandKind::list_variables &&
            console_calc::classify_console_command("consts").kind ==
                ConsoleCommandKind::list_constants &&
+           console_calc::classify_console_command("funcs").kind ==
+               ConsoleCommandKind::list_functions &&
            console_calc::classify_console_command("dup").kind == ConsoleCommandKind::duplicate &&
            console_calc::classify_console_command("+").kind ==
                ConsoleCommandKind::stack_operator &&
@@ -425,6 +429,42 @@ bool expect_console_mode_list_constants() {
     return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
 
+bool expect_console_mode_list_variables_and_functions() {
+    const std::vector<std::string_view> args;
+    std::istringstream input(
+        "x:pi+1\nvals:1,2,3\nsx:sin(x)\ntotal:sum(vals)\nvars\nfuncs\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) +
+        prompt(0) +
+        prompt(0) +
+        prompt(0) +
+        prompt(0) + "sx:sin(x)\ntotal:sum(vals)\nvals:{1, 2, 3}\nx:pi+1\n" +
+        prompt(0) +
+        "Scalar functions\n"
+        "cos/1\n"
+        "cosd/1\n"
+        "pow/2\n"
+        "sin/1\n"
+        "sind/1\n"
+        "tan/1\n"
+        "tand/1\n"
+        "List functions\n"
+        "avg/1\n"
+        "drop/2\n"
+        "first/2\n"
+        "len/1\n"
+        "max/1\n"
+        "min/1\n"
+        "product/1\n"
+        "sum/1\n" +
+        prompt(0);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+}
+
 }  // namespace
 
 int main() {
@@ -533,6 +573,10 @@ int main() {
     }
 
     if (!expect_console_mode_list_constants()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_list_variables_and_functions()) {
         return EXIT_FAILURE;
     }
 
