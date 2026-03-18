@@ -16,7 +16,6 @@ struct VariableAssignment {
 };
 
 [[nodiscard]] std::optional<VariableAssignment> parse_variable_assignment(std::string_view text);
-[[nodiscard]] VariableValue evaluate_assignment_value(const ExpressionParser& parser,
-                                                      std::string_view expression);
+[[nodiscard]] std::string normalize_assignment_expression(std::string_view expression);
 
 }  // namespace console_calc

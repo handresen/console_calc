@@ -10,13 +10,13 @@
 namespace console_calc {
 
 using ConstantTable = std::unordered_map<std::string, double>;
-using VariableValue = Value;
-using VariableTable = std::unordered_map<std::string, VariableValue>;
+using VariableTable = std::unordered_map<std::string, std::string>;
 
 [[nodiscard]] bool is_identifier(std::string_view text);
+[[nodiscard]] bool is_braced_list_literal(std::string_view text);
 
 [[nodiscard]] std::string expand_expression_identifiers(
     std::string_view expression, const ConstantTable& constants, const VariableTable& variables,
-    const std::optional<double>& result_reference);
+    const std::optional<Value>& result_reference);
 
 }  // namespace console_calc

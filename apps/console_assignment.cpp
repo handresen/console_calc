@@ -61,30 +61,6 @@ namespace {
     return items;
 }
 
-[[nodiscard]] bool is_braced_list_literal(std::string_view text) {
-    if (text.size() < 2 || text.front() != '{' || text.back() != '}') {
-        return false;
-    }
-
-    int depth = 0;
-    for (std::size_t index = 0; index < text.size(); ++index) {
-        if (text[index] == '{') {
-            ++depth;
-        } else if (text[index] == '}') {
-            --depth;
-            if (depth == 0 && index + 1 != text.size()) {
-                return false;
-            }
-        }
-
-        if (depth < 0) {
-            return false;
-        }
-    }
-
-    return depth == 0;
-}
-
 }  // namespace
 
 std::optional<VariableAssignment> parse_variable_assignment(std::string_view text) {
@@ -105,16 +81,15 @@ std::optional<VariableAssignment> parse_variable_assignment(std::string_view tex
     return VariableAssignment{name, expression};
 }
 
-VariableValue evaluate_assignment_value(const ExpressionParser& parser,
-                                        std::string_view expression) {
+std::string normalize_assignment_expression(std::string_view expression) {
     const std::string trimmed = trim(expression);
     if (is_braced_list_literal(trimmed)) {
-        return parser.evaluate_value(trimmed);
+        return trimmed;
     }
 
     const std::vector<std::string> items = split_top_level_items(trimmed);
     if (items.size() == 1) {
-        return parser.evaluate_value(trimmed);
+        return trimmed;
     }
 
     std::string list_expression = "{";
@@ -128,7 +103,7 @@ VariableValue evaluate_assignment_value(const ExpressionParser& parser,
         list_expression += items[index];
     }
     list_expression += '}';
-    return parser.evaluate_value(list_expression);
+    return list_expression;
 }
 
 }  // namespace console_calc

@@ -88,26 +88,29 @@ int ConsoleSession::handle_line(std::string_view line) {
             return -1;
         }
 
-        const std::optional<double> result_reference = result_stack_.empty()
-                                                           ? std::nullopt
-                                                           : std::optional<double>{result_stack_.back()};
+        const std::optional<Value> result_reference = top_result();
         if (const auto assignment = parse_variable_assignment(trimmed)) {
             if (constants_.contains(assignment->name)) {
                 throw std::invalid_argument("cannot redefine constant: " + assignment->name);
             }
+            const std::string normalized_expression =
+                normalize_assignment_expression(assignment->expression);
+            VariableTable validation_variables = variables_;
+            validation_variables[assignment->name] = normalized_expression;
             const std::string expanded_expression = expand_expression_identifiers(
-                assignment->expression, constants_, variables_, result_reference);
-            variables_[assignment->name] = evaluate_assignment_value(parser_, expanded_expression);
+                normalized_expression, constants_, validation_variables, result_reference);
+            (void)parser_.evaluate_value(expanded_expression);
+            variables_[assignment->name] = normalized_expression;
             return -1;
         }
 
-        const double result = parser_.evaluate(
+        const Value result = parser_.evaluate_value(
             expand_expression_identifiers(trimmed, constants_, variables_, result_reference));
         if (result_stack_.size() >= k_max_stack_depth) {
             throw std::invalid_argument("stack is full");
         }
         result_stack_.push_back(result);
-        output_ << result << '\n';
+        print_result(result);
     } catch (const std::exception& ex) {
         error_ << "error: " << ex.what() << '\n';
     }
@@ -121,7 +124,7 @@ void ConsoleSession::print_prompt() const {
 
 void ConsoleSession::print_stack() const {
     for (std::size_t index = 0; index < result_stack_.size(); ++index) {
-        output_ << index << ':' << format_scalar(result_stack_[index]) << '\n';
+        output_ << index << ':' << format_value(result_stack_[index]) << '\n';
     }
 }
 
@@ -136,6 +139,15 @@ void ConsoleSession::print_constants() const {
     for (const auto& name : names) {
         output_ << name << ':' << format_scalar(constants_.at(name)) << '\n';
     }
+}
+
+void ConsoleSession::print_result(const Value& value) {
+    if (const auto* scalar = std::get_if<double>(&value)) {
+        output_ << *scalar << '\n';
+        return;
+    }
+
+    output_ << format_value(value) << '\n';
 }
 
 void ConsoleSession::execute_stack_command(std::string_view command) {
@@ -181,22 +193,38 @@ double ConsoleSession::apply_stack_operator(char op) {
         throw std::invalid_argument("stack requires at least two values");
     }
 
-    const double rhs = result_stack_.back();
+    const Value rhs_value = result_stack_.back();
     result_stack_.pop_back();
-    const double lhs = result_stack_.back();
+    const Value lhs_value = result_stack_.back();
     result_stack_.pop_back();
 
+    const auto* rhs = std::get_if<double>(&rhs_value);
+    const auto* lhs = std::get_if<double>(&lhs_value);
+    if (lhs == nullptr || rhs == nullptr) {
+        result_stack_.push_back(lhs_value);
+        result_stack_.push_back(rhs_value);
+        throw std::invalid_argument("stack operator requires scalar values");
+    }
+
     const std::string expression =
-        format_scalar(lhs) + ' ' + op + ' ' + format_scalar(rhs);
+        format_scalar(*lhs) + ' ' + op + ' ' + format_scalar(*rhs);
     try {
         const double result = parser_.evaluate(expression);
         result_stack_.push_back(result);
         return result;
     } catch (...) {
-        result_stack_.push_back(lhs);
-        result_stack_.push_back(rhs);
+        result_stack_.push_back(lhs_value);
+        result_stack_.push_back(rhs_value);
         throw;
     }
+}
+
+std::optional<Value> ConsoleSession::top_result() const {
+    if (result_stack_.empty()) {
+        return std::nullopt;
+    }
+
+    return result_stack_.back();
 }
 
 }  // namespace console_calc

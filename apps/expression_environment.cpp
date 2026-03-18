@@ -4,8 +4,10 @@
 #include "console_calc/value_format.h"
 
 #include <cctype>
+#include <string_view>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 
 namespace console_calc {
 
@@ -44,10 +46,35 @@ bool is_identifier(std::string_view text) {
     return true;
 }
 
-std::string expand_expression_identifiers(std::string_view expression,
-                                          const ConstantTable& constants,
-                                          const VariableTable& variables,
-                                          const std::optional<double>& result_reference) {
+bool is_braced_list_literal(std::string_view text) {
+    if (text.size() < 2 || text.front() != '{' || text.back() != '}') {
+        return false;
+    }
+
+    int depth = 0;
+    for (std::size_t index = 0; index < text.size(); ++index) {
+        if (text[index] == '{') {
+            ++depth;
+        } else if (text[index] == '}') {
+            --depth;
+            if (depth == 0 && index + 1 != text.size()) {
+                return false;
+            }
+        }
+
+        if (depth < 0) {
+            return false;
+        }
+    }
+
+    return depth == 0;
+}
+
+namespace {
+
+std::string expand_expression_identifiers_impl(
+    std::string_view expression, const ConstantTable& constants, const VariableTable& variables,
+    const std::optional<Value>& result_reference, std::unordered_set<std::string>& expansion_stack) {
     std::string expanded;
     expanded.reserve(expression.size());
 
@@ -72,9 +99,23 @@ std::string expand_expression_identifiers(std::string_view expression,
             if (!result_reference.has_value()) {
                 throw std::invalid_argument("result reference requires at least one value");
             }
-            expanded += format_scalar(*result_reference);
+            expanded += format_value(*result_reference);
         } else if (const auto found = variables.find(identifier); found != variables.end()) {
-            expanded += format_value(found->second);
+            if (!expansion_stack.insert(identifier).second) {
+                throw std::invalid_argument("circular variable reference: " + identifier);
+            }
+
+            const std::string variable_expression = expand_expression_identifiers_impl(
+                found->second, constants, variables, result_reference, expansion_stack);
+            expansion_stack.erase(identifier);
+
+            if (is_braced_list_literal(variable_expression)) {
+                expanded += variable_expression;
+            } else {
+                expanded += '(';
+                expanded += variable_expression;
+                expanded += ')';
+            }
         } else if (const auto found = constants.find(identifier); found != constants.end()) {
             expanded += format_scalar(found->second);
         } else {
@@ -85,6 +126,17 @@ std::string expand_expression_identifiers(std::string_view expression,
     }
 
     return expanded;
+}
+
+}  // namespace
+
+std::string expand_expression_identifiers(std::string_view expression,
+                                          const ConstantTable& constants,
+                                          const VariableTable& variables,
+                                          const std::optional<Value>& result_reference) {
+    std::unordered_set<std::string> expansion_stack;
+    return expand_expression_identifiers_impl(
+        expression, constants, variables, result_reference, expansion_stack);
 }
 
 }  // namespace console_calc
