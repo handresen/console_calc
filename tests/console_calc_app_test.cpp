@@ -9,13 +9,13 @@
 namespace {
 
 bool expect_argument_mode_success() {
-    const std::vector<std::string_view> args = {"2", "+", "3", "*", "4"};
+    const std::vector<std::string_view> args = {"(", "2", "+", "3", ")", "*", "4"};
     std::istringstream input;
     std::ostringstream output;
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 0 && output.str() == "14\n" && error.str().empty();
+    return exit_code == 0 && output.str() == "20\n" && error.str().empty();
 }
 
 bool expect_argument_mode_failure() {
@@ -30,12 +30,12 @@ bool expect_argument_mode_failure() {
 
 bool expect_console_mode_success() {
     const std::vector<std::string_view> args;
-    std::istringstream input("1+1\n2 + 3 * 4\nq\n");
+    std::istringstream input("1+1\n(2 + 3) * 4\nq\n");
     std::ostringstream output;
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 0 && output.str() == "2\n14\n" && error.str().empty();
+    return exit_code == 0 && output.str() == "2\n20\n" && error.str().empty();
 }
 
 bool expect_console_mode_recovery_after_error() {

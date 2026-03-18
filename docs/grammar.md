@@ -6,12 +6,12 @@ This initial grammar exists to exercise the parser pipeline with the smallest us
 
 Current scope:
 - integer and floating-point numeric literals
-- binary `+`, `-`, `*`, `/`
+- binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
+- parentheses for grouping
 - optional whitespace between tokens
 
 Explicitly out of scope for this first version:
 - unary operators
-- parentheses
 - function calls
 - variables or constants
 
@@ -21,13 +21,20 @@ Explicitly out of scope for this first version:
   - an integer or floating-point literal
   - examples: `0`, `7`, `123`, `3.14`, `.5`, `1.`, `1.3e10`, `6E-4`
 - `operator`
-  - one of `+`, `-`, `*`, `/`
+  - one of `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
+- `grouping`
+  - `(` and `)`
 
 ## Grammar
 
 ```ebnf
-expression = term , { ( "+" | "-" ) , term } ;
-term       = number , { ( "*" | "/" ) , number } ;
+expression = bitwise_or ;
+bitwise_or = bitwise_and , { "|" , bitwise_and } ;
+bitwise_and = sum , { "&" , sum } ;
+sum        = term , { ( "+" | "-" ) , term } ;
+term       = power , { ( "*" | "/" | "%" ) , power } ;
+power      = primary , [ "^" , power ] ;
+primary    = number | "(" , expression , ")" ;
 number     = mantissa , [ exponent ] ;
 mantissa   = digits , [ "." , [ digits ] ]
            | "." , digits ;
@@ -44,11 +51,17 @@ Accepted numeric forms include:
 
 ## Evaluation Rule
 
-Expressions use standard arithmetic precedence: `*` and `/` bind more tightly than `+` and `-`. Operators of the same precedence group are evaluated from left to right.
+Expressions use these precedence levels, from highest to lowest: parentheses, `^`, `*` `/` `%`, `+` `-`, `&`, `|`. `^` is right-associative. The other binary operators are left-associative.
+
+`%` uses floating-point modulo via `fmod`. `&` and `|` require integer-valued operands; non-integer operands are rejected.
 
 Examples:
 - `2 + 3` => `5`
 - `2 + 3 * 4` => `14`
+- `2 ^ 3 ^ 2` => `512`
+- `10 % 3` => `1`
+- `6 & 3 | 8` => `10`
+- `(2 + 3) * 4` => `20`
 - `20 / 5 - 1` => `3`
 - `2 * 3 + 4 * 5` => `26`
 
@@ -61,6 +74,11 @@ Examples:
 - `1.5 + 2.25`
 - `.5 * 8`
 - `1.3e10 / 2`
+- `2 ^ 3`
+- `10 % 3`
+- `6 & 3 | 8`
+- `(2 + 3) * 4`
+- `8 / (2 + 2)`
 
 ## Invalid Examples
 
@@ -68,8 +86,10 @@ Examples:
 - `1+`
 - `1++2`
 - `-3`
-- `(1+2)`
+- `(1+2`
+-  `()`
 - `2*-3`
+- `1.5 & 1`
 - `.`
 - `1e`
 - `1e+`
