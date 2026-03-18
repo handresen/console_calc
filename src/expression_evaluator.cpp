@@ -160,7 +160,16 @@ namespace {
 
 [[nodiscard]] Value evaluate_builtin_function(Function function, std::span<const Value> arguments) {
     switch (function) {
-    case Function::abs:
+    case Function::abs: {
+        const ScalarValue value = require_scalar_or_singleton_list_value(arguments[0]);
+        if (const auto* integer = std::get_if<std::int64_t>(&value)) {
+            if (*integer == std::numeric_limits<std::int64_t>::min()) {
+                return require_finite_result(std::fabs(static_cast<double>(*integer)));
+            }
+            return *integer < 0 ? to_value(-*integer) : to_value(*integer);
+        }
+        return require_finite_result(std::fabs(std::get<double>(value)));
+    }
     case Function::sin:
     case Function::cos:
     case Function::tan:
@@ -304,6 +313,7 @@ namespace {
         }
         return values;
     }
+    case Function::reduce:
     case Function::map:
         break;
     case Function::range: {

@@ -14,6 +14,18 @@ namespace console_calc {
 
 namespace {
 
+enum class ExpansionFrameKind {
+    group,
+    list,
+    call,
+};
+
+struct ExpansionFrame {
+    ExpansionFrameKind kind = ExpansionFrameKind::group;
+    std::string identifier;
+    std::size_t argument_index = 0;
+};
+
 [[nodiscard]] bool is_identifier_start(char ch) {
     return std::isalpha(static_cast<unsigned char>(ch)) || ch == '_';
 }
@@ -22,68 +34,46 @@ namespace {
     return std::isalnum(static_cast<unsigned char>(ch)) || ch == '_';
 }
 
-[[nodiscard]] bool is_followed_by_call(std::string_view expression, std::size_t index) {
+[[nodiscard]] std::size_t skip_whitespace(std::string_view expression, std::size_t index) {
     while (index < expression.size() &&
            std::isspace(static_cast<unsigned char>(expression[index]))) {
         ++index;
     }
 
-    return index < expression.size() && expression[index] == '(';
+    return index;
 }
 
-[[nodiscard]] bool is_map_function_argument(std::string_view expression, std::size_t identifier_begin) {
-    int paren_depth = 0;
-    int brace_depth = 0;
-    std::optional<std::size_t> comma_index;
-
-    for (std::size_t index = identifier_begin; index-- > 0;) {
-        const char ch = expression[index];
-        if (ch == ')') {
-            ++paren_depth;
-            continue;
-        }
-        if (ch == '}') {
-            ++brace_depth;
-            continue;
-        }
-        if (ch == '(') {
-            if (paren_depth == 0 && brace_depth == 0) {
-                if (!comma_index.has_value()) {
-                    return false;
-                }
-
-                std::size_t name_end = index;
-                while (name_end > 0 &&
-                       std::isspace(static_cast<unsigned char>(expression[name_end - 1]))) {
-                    --name_end;
-                }
-
-                std::size_t name_begin = name_end;
-                while (name_begin > 0 && is_identifier_char(expression[name_begin - 1])) {
-                    --name_begin;
-                }
-
-                return expression.substr(name_begin, name_end - name_begin) == "map";
-            }
-
-            --paren_depth;
-            continue;
-        }
-        if (ch == '{') {
-            --brace_depth;
-            continue;
-        }
-        if (ch == ',' && paren_depth == 0 && brace_depth == 0) {
-            comma_index = index;
-            continue;
-        }
-    }
-
-    return false;
+[[nodiscard]] bool is_followed_by_call(std::string_view expression, std::size_t index) {
+    index = skip_whitespace(expression, index);
+    return index < expression.size() && expression[index] == '(';
 }
 
 [[nodiscard]] bool is_radix_digit(char ch, int base) {
     return base == 16 ? std::isxdigit(static_cast<unsigned char>(ch)) != 0 : (ch == '0' || ch == '1');
+}
+
+[[nodiscard]] std::size_t consume_radix_literal(std::string_view expression, std::size_t index) {
+    if (index + 2 > expression.size() || expression[index] != '0') {
+        return index;
+    }
+
+    const char prefix = expression[index + 1];
+    if (prefix != 'x' && prefix != 'X' && prefix != 'b' && prefix != 'B') {
+        return index;
+    }
+
+    const int base = (prefix == 'x' || prefix == 'X') ? 16 : 2;
+    std::size_t end = index + 2;
+    while (end < expression.size() && is_radix_digit(expression[end], base)) {
+        ++end;
+    }
+
+    return end > index + 2 ? end : index;
+}
+
+[[nodiscard]] bool is_map_function_argument(const std::vector<ExpansionFrame>& frames) {
+    return !frames.empty() && frames.back().kind == ExpansionFrameKind::call &&
+           frames.back().identifier == "map" && frames.back().argument_index == 1;
 }
 
 }  // namespace
@@ -134,29 +124,63 @@ std::string expand_expression_identifiers_impl(
     const std::optional<Value>& result_reference, std::unordered_set<std::string>& expansion_stack) {
     std::string expanded;
     expanded.reserve(expression.size());
+    std::vector<ExpansionFrame> frames;
+    std::optional<std::string> pending_call_identifier;
 
     std::size_t index = 0;
     while (index < expression.size()) {
         const char ch = expression[index];
-        if (ch == '0' && index + 2 <= expression.size()) {
-            const char prefix = expression[index + 1];
-            if (prefix == 'x' || prefix == 'X' || prefix == 'b' || prefix == 'B') {
-                const int base = (prefix == 'x' || prefix == 'X') ? 16 : 2;
-                std::size_t end = index + 2;
-                while (end < expression.size() && is_radix_digit(expression[end], base)) {
-                    ++end;
-                }
+        const std::size_t radix_end = consume_radix_literal(expression, index);
+        if (radix_end != index) {
+            expanded += std::string(expression.substr(index, radix_end - index));
+            pending_call_identifier.reset();
+            index = radix_end;
+            continue;
+        }
 
-                if (end > index + 2) {
-                    expanded += std::string(expression.substr(index, end - index));
-                    index = end;
-                    continue;
-                }
+        if (ch == '(') {
+            expanded += ch;
+            if (pending_call_identifier.has_value()) {
+                frames.push_back({ExpansionFrameKind::call, *pending_call_identifier, 0});
+                pending_call_identifier.reset();
+            } else {
+                frames.push_back({ExpansionFrameKind::group, {}, 0});
             }
+            ++index;
+            continue;
+        }
+
+        if (ch == '{') {
+            expanded += ch;
+            frames.push_back({ExpansionFrameKind::list, {}, 0});
+            pending_call_identifier.reset();
+            ++index;
+            continue;
+        }
+
+        if (ch == ',' && !frames.empty()) {
+            expanded += ch;
+            if (frames.back().kind == ExpansionFrameKind::call) {
+                ++frames.back().argument_index;
+            }
+            pending_call_identifier.reset();
+            ++index;
+            continue;
+        }
+
+        if (ch == ')' || ch == '}') {
+            expanded += ch;
+            if (!frames.empty()) {
+                frames.pop_back();
+            }
+            pending_call_identifier.reset();
+            ++index;
+            continue;
         }
 
         if (!is_identifier_start(ch)) {
             expanded += ch;
+            pending_call_identifier.reset();
             ++index;
             continue;
         }
@@ -165,16 +189,20 @@ std::string expand_expression_identifiers_impl(
         while (end < expression.size() && is_identifier_char(expression[end])) {
             ++end;
         }
-
         const std::string identifier(expression.substr(index, end - index));
+        const bool followed_by_call = is_followed_by_call(expression, end);
+
         if (is_builtin_function_name(identifier) &&
-            (is_followed_by_call(expression, end) || is_map_function_argument(expression, index))) {
+            (followed_by_call || is_map_function_argument(frames))) {
             expanded += identifier;
+            pending_call_identifier = followed_by_call ? std::optional<std::string>(identifier)
+                                                       : std::nullopt;
         } else if (identifier == "r") {
             if (!result_reference.has_value()) {
                 throw std::invalid_argument("result reference requires at least one value");
             }
             expanded += format_value(*result_reference);
+            pending_call_identifier.reset();
         } else if (const auto found = definitions.find(identifier); found != definitions.end()) {
             if (!expansion_stack.insert(identifier).second) {
                 throw std::invalid_argument("circular variable reference: " + identifier);
@@ -191,8 +219,10 @@ std::string expand_expression_identifiers_impl(
                 expanded += variable_expression;
                 expanded += ')';
             }
+            pending_call_identifier.reset();
         } else if (const auto found = constants.find(identifier); found != constants.end()) {
             expanded += format_scalar(found->second);
+            pending_call_identifier.reset();
         } else {
             throw std::invalid_argument("unknown identifier: " + identifier);
         }
