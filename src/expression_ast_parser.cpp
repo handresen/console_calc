@@ -3,7 +3,11 @@
 #include "console_calc/expression_error.h"
 
 #include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 #include "expression_tokenizer.h"
 
@@ -29,9 +33,11 @@ namespace {
         return BinaryOperator::bitwise_and;
     case TokenKind::bitwise_or:
         return BinaryOperator::bitwise_or;
+    case TokenKind::number:
+    case TokenKind::identifier:
     case TokenKind::left_paren:
     case TokenKind::right_paren:
-    case TokenKind::number:
+    case TokenKind::comma:
     case TokenKind::end:
         break;
     }
@@ -39,12 +45,76 @@ namespace {
     throw ParseError("expected binary operator");
 }
 
+[[nodiscard]] std::optional<Function> to_function(std::string_view name) {
+    if (name == "sin") {
+        return Function::sin;
+    }
+    if (name == "cos") {
+        return Function::cos;
+    }
+    if (name == "tan") {
+        return Function::tan;
+    }
+    if (name == "sind") {
+        return Function::sind;
+    }
+    if (name == "cosd") {
+        return Function::cosd;
+    }
+    if (name == "tand") {
+        return Function::tand;
+    }
+    if (name == "pow") {
+        return Function::pow;
+    }
+
+    return std::nullopt;
+}
+
+[[nodiscard]] std::size_t function_arity(Function function) {
+    switch (function) {
+    case Function::sin:
+    case Function::cos:
+    case Function::tan:
+    case Function::sind:
+    case Function::cosd:
+    case Function::tand:
+        return 1;
+    case Function::pow:
+        return 2;
+    }
+
+    throw ParseError("unknown function");
+}
+
+[[nodiscard]] std::string function_name(Function function) {
+    switch (function) {
+    case Function::sin:
+        return "sin";
+    case Function::cos:
+        return "cos";
+    case Function::tan:
+        return "tan";
+    case Function::sind:
+        return "sind";
+    case Function::cosd:
+        return "cosd";
+    case Function::tand:
+        return "tand";
+    case Function::pow:
+        return "pow";
+    }
+
+    throw ParseError("unknown function");
+}
+
 [[nodiscard]] std::unique_ptr<Expression> make_expression(Expression expression) {
     return std::make_unique<Expression>(std::move(expression));
 }
 
 [[nodiscard]] bool starts_primary_expression(TokenKind kind) {
-    return kind == TokenKind::number || kind == TokenKind::left_paren;
+    return kind == TokenKind::number || kind == TokenKind::identifier ||
+           kind == TokenKind::left_paren;
 }
 
 [[nodiscard]] bool starts_operand_expression(TokenKind kind) {
@@ -57,7 +127,7 @@ public:
 
     [[nodiscard]] Expression parse() {
         if (!starts_operand_expression(current_.kind)) {
-            throw ParseError("expression must start with a number, '-' or '('");
+            throw ParseError("expression must start with a number, function, '-' or '('");
         }
 
         Expression expression = parse_bitwise_or_expression();
@@ -197,6 +267,10 @@ private:
     }
 
     [[nodiscard]] Expression parse_primary_expression() {
+        if (current_.kind == TokenKind::identifier) {
+            return parse_function_call();
+        }
+
         if (current_.kind == TokenKind::left_paren) {
             advance();
             Expression expression = parse_bitwise_or_expression();
@@ -215,6 +289,49 @@ private:
         Expression expression{NumberLiteral{.value = current_.number_value}};
         advance();
         return expression;
+    }
+
+    [[nodiscard]] Expression parse_function_call() {
+        const auto function = to_function(current_.identifier_text);
+        if (!function.has_value()) {
+            throw ParseError("unknown function");
+        }
+
+        advance();
+        if (current_.kind != TokenKind::left_paren) {
+            throw ParseError("expected '(' after function name");
+        }
+
+        advance();
+        std::vector<std::unique_ptr<Expression>> arguments;
+        if (current_.kind != TokenKind::right_paren) {
+            arguments.push_back(make_expression(parse_bitwise_or_expression()));
+            while (current_.kind == TokenKind::comma) {
+                advance();
+                if (!starts_operand_expression(current_.kind)) {
+                    throw ParseError("expected expression after ','");
+                }
+                arguments.push_back(make_expression(parse_bitwise_or_expression()));
+            }
+        }
+
+        if (current_.kind != TokenKind::right_paren) {
+            throw ParseError("expected ')'");
+        }
+
+        const std::size_t expected_arity = function_arity(*function);
+        if (arguments.size() != expected_arity) {
+            throw ParseError("function '" + function_name(*function) + "' expects " +
+                             std::to_string(expected_arity) +
+                             (expected_arity == 1 ? " argument" : " arguments"));
+        }
+
+        advance();
+        return Expression{
+            FunctionCall{
+                .function = *function,
+                .arguments = std::move(arguments),
+            }};
     }
 
     void advance() {

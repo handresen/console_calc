@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <numbers>
 #include <type_traits>
 #include <variant>
 
@@ -40,6 +41,10 @@ namespace {
     return value;
 }
 
+[[nodiscard]] double degrees_to_radians(double value) {
+    return value * std::numbers::pi_v<double> / 180.0;
+}
+
 }  // namespace
 
 double evaluate_expression(const Expression& expression) {
@@ -51,6 +56,29 @@ double evaluate_expression(const Expression& expression) {
                 return node.value;
             } else if constexpr (std::is_same_v<Node, UnaryExpression>) {
                 return require_finite_result(-evaluate_expression(*node.operand));
+            } else if constexpr (std::is_same_v<Node, FunctionCall>) {
+                switch (node.function) {
+                case Function::sin:
+                    return require_finite_result(std::sin(evaluate_expression(*node.arguments[0])));
+                case Function::cos:
+                    return require_finite_result(std::cos(evaluate_expression(*node.arguments[0])));
+                case Function::tan:
+                    return require_finite_result(std::tan(evaluate_expression(*node.arguments[0])));
+                case Function::sind:
+                    return require_finite_result(
+                        std::sin(degrees_to_radians(evaluate_expression(*node.arguments[0]))));
+                case Function::cosd:
+                    return require_finite_result(
+                        std::cos(degrees_to_radians(evaluate_expression(*node.arguments[0]))));
+                case Function::tand:
+                    return require_finite_result(
+                        std::tan(degrees_to_radians(evaluate_expression(*node.arguments[0]))));
+                case Function::pow:
+                    return require_finite_result(std::pow(evaluate_expression(*node.arguments[0]),
+                                                          evaluate_expression(*node.arguments[1])));
+                }
+
+                throw EvaluationError("unknown function");
             } else {
                 const double lhs = evaluate_expression(*node.left);
                 const double rhs = evaluate_expression(*node.right);

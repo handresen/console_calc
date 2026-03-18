@@ -197,6 +197,41 @@ bool expect_bitwise_or_ast_shape(console_calc::ExpressionParser& parser) {
            almost_equal(rhs_left->value, 4.0) && almost_equal(rhs_right->value, 1.0);
 }
 
+bool expect_function_ast_shape(console_calc::ExpressionParser& parser) {
+    using console_calc::BinaryExpression;
+    using console_calc::BinaryOperator;
+    using console_calc::Expression;
+    using console_calc::Function;
+    using console_calc::FunctionCall;
+    using console_calc::NumberLiteral;
+
+    const Expression ast = parser.parse("sin(2) + pow(3, 4)");
+    const auto* root = std::get_if<BinaryExpression>(&ast.node);
+    if (root == nullptr || root->op != BinaryOperator::add) {
+        return false;
+    }
+
+    const auto* lhs = std::get_if<FunctionCall>(&root->left->node);
+    if (lhs == nullptr || lhs->function != Function::sin || lhs->arguments.size() != 1) {
+        return false;
+    }
+
+    const auto* lhs_arg = std::get_if<NumberLiteral>(&lhs->arguments[0]->node);
+    if (lhs_arg == nullptr || !almost_equal(lhs_arg->value, 2.0)) {
+        return false;
+    }
+
+    const auto* rhs = std::get_if<FunctionCall>(&root->right->node);
+    if (rhs == nullptr || rhs->function != Function::pow || rhs->arguments.size() != 2) {
+        return false;
+    }
+
+    const auto* rhs_left = std::get_if<NumberLiteral>(&rhs->arguments[0]->node);
+    const auto* rhs_right = std::get_if<NumberLiteral>(&rhs->arguments[1]->node);
+    return rhs_left != nullptr && rhs_right != nullptr &&
+           almost_equal(rhs_left->value, 3.0) && almost_equal(rhs_right->value, 4.0);
+}
+
 }  // namespace
 
 int main() {
@@ -223,6 +258,10 @@ int main() {
     }
 
     if (!expect_bitwise_or_ast_shape(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_function_ast_shape(parser)) {
         return EXIT_FAILURE;
     }
 

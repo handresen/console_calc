@@ -25,6 +25,15 @@ namespace {
     return stream.str();
 }
 
+[[nodiscard]] bool is_followed_by_call(std::string_view expression, std::size_t index) {
+    while (index < expression.size() &&
+           std::isspace(static_cast<unsigned char>(expression[index]))) {
+        ++index;
+    }
+
+    return index < expression.size() && expression[index] == '(';
+}
+
 }  // namespace
 
 bool is_identifier(std::string_view text) {
@@ -39,6 +48,11 @@ bool is_identifier(std::string_view text) {
     }
 
     return true;
+}
+
+bool is_builtin_function_name(std::string_view text) {
+    return text == "sin" || text == "cos" || text == "tan" || text == "sind" ||
+           text == "cosd" || text == "tand" || text == "pow";
 }
 
 std::string expand_expression_identifiers(std::string_view expression,
@@ -63,7 +77,9 @@ std::string expand_expression_identifiers(std::string_view expression,
         }
 
         const std::string identifier(expression.substr(index, end - index));
-        if (identifier == "r") {
+        if (is_builtin_function_name(identifier) && is_followed_by_call(expression, end)) {
+            expanded += identifier;
+        } else if (identifier == "r") {
             if (!result_reference.has_value()) {
                 throw std::invalid_argument("result reference requires at least one value");
             }

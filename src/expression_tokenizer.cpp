@@ -48,12 +48,18 @@ Token Tokenizer::next() {
     case ')':
         ++position_;
         return {.kind = TokenKind::right_paren};
+    case ',':
+        ++position_;
+        return {.kind = TokenKind::comma};
     default:
         break;
     }
 
     if (std::isdigit(static_cast<unsigned char>(current)) || current == '.') {
         return parse_number();
+    }
+    if (std::isalpha(static_cast<unsigned char>(current)) || current == '_') {
+        return parse_identifier();
     }
 
     throw ParseError("unexpected character in expression");
@@ -72,6 +78,24 @@ Token Tokenizer::parse_number() {
     return {
         .kind = TokenKind::number,
         .number_value = value,
+    };
+}
+
+Token Tokenizer::parse_identifier() {
+    const std::size_t begin = position_;
+    ++position_;
+
+    while (position_ < input_.size()) {
+        const char current = input_[position_];
+        if (!std::isalnum(static_cast<unsigned char>(current)) && current != '_') {
+            break;
+        }
+        ++position_;
+    }
+
+    return {
+        .kind = TokenKind::identifier,
+        .identifier_text = input_.substr(begin, position_ - begin),
     };
 }
 

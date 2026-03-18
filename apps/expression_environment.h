@@ -11,6 +11,7 @@ using ConstantTable = std::unordered_map<std::string, double>;
 using VariableTable = std::unordered_map<std::string, double>;
 
 [[nodiscard]] bool is_identifier(std::string_view text);
+[[nodiscard]] bool is_builtin_function_name(std::string_view text);
 
 [[nodiscard]] std::string expand_expression_identifiers(
     std::string_view expression, const ConstantTable& constants, const VariableTable& variables,

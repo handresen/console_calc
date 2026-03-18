@@ -33,6 +33,14 @@
 "8 / (2 + 2)", 2.0
 "8 % (3 + 2)", 3.0
 "((1 + 2) * 3) + 4", 13.0
+"sin(0)", 0.0
+"cos(0)", 1.0
+"tan(0)", 0.0
+"sind(30)", 0.5
+"cosd(60)", 0.5
+"tand(45)", 1.0
+"pow(2, 3)", 8.0
+"pow(2, 1 + 2)", 8.0
 
 # invalid cases
 "", INVALID
@@ -57,3 +65,7 @@
 "1e20 & 1", INVALID
 "1 | 1e20", INVALID
 "2a+1", INVALID
+"sin()", INVALID
+"pow(2)", INVALID
+"pow(2, 3, 4)", INVALID
+"foo(1)", INVALID

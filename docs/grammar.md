@@ -9,10 +9,10 @@ Current scope:
 - unary `-`
 - binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - parentheses for grouping
+- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`
 - optional whitespace between tokens
 
 Explicitly out of scope for this first version:
-- function calls
 - variables or constants
 
 ## Tokens
@@ -26,6 +26,10 @@ Explicitly out of scope for this first version:
   - `-`
 - `grouping`
   - `(` and `)`
+- `separator`
+  - `,`
+- `identifier`
+  - used for builtin function names
 
 ## Grammar
 
@@ -37,7 +41,8 @@ sum        = term , { ( "+" | "-" ) , term } ;
 term       = unary , { ( "*" | "/" | "%" ) , unary } ;
 unary      = [ "-" ] , power ;
 power      = primary , [ "^" , unary ] ;
-primary    = number | "(" , expression , ")" ;
+primary    = number | function_call | "(" , expression , ")" ;
+function_call = identifier , "(" , expression , { "," , expression } , ")" ;
 number     = mantissa , [ exponent ] ;
 mantissa   = digits , [ "." , [ digits ] ]
            | "." , digits ;
@@ -54,9 +59,14 @@ Accepted numeric forms include:
 
 ## Evaluation Rule
 
-Expressions use these precedence levels, from highest to lowest: parentheses, `^`, unary `-`, `*` `/` `%`, `+` `-`, `&`, `|`. `^` is right-associative. The other operators are left-associative.
+Expressions use these precedence levels, from highest to lowest: function calls and parentheses, `^`, unary `-`, `*` `/` `%`, `+` `-`, `&`, `|`. `^` is right-associative. The other operators are left-associative.
 
 `%` uses floating-point modulo via `fmod`. `&` and `|` require integer-valued operands; non-integer operands are rejected. Division by zero, modulo by zero, and non-finite evaluation results are rejected.
+
+Builtin functions:
+- `sin(x)`, `cos(x)`, `tan(x)` use radians
+- `sind(x)`, `cosd(x)`, `tand(x)` use degrees
+- `pow(x, y)` is equivalent to `x ^ y`
 
 Examples:
 - `2 + 3` => `5`
@@ -64,6 +74,9 @@ Examples:
 - `-2^2` => `-4`
 - `(-2)^2` => `4`
 - `2 ^ 3 ^ 2` => `512`
+- `sin(0)` => `0`
+- `sind(30)` => `0.5`
+- `pow(2, 3)` => `8`
 - `10 % 3` => `1`
 - `6 & 3 | 8` => `10`
 - `(2 + 3) * 4` => `20`
@@ -81,6 +94,9 @@ Examples:
 - `2*-3`
 - `.5 * 8`
 - `1.3e10 / 2`
+- `sin(0)`
+- `sind(30)`
+- `pow(2, 3)`
 - `2 ^ 3`
 - `10 % 3`
 - `6 & 3 | 8`
@@ -94,6 +110,8 @@ Examples:
 - `1++2`
 - `(1+2`
 -  `()`
+- `sin()`
+- `pow(2)`
 - `1 / 0`
 - `1 % 0`
 - `0 ^ (1 - 2)`

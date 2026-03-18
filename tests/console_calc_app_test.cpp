@@ -17,13 +17,13 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
 }
 
 bool expect_argument_mode_success() {
-    const std::vector<std::string_view> args = {"pi", "*", "2"};
+    const std::vector<std::string_view> args = {"pow(2,", "3)", "+", "sin(pi", "/", "2)"};
     std::istringstream input;
     std::ostringstream output;
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 0 && output.str() == "6.28319\n" && error.str().empty();
+    return exit_code == 0 && output.str() == "9\n" && error.str().empty();
 }
 
 bool expect_argument_mode_failure() {
@@ -39,17 +39,17 @@ bool expect_argument_mode_failure() {
 
 bool expect_console_mode_success() {
     const std::vector<std::string_view> args;
-    std::istringstream input("pi\n(2 + 3) * 4\ns\n+\ns\nq\n");
+    std::istringstream input("sin(pi / 2)\n(2 + 3) * 4\ns\n+\ns\nq\n");
     std::ostringstream output;
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
     const std::string expected_output =
-        prompt(0) + "3.14159\n" +
+        prompt(0) + "1\n" +
         prompt(1) + "20\n" +
-        prompt(2) + "0:3.1415926535897931\n1:20\n" +
-        prompt(2) + "23.1416\n" +
-        prompt(1) + "0:23.141592653589793\n" +
+        prompt(2) + "0:1\n1:20\n" +
+        prompt(2) + "21\n" +
+        prompt(1) + "0:21\n" +
         prompt(1);
     return exit_code == 0 &&
            output.str() == expected_output &&
