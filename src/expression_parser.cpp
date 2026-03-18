@@ -2,8 +2,12 @@
 
 #include <cctype>
 #include <cstdlib>
+#include <memory>
 #include <stdexcept>
 #include <string_view>
+#include <type_traits>
+#include <utility>
+#include <variant>
 
 namespace console_calc {
 
@@ -87,16 +91,16 @@ private:
     std::size_t position_ = 0;
 };
 
-[[nodiscard]] double apply_operator(double lhs, TokenKind op, double rhs) {
-    switch (op) {
+[[nodiscard]] BinaryOperator to_binary_operator(TokenKind kind) {
+    switch (kind) {
     case TokenKind::plus:
-        return lhs + rhs;
+        return BinaryOperator::add;
     case TokenKind::minus:
-        return lhs - rhs;
+        return BinaryOperator::subtract;
     case TokenKind::multiply:
-        return lhs * rhs;
+        return BinaryOperator::multiply;
     case TokenKind::divide:
-        return lhs / rhs;
+        return BinaryOperator::divide;
     case TokenKind::number:
     case TokenKind::end:
         break;
@@ -105,40 +109,127 @@ private:
     throw std::invalid_argument("expected binary operator");
 }
 
-[[nodiscard]] bool is_binary_operator(TokenKind kind) {
-    return kind == TokenKind::plus || kind == TokenKind::minus ||
-           kind == TokenKind::multiply || kind == TokenKind::divide;
+[[nodiscard]] std::unique_ptr<Expression> make_expression(Expression expression) {
+    return std::make_unique<Expression>(std::move(expression));
+}
+
+class Parser {
+public:
+    explicit Parser(std::string_view input) : tokenizer_(input), current_(tokenizer_.next()) {}
+
+    [[nodiscard]] Expression parse() {
+        if (current_.kind != TokenKind::number) {
+            throw std::invalid_argument("expression must start with a number");
+        }
+
+        Expression expression = parse_additive_expression();
+        if (current_.kind != TokenKind::end) {
+            throw std::invalid_argument("expected binary operator");
+        }
+
+        return expression;
+    }
+
+private:
+    [[nodiscard]] Expression parse_additive_expression() {
+        Expression expression = parse_multiplicative_expression();
+
+        while (current_.kind == TokenKind::plus || current_.kind == TokenKind::minus) {
+            const TokenKind op = current_.kind;
+            advance();
+
+            if (current_.kind != TokenKind::number) {
+                throw std::invalid_argument("expected number after operator");
+            }
+
+            expression = Expression{
+                BinaryExpression{
+                    .op = to_binary_operator(op),
+                    .left = make_expression(std::move(expression)),
+                    .right = make_expression(parse_multiplicative_expression()),
+                }};
+        }
+
+        return expression;
+    }
+
+    [[nodiscard]] Expression parse_multiplicative_expression() {
+        Expression expression = parse_primary_expression();
+
+        while (current_.kind == TokenKind::multiply || current_.kind == TokenKind::divide) {
+            const TokenKind op = current_.kind;
+            advance();
+
+            if (current_.kind != TokenKind::number) {
+                throw std::invalid_argument("expected number after operator");
+            }
+
+            expression = Expression{
+                BinaryExpression{
+                    .op = to_binary_operator(op),
+                    .left = make_expression(std::move(expression)),
+                    .right = make_expression(parse_primary_expression()),
+                }};
+        }
+
+        return expression;
+    }
+
+    [[nodiscard]] Expression parse_primary_expression() {
+        if (current_.kind != TokenKind::number) {
+            throw std::invalid_argument("expected number after operator");
+        }
+
+        Expression expression{NumberLiteral{.value = current_.number_value}};
+        advance();
+        return expression;
+    }
+
+    void advance() {
+        current_ = tokenizer_.next();
+    }
+
+    Tokenizer tokenizer_;
+    Token current_;
+};
+
+[[nodiscard]] double evaluate_expression(const Expression& expression) {
+    return std::visit(
+        [](const auto& node) -> double {
+            using Node = std::decay_t<decltype(node)>;
+
+            if constexpr (std::is_same_v<Node, NumberLiteral>) {
+                return node.value;
+            } else {
+                const double lhs = evaluate_expression(*node.left);
+                const double rhs = evaluate_expression(*node.right);
+
+                switch (node.op) {
+                case BinaryOperator::add:
+                    return lhs + rhs;
+                case BinaryOperator::subtract:
+                    return lhs - rhs;
+                case BinaryOperator::multiply:
+                    return lhs * rhs;
+                case BinaryOperator::divide:
+                    return lhs / rhs;
+                }
+
+                throw std::invalid_argument("unknown binary operator");
+            }
+        },
+        expression.node);
 }
 
 }  // namespace
 
+Expression ExpressionParser::parse(const std::string& expression) const {
+    Parser parser(expression);
+    return parser.parse();
+}
+
 double ExpressionParser::evaluate(const std::string& expression) const {
-    Tokenizer tokenizer(expression);
-
-    const Token first = tokenizer.next();
-    if (first.kind != TokenKind::number) {
-        throw std::invalid_argument("expression must start with a number");
-    }
-
-    double result = first.number_value;
-
-    while (true) {
-        const Token op = tokenizer.next();
-        if (op.kind == TokenKind::end) {
-            return result;
-        }
-
-        if (!is_binary_operator(op.kind)) {
-            throw std::invalid_argument("expected binary operator");
-        }
-
-        const Token rhs = tokenizer.next();
-        if (rhs.kind != TokenKind::number) {
-            throw std::invalid_argument("expected number after operator");
-        }
-
-        result = apply_operator(result, op.kind, rhs.number_value);
-    }
+    return evaluate_expression(parse(expression));
 }
 
 }  // namespace console_calc

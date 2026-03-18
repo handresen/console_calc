@@ -11,7 +11,6 @@ Current scope:
 
 Explicitly out of scope for this first version:
 - unary operators
-- operator precedence
 - parentheses
 - function calls
 - variables or constants
@@ -27,7 +26,8 @@ Explicitly out of scope for this first version:
 ## Grammar
 
 ```ebnf
-expression = number , { operator , number } ;
+expression = term , { ( "+" | "-" ) , term } ;
+term       = number , { ( "*" | "/" ) , number } ;
 number     = mantissa , [ exponent ] ;
 mantissa   = digits , [ "." , [ digits ] ]
            | "." , digits ;
@@ -44,12 +44,13 @@ Accepted numeric forms include:
 
 ## Evaluation Rule
 
-Because operator precedence is intentionally ignored, expressions are evaluated strictly from left to right.
+Expressions use standard arithmetic precedence: `*` and `/` bind more tightly than `+` and `-`. Operators of the same precedence group are evaluated from left to right.
 
 Examples:
 - `2 + 3` => `5`
-- `2 + 3 * 4` => `20`
+- `2 + 3 * 4` => `14`
 - `20 / 5 - 1` => `3`
+- `2 * 3 + 4 * 5` => `26`
 
 ## Valid Examples
 

@@ -15,7 +15,7 @@ bool expect_argument_mode_success() {
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 0 && output.str() == "20\n" && error.str().empty();
+    return exit_code == 0 && output.str() == "14\n" && error.str().empty();
 }
 
 bool expect_argument_mode_failure() {
@@ -35,7 +35,7 @@ bool expect_console_mode_success() {
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 0 && output.str() == "2\n20\n" && error.str().empty();
+    return exit_code == 0 && output.str() == "2\n14\n" && error.str().empty();
 }
 
 bool expect_console_mode_recovery_after_error() {
