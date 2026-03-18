@@ -1,11 +1,9 @@
 #include "expression_environment.h"
 
 #include "console_calc/builtin_function.h"
+#include "console_calc/value_format.h"
 
 #include <cctype>
-#include <iomanip>
-#include <limits>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -19,24 +17,6 @@ namespace {
 
 [[nodiscard]] bool is_identifier_char(char ch) {
     return std::isalnum(static_cast<unsigned char>(ch)) || ch == '_';
-}
-
-[[nodiscard]] std::string format_number(double value) {
-    std::ostringstream stream;
-    stream << std::setprecision(std::numeric_limits<double>::max_digits10) << value;
-    return stream.str();
-}
-
-[[nodiscard]] std::string format_list_literal(const std::vector<double>& values) {
-    std::string result = "{";
-    for (std::size_t index = 0; index < values.size(); ++index) {
-        if (index != 0) {
-            result += ", ";
-        }
-        result += format_number(values[index]);
-    }
-    result += "}";
-    return result;
 }
 
 [[nodiscard]] bool is_followed_by_call(std::string_view expression, std::size_t index) {
@@ -92,15 +72,11 @@ std::string expand_expression_identifiers(std::string_view expression,
             if (!result_reference.has_value()) {
                 throw std::invalid_argument("result reference requires at least one value");
             }
-            expanded += format_number(*result_reference);
+            expanded += format_scalar(*result_reference);
         } else if (const auto found = variables.find(identifier); found != variables.end()) {
-            if (const auto* scalar_value = std::get_if<double>(&found->second)) {
-                expanded += format_number(*scalar_value);
-            } else {
-                expanded += format_list_literal(std::get<std::vector<double>>(found->second));
-            }
+            expanded += format_value(found->second);
         } else if (const auto found = constants.find(identifier); found != constants.end()) {
-            expanded += format_number(found->second);
+            expanded += format_scalar(found->second);
         } else {
             throw std::invalid_argument("unknown identifier: " + identifier);
         }

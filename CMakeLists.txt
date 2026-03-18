@@ -29,6 +29,7 @@ add_library(console_calc_lib
     src/expression_evaluator.cpp
     src/expression_parser.cpp
     src/expression_tokenizer.cpp
+    src/value_format.cpp
 )
 
 target_include_directories(console_calc_lib
@@ -42,7 +43,9 @@ target_compile_features(console_calc_lib PUBLIC cxx_std_20)
 
 add_library(console_calc_app_lib
     apps/console_calc_app.cpp
+    apps/console_assignment.cpp
     apps/console_mode.cpp
+    apps/console_session.cpp
     apps/expression_environment.cpp
 )
 

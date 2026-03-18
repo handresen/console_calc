@@ -33,6 +33,23 @@ bool expect_invalid(console_calc::ExpressionParser& parser, const std::string& e
     }
 }
 
+bool expect_value_api(console_calc::ExpressionParser& parser) {
+    const console_calc::Value scalar = parser.evaluate_value("1 + 2");
+    const auto* scalar_value = std::get_if<double>(&scalar);
+    if (scalar_value == nullptr || !almost_equal(*scalar_value, 3.0)) {
+        return false;
+    }
+
+    const console_calc::Value list = parser.evaluate_value("{1, 2, 3}");
+    const auto* list_value = std::get_if<console_calc::ListValue>(&list);
+    if (list_value == nullptr || list_value->size() != 3) {
+        return false;
+    }
+
+    return almost_equal((*list_value)[0], 1.0) && almost_equal((*list_value)[1], 2.0) &&
+           almost_equal((*list_value)[2], 3.0);
+}
+
 bool expect_ast_shape(console_calc::ExpressionParser& parser) {
     using console_calc::BinaryExpression;
     using console_calc::BinaryOperator;
@@ -266,6 +283,10 @@ int main() {
     console_calc::ExpressionParser parser;
 
     if (!expect_ast_shape(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_value_api(parser)) {
         return EXIT_FAILURE;
     }
 
