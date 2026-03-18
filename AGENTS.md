@@ -42,13 +42,21 @@
 
 ## Current Language Scope
 - The CLI supports both one-shot evaluation from command-line arguments and an interactive console mode when started with no arguments.
+- Scalar values are intrinsic `int64` or floating-point values. List values are first-class and currently flat.
 - Supported binary operators are `+`, `-`, `*`, `/`, `%`, `^`, `&`, and `|`.
-- Parentheses are supported for grouping.
-- Operator precedence is currently: parentheses, `^`, `*` `/` `%`, `+` `-`, `&`, `|`.
+- Unary `-` is supported.
+- Parentheses and list literals are supported for grouping and list construction.
+- Operator precedence is currently: function calls / list literals / parentheses, `^`, unary `-`, `*` `/` `%`, `+` `-`, `&`, `|`.
 - `^` is right-associative. The other binary operators are left-associative.
-- `%` uses floating-point modulo semantics.
+- `/` always yields floating-point results.
+- `%` preserves integer results for integer operands and otherwise uses floating-point modulo semantics.
 - `&` and `|` require integer-valued operands and should reject non-integer inputs.
-- Unary operators, functions, variables, and constants are still out of scope.
+- Builtin constants include `pi`, `e`, and `tau`.
+- Builtin scalar functions include `abs`, `sqrt`, trig functions, and `pow`.
+- Builtin list functions include aggregation (`sum`, `product`, `avg`, `min`, `max`, `len`), slicing (`first`, `drop`), pairwise operations (`list_add`, `list_sub`, `list_mul`, `list_div`), `map`, and `reduce`.
+- Builtin list generation functions include `range`, `geom`, `repeat`, `linspace`, and `powers`.
+- The console supports late-bound user definitions, result-stack semantics, integer display modes (`dec`, `hex`, `bin`), and console-native commands such as `s`, `vars`, `consts`, and `funcs`.
+- The app layer is responsible for console-only syntax and identifier expansion, including `r` result references and late-bound definitions.
 
 ## Working Rules For Agents
 - Follow the existing CMake and `vcpkg` structure unless the user asks to replace it.
@@ -64,11 +72,13 @@
 - Treat the console application as a thin adapter over the core library.
 - Document grammar and operator-precedence assumptions as they become concrete.
 - Keep the interactive console behavior in the app layer rather than mixing REPL concerns into the parser library.
+- Keep console-only syntax expansion token-aware and localized in the app layer rather than letting it become a second ad hoc parser.
 - Keep the expression test corpus in `tests/expression_cases.txt` using quoted expressions, a comma, and an expected result token per line, with `#` comments for section headers.
 - When parser behavior changes, update both `docs/grammar.md` and the externalized expression test data.
+- When console commands or builtin-function metadata change, update the focused command/listing tests in `tests/console_command_test.cpp` and the user-facing `README.md` when appropriate.
 
 ## Near-Term Priorities
 1. Preserve correctness while extending the grammar in small, test-backed steps.
-2. Add remaining planned expression features such as unary operators when requested.
+2. Keep the core value model, builtin-function metadata, and evaluator semantics cohesive as list and integer features expand.
 3. Refine console-mode behavior and future result-stack semantics without coupling them to the parser core.
-4. Keep grammar notes, external test data, and parser behavior synchronized.
+4. Keep grammar notes, README examples, command/listing tests, and external test data synchronized with behavior.
