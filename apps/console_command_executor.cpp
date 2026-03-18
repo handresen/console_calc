@@ -1,6 +1,7 @@
 #include "console_command_executor.h"
 
 #include <algorithm>
+#include <ostream>
 #include <stdexcept>
 #include <utility>
 

@@ -24,12 +24,26 @@
       "cacheVariables": {
         "CONSOLE_CALC_ENABLE_CLANG_TIDY": "ON"
       }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
     }
   ],
   "buildPresets": [
     {
       "name": "default",
       "configurePreset": "default"
+    },
+    {
+      "name": "release",
+      "configurePreset": "release"
     },
     {
       "name": "clang-tidy",
@@ -40,6 +54,13 @@
     {
       "name": "default",
       "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
       "output": {
         "outputOnFailure": true
       }
