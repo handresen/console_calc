@@ -89,6 +89,30 @@ bool expect_parenthesized_ast_shape(console_calc::ExpressionParser& parser) {
            almost_equal(lhs_left->value, 2.0) && almost_equal(lhs_right->value, 3.0);
 }
 
+bool expect_unary_minus_ast_shape(console_calc::ExpressionParser& parser) {
+    using console_calc::BinaryExpression;
+    using console_calc::BinaryOperator;
+    using console_calc::Expression;
+    using console_calc::NumberLiteral;
+    using console_calc::UnaryExpression;
+
+    const Expression ast = parser.parse("-2^2");
+    const auto* root = std::get_if<UnaryExpression>(&ast.node);
+    if (root == nullptr) {
+        return false;
+    }
+
+    const auto* operand = std::get_if<BinaryExpression>(&root->operand->node);
+    if (operand == nullptr || operand->op != BinaryOperator::power) {
+        return false;
+    }
+
+    const auto* lhs = std::get_if<NumberLiteral>(&operand->left->node);
+    const auto* rhs = std::get_if<NumberLiteral>(&operand->right->node);
+    return lhs != nullptr && rhs != nullptr && almost_equal(lhs->value, 2.0) &&
+           almost_equal(rhs->value, 2.0);
+}
+
 bool expect_power_ast_shape(console_calc::ExpressionParser& parser) {
     using console_calc::BinaryExpression;
     using console_calc::BinaryOperator;
@@ -183,6 +207,10 @@ int main() {
     }
 
     if (!expect_parenthesized_ast_shape(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_unary_minus_ast_shape(parser)) {
         return EXIT_FAILURE;
     }
 

@@ -6,12 +6,12 @@ This initial grammar exists to exercise the parser pipeline with the smallest us
 
 Current scope:
 - integer and floating-point numeric literals
+- unary `-`
 - binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - parentheses for grouping
 - optional whitespace between tokens
 
 Explicitly out of scope for this first version:
-- unary operators
 - function calls
 - variables or constants
 
@@ -22,6 +22,8 @@ Explicitly out of scope for this first version:
   - examples: `0`, `7`, `123`, `3.14`, `.5`, `1.`, `1.3e10`, `6E-4`
 - `operator`
   - one of `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
+- `unary operator`
+  - `-`
 - `grouping`
   - `(` and `)`
 
@@ -32,8 +34,9 @@ expression = bitwise_or ;
 bitwise_or = bitwise_and , { "|" , bitwise_and } ;
 bitwise_and = sum , { "&" , sum } ;
 sum        = term , { ( "+" | "-" ) , term } ;
-term       = power , { ( "*" | "/" | "%" ) , power } ;
-power      = primary , [ "^" , power ] ;
+term       = unary , { ( "*" | "/" | "%" ) , unary } ;
+unary      = [ "-" ] , power ;
+power      = primary , [ "^" , unary ] ;
 primary    = number | "(" , expression , ")" ;
 number     = mantissa , [ exponent ] ;
 mantissa   = digits , [ "." , [ digits ] ]
@@ -51,13 +54,15 @@ Accepted numeric forms include:
 
 ## Evaluation Rule
 
-Expressions use these precedence levels, from highest to lowest: parentheses, `^`, `*` `/` `%`, `+` `-`, `&`, `|`. `^` is right-associative. The other binary operators are left-associative.
+Expressions use these precedence levels, from highest to lowest: parentheses, `^`, unary `-`, `*` `/` `%`, `+` `-`, `&`, `|`. `^` is right-associative. The other operators are left-associative.
 
 `%` uses floating-point modulo via `fmod`. `&` and `|` require integer-valued operands; non-integer operands are rejected. Division by zero, modulo by zero, and non-finite evaluation results are rejected.
 
 Examples:
 - `2 + 3` => `5`
 - `2 + 3 * 4` => `14`
+- `-2^2` => `-4`
+- `(-2)^2` => `4`
 - `2 ^ 3 ^ 2` => `512`
 - `10 % 3` => `1`
 - `6 & 3 | 8` => `10`
@@ -72,6 +77,8 @@ Examples:
 - `8*3/2`
 - `7 + 8 - 9 + 10`
 - `1.5 + 2.25`
+- `-3`
+- `2*-3`
 - `.5 * 8`
 - `1.3e10 / 2`
 - `2 ^ 3`
@@ -85,10 +92,8 @@ Examples:
 - `+1`
 - `1+`
 - `1++2`
-- `-3`
 - `(1+2`
 -  `()`
-- `2*-3`
 - `1 / 0`
 - `1 % 0`
 - `0 ^ (1 - 2)`

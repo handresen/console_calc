@@ -49,6 +49,8 @@ double evaluate_expression(const Expression& expression) {
 
             if constexpr (std::is_same_v<Node, NumberLiteral>) {
                 return node.value;
+            } else if constexpr (std::is_same_v<Node, UnaryExpression>) {
+                return require_finite_result(-evaluate_expression(*node.operand));
             } else {
                 const double lhs = evaluate_expression(*node.left);
                 const double rhs = evaluate_expression(*node.right);

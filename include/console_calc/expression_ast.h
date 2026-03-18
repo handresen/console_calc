@@ -22,6 +22,10 @@ struct NumberLiteral {
     double value = 0.0;
 };
 
+struct UnaryExpression {
+    std::unique_ptr<Expression> operand;
+};
+
 struct BinaryExpression {
     BinaryOperator op;
     std::unique_ptr<Expression> left;
@@ -29,7 +33,7 @@ struct BinaryExpression {
 };
 
 struct Expression {
-    std::variant<NumberLiteral, BinaryExpression> node;
+    std::variant<NumberLiteral, UnaryExpression, BinaryExpression> node;
 };
 
 }  // namespace console_calc

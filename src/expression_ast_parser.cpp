@@ -47,13 +47,17 @@ namespace {
     return kind == TokenKind::number || kind == TokenKind::left_paren;
 }
 
+[[nodiscard]] bool starts_operand_expression(TokenKind kind) {
+    return starts_primary_expression(kind) || kind == TokenKind::minus;
+}
+
 class Parser {
 public:
     explicit Parser(std::string_view input) : tokenizer_(input), current_(tokenizer_.next()) {}
 
     [[nodiscard]] Expression parse() {
-        if (!starts_primary_expression(current_.kind)) {
-            throw ParseError("expression must start with a number or '('");
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("expression must start with a number, '-' or '('");
         }
 
         Expression expression = parse_bitwise_or_expression();
@@ -72,7 +76,7 @@ private:
             const TokenKind op = current_.kind;
             advance();
 
-            if (!starts_primary_expression(current_.kind)) {
+            if (!starts_operand_expression(current_.kind)) {
                 throw ParseError("expected number after operator");
             }
 
@@ -94,7 +98,7 @@ private:
             const TokenKind op = current_.kind;
             advance();
 
-            if (!starts_primary_expression(current_.kind)) {
+            if (!starts_operand_expression(current_.kind)) {
                 throw ParseError("expected number after operator");
             }
 
@@ -116,7 +120,7 @@ private:
             const TokenKind op = current_.kind;
             advance();
 
-            if (!starts_primary_expression(current_.kind)) {
+            if (!starts_operand_expression(current_.kind)) {
                 throw ParseError("expected number after operator");
             }
 
@@ -132,14 +136,14 @@ private:
     }
 
     [[nodiscard]] Expression parse_multiplicative_expression() {
-        Expression expression = parse_power_expression();
+        Expression expression = parse_unary_expression();
 
         while (current_.kind == TokenKind::multiply || current_.kind == TokenKind::divide ||
                current_.kind == TokenKind::modulo) {
             const TokenKind op = current_.kind;
             advance();
 
-            if (!starts_primary_expression(current_.kind)) {
+            if (!starts_operand_expression(current_.kind)) {
                 throw ParseError("expected number after operator");
             }
 
@@ -147,11 +151,28 @@ private:
                 BinaryExpression{
                     .op = to_binary_operator(op),
                     .left = make_expression(std::move(expression)),
-                    .right = make_expression(parse_power_expression()),
+                    .right = make_expression(parse_unary_expression()),
                 }};
         }
 
         return expression;
+    }
+
+    [[nodiscard]] Expression parse_unary_expression() {
+        if (current_.kind == TokenKind::minus) {
+            advance();
+
+            if (!starts_operand_expression(current_.kind)) {
+                throw ParseError("expected number after operator");
+            }
+
+            return Expression{
+                UnaryExpression{
+                    .operand = make_expression(parse_unary_expression()),
+                }};
+        }
+
+        return parse_power_expression();
     }
 
     [[nodiscard]] Expression parse_power_expression() {
@@ -160,7 +181,7 @@ private:
         if (current_.kind == TokenKind::power) {
             advance();
 
-            if (!starts_primary_expression(current_.kind)) {
+            if (!starts_operand_expression(current_.kind)) {
                 throw ParseError("expected number after operator");
             }
 
@@ -168,7 +189,7 @@ private:
                 BinaryExpression{
                     .op = BinaryOperator::power,
                     .left = make_expression(std::move(expression)),
-                    .right = make_expression(parse_power_expression()),
+                    .right = make_expression(parse_unary_expression()),
                 }};
         }
 
