@@ -158,7 +158,25 @@ namespace {
     throw EvaluationError("function cannot be applied elementwise");
 }
 
-[[nodiscard]] Value evaluate_builtin_function(Function function, std::span<const Value> arguments) {
+template <typename Operation>
+[[nodiscard]] Value evaluate_pairwise_list_builtin(std::span<const Value> arguments,
+                                                   std::string_view function_name,
+                                                   Operation operation) {
+    const ListValue lhs = require_list(arguments[0]);
+    const ListValue rhs = require_list(arguments[1]);
+    if (lhs.size() != rhs.size()) {
+        throw EvaluationError(std::string(function_name) + "() requires lists of equal length");
+    }
+
+    ListValue values;
+    values.reserve(lhs.size());
+    for (std::size_t index = 0; index < lhs.size(); ++index) {
+        values.push_back(operation(lhs[index], rhs[index]));
+    }
+    return values;
+}
+
+[[nodiscard]] Value evaluate_scalar_builtin(Function function, std::span<const Value> arguments) {
     switch (function) {
     case Function::abs: {
         const ScalarValue value = require_scalar_or_singleton_list_value(arguments[0]);
@@ -183,6 +201,33 @@ namespace {
         return to_value(power_scalars(
             require_scalar_or_singleton_list_value(arguments[0]),
             require_scalar_or_singleton_list_value(arguments[1])));
+    case Function::sum:
+    case Function::len:
+    case Function::product:
+    case Function::avg:
+    case Function::min:
+    case Function::max:
+    case Function::first:
+    case Function::drop:
+    case Function::list_add:
+    case Function::list_sub:
+    case Function::list_div:
+    case Function::list_mul:
+    case Function::reduce:
+    case Function::map:
+    case Function::range:
+    case Function::geom:
+    case Function::repeat:
+    case Function::linspace:
+    case Function::powers:
+        break;
+    }
+
+    throw EvaluationError("unknown scalar builtin");
+}
+
+[[nodiscard]] Value evaluate_list_builtin(Function function, std::span<const Value> arguments) {
+    switch (function) {
     case Function::sum: {
         const ListValue values = require_list(arguments[0]);
         ScalarValue total = std::int64_t{0};
@@ -257,65 +302,40 @@ namespace {
         const std::size_t skip = std::min(count, values.size());
         return ListValue(values.begin() + static_cast<std::ptrdiff_t>(skip), values.end());
     }
-    case Function::list_add: {
-        const ListValue lhs = require_list(arguments[0]);
-        const ListValue rhs = require_list(arguments[1]);
-        if (lhs.size() != rhs.size()) {
-            throw EvaluationError("list_add() requires lists of equal length");
-        }
-
-        ListValue values;
-        values.reserve(lhs.size());
-        for (std::size_t index = 0; index < lhs.size(); ++index) {
-            values.push_back(add_scalars(lhs[index], rhs[index]));
-        }
-        return values;
-    }
-    case Function::list_sub: {
-        const ListValue lhs = require_list(arguments[0]);
-        const ListValue rhs = require_list(arguments[1]);
-        if (lhs.size() != rhs.size()) {
-            throw EvaluationError("list_sub() requires lists of equal length");
-        }
-
-        ListValue values;
-        values.reserve(lhs.size());
-        for (std::size_t index = 0; index < lhs.size(); ++index) {
-            values.push_back(subtract_scalars(lhs[index], rhs[index]));
-        }
-        return values;
-    }
-    case Function::list_div: {
-        const ListValue lhs = require_list(arguments[0]);
-        const ListValue rhs = require_list(arguments[1]);
-        if (lhs.size() != rhs.size()) {
-            throw EvaluationError("list_div() requires lists of equal length");
-        }
-
-        ListValue values;
-        values.reserve(lhs.size());
-        for (std::size_t index = 0; index < lhs.size(); ++index) {
-            values.push_back(divide_scalars(lhs[index], rhs[index]));
-        }
-        return values;
-    }
-    case Function::list_mul: {
-        const ListValue lhs = require_list(arguments[0]);
-        const ListValue rhs = require_list(arguments[1]);
-        if (lhs.size() != rhs.size()) {
-            throw EvaluationError("list_mul() requires lists of equal length");
-        }
-
-        ListValue values;
-        values.reserve(lhs.size());
-        for (std::size_t index = 0; index < lhs.size(); ++index) {
-            values.push_back(multiply_scalars(lhs[index], rhs[index]));
-        }
-        return values;
-    }
-    case Function::reduce:
+    case Function::list_add:
+        return evaluate_pairwise_list_builtin(arguments, "list_add", add_scalars);
+    case Function::list_sub:
+        return evaluate_pairwise_list_builtin(arguments, "list_sub", subtract_scalars);
+    case Function::list_div:
+        return evaluate_pairwise_list_builtin(arguments, "list_div", divide_scalars);
+    case Function::list_mul:
+        return evaluate_pairwise_list_builtin(arguments, "list_mul", multiply_scalars);
     case Function::map:
+    case Function::reduce:
         break;
+    case Function::abs:
+    case Function::sin:
+    case Function::cos:
+    case Function::tan:
+    case Function::sind:
+    case Function::cosd:
+    case Function::tand:
+    case Function::sqrt:
+    case Function::pow:
+    case Function::range:
+    case Function::geom:
+    case Function::repeat:
+    case Function::linspace:
+    case Function::powers:
+        break;
+    }
+
+    throw EvaluationError("unknown list builtin");
+}
+
+[[nodiscard]] Value evaluate_list_generation_builtin(Function function,
+                                                     std::span<const Value> arguments) {
+    switch (function) {
     case Function::range: {
         const ScalarValue start = require_scalar_or_singleton_list_value(arguments[0]);
         const std::size_t count =
@@ -374,8 +394,7 @@ namespace {
         }
 
         const ScalarValue denominator = static_cast<std::int64_t>(count - 1);
-        const ScalarValue step =
-            divide_scalars(subtract_scalars(stop, start), denominator);
+        const ScalarValue step = divide_scalars(subtract_scalars(stop, start), denominator);
         ScalarValue current = start;
         for (std::size_t index = 1; index < count; ++index) {
             current = add_scalars(current, step);
@@ -400,6 +419,46 @@ namespace {
         }
         return values;
     }
+    case Function::abs:
+    case Function::sin:
+    case Function::cos:
+    case Function::tan:
+    case Function::sind:
+    case Function::cosd:
+    case Function::tand:
+    case Function::sqrt:
+    case Function::pow:
+    case Function::sum:
+    case Function::len:
+    case Function::product:
+    case Function::avg:
+    case Function::min:
+    case Function::max:
+    case Function::first:
+    case Function::drop:
+    case Function::list_add:
+    case Function::list_sub:
+    case Function::list_div:
+    case Function::list_mul:
+    case Function::reduce:
+    case Function::map:
+        break;
+    }
+
+    throw EvaluationError("unknown list generation builtin");
+}
+
+[[nodiscard]] Value evaluate_builtin_function(Function function, std::span<const Value> arguments) {
+    if (is_scalar_function(function)) {
+        return evaluate_scalar_builtin(function, arguments);
+    }
+
+    if (builtin_function_info(function).category == BuiltinFunctionCategory::list) {
+        return evaluate_list_builtin(function, arguments);
+    }
+
+    if (builtin_function_info(function).category == BuiltinFunctionCategory::list_generation) {
+        return evaluate_list_generation_builtin(function, arguments);
     }
 
     throw EvaluationError("unknown function");

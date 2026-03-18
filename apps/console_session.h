@@ -26,19 +26,12 @@ public:
 
 private:
     int handle_line(std::string_view line);
-    void print_prompt() const;
     [[nodiscard]] std::string prompt_text() const;
-    void print_stack() const;
-    void print_variables() const;
-    void print_constants() const;
-    void print_functions() const;
     void print_result(const Value& value);
-    void execute_stack_command(ConsoleCommandKind command);
     [[nodiscard]] bool try_handle_hidden_command(std::string_view line);
     void assign_definition(std::string_view name, std::string_view expression,
                            const std::optional<Value>& result_reference);
     void push_result(Value result);
-    void set_display_mode(IntegerDisplayMode mode);
     void set_stack_depth(std::size_t depth);
     [[nodiscard]] Value apply_stack_operator(char op);
     std::optional<Value> top_result() const;

@@ -13,6 +13,7 @@
 #include "console_assignment.h"
 #include "console_listing.h"
 #include "console_calc/builtin_function.h"
+#include "console_command_executor.h"
 #include "console_calc/expression_parser.h"
 #include "console_calc/scalar_value.h"
 #include "console_calc/value_format.h"
@@ -80,18 +81,18 @@ int ConsoleSession::handle_line(std::string_view line) {
     }
 
     try {
-        if (command.kind == ConsoleCommandKind::list_stack ||
-            command.kind == ConsoleCommandKind::list_variables ||
-            command.kind == ConsoleCommandKind::list_constants ||
-            command.kind == ConsoleCommandKind::list_functions ||
-            command.kind == ConsoleCommandKind::display_decimal ||
-            command.kind == ConsoleCommandKind::display_hexadecimal ||
-            command.kind == ConsoleCommandKind::display_binary ||
-            command.kind == ConsoleCommandKind::duplicate ||
-            command.kind == ConsoleCommandKind::drop ||
-            command.kind == ConsoleCommandKind::swap ||
-            command.kind == ConsoleCommandKind::clear) {
-            execute_stack_command(command.kind);
+        if (is_non_evaluating_console_command(command.kind)) {
+            execute_non_evaluating_console_command(
+                command.kind,
+                ConsoleCommandExecutionContext{
+                    .result_stack = result_stack_,
+                    .max_stack_depth = max_stack_depth_,
+                    .definitions = definitions_,
+                    .constants = constants_,
+                    .display_mode = display_mode_,
+                    .output = output_,
+                    .mutable_stack = result_stack_,
+                });
             return -1;
         }
 
@@ -128,26 +129,6 @@ std::string ConsoleSession::prompt_text() const {
            std::string(k_color_reset);
 }
 
-void ConsoleSession::print_prompt() const {
-    output_ << prompt_text();
-}
-
-void ConsoleSession::print_stack() const {
-    output_ << format_stack_listing(result_stack_, display_mode_);
-}
-
-void ConsoleSession::print_variables() const {
-    output_ << format_definition_listing(definitions_);
-}
-
-void ConsoleSession::print_constants() const {
-    output_ << format_constant_listing(constants_);
-}
-
-void ConsoleSession::print_functions() const {
-    output_ << format_builtin_function_listing(builtin_functions());
-}
-
 void ConsoleSession::print_result(const Value& value) {
     if (const auto* integer = std::get_if<std::int64_t>(&value)) {
         output_ << format_scalar(ScalarValue{*integer}, display_mode_) << '\n';
@@ -160,64 +141,6 @@ void ConsoleSession::print_result(const Value& value) {
     }
 
     output_ << format_console_value(value, display_mode_) << '\n';
-}
-
-void ConsoleSession::execute_stack_command(ConsoleCommandKind command) {
-    if (command == ConsoleCommandKind::list_stack) {
-        print_stack();
-        return;
-    }
-    if (command == ConsoleCommandKind::list_variables) {
-        print_variables();
-        return;
-    }
-    if (command == ConsoleCommandKind::list_constants) {
-        print_constants();
-        return;
-    }
-    if (command == ConsoleCommandKind::list_functions) {
-        print_functions();
-        return;
-    }
-    if (command == ConsoleCommandKind::display_decimal) {
-        set_display_mode(IntegerDisplayMode::decimal);
-        return;
-    }
-    if (command == ConsoleCommandKind::display_hexadecimal) {
-        set_display_mode(IntegerDisplayMode::hexadecimal);
-        return;
-    }
-    if (command == ConsoleCommandKind::display_binary) {
-        set_display_mode(IntegerDisplayMode::binary);
-        return;
-    }
-    if (command == ConsoleCommandKind::duplicate) {
-        if (result_stack_.empty()) {
-            throw std::invalid_argument("stack requires at least one value");
-        }
-        if (result_stack_.size() >= max_stack_depth_) {
-            result_stack_.erase(result_stack_.begin());
-        }
-        result_stack_.push_back(result_stack_.back());
-        return;
-    }
-    if (command == ConsoleCommandKind::drop) {
-        if (result_stack_.empty()) {
-            throw std::invalid_argument("stack requires at least one value");
-        }
-        result_stack_.pop_back();
-        return;
-    }
-    if (command == ConsoleCommandKind::swap) {
-        if (result_stack_.size() < 2) {
-            throw std::invalid_argument("stack requires at least two values");
-        }
-        std::swap(result_stack_[result_stack_.size() - 1], result_stack_[result_stack_.size() - 2]);
-        return;
-    }
-    if (command == ConsoleCommandKind::clear) {
-        result_stack_.clear();
-    }
 }
 
 bool ConsoleSession::try_handle_hidden_command(std::string_view line) {
@@ -269,10 +192,6 @@ void ConsoleSession::push_result(Value result) {
     }
 
     result_stack_.push_back(std::move(result));
-}
-
-void ConsoleSession::set_display_mode(IntegerDisplayMode mode) {
-    display_mode_ = mode;
 }
 
 void ConsoleSession::set_stack_depth(std::size_t depth) {

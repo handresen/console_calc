@@ -47,6 +47,7 @@ add_library(console_calc_app_lib
     apps/console_calc_app.cpp
     apps/console_assignment.cpp
     apps/console_command.cpp
+    apps/console_command_executor.cpp
     apps/console_history.cpp
     apps/console_listing.cpp
     apps/console_line_editor.cpp
