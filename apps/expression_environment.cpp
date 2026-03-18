@@ -74,7 +74,8 @@ bool is_braced_list_literal(std::string_view text) {
 namespace {
 
 std::string expand_expression_identifiers_impl(
-    std::string_view expression, const ConstantTable& constants, const VariableTable& variables,
+    std::string_view expression, const ConstantTable& constants,
+    const DefinitionTable& definitions,
     const std::optional<Value>& result_reference, std::unordered_set<std::string>& expansion_stack) {
     std::string expanded;
     expanded.reserve(expression.size());
@@ -101,13 +102,13 @@ std::string expand_expression_identifiers_impl(
                 throw std::invalid_argument("result reference requires at least one value");
             }
             expanded += format_value(*result_reference);
-        } else if (const auto found = variables.find(identifier); found != variables.end()) {
+        } else if (const auto found = definitions.find(identifier); found != definitions.end()) {
             if (!expansion_stack.insert(identifier).second) {
                 throw std::invalid_argument("circular variable reference: " + identifier);
             }
 
             const std::string variable_expression = expand_expression_identifiers_impl(
-                found->second, constants, variables, result_reference, expansion_stack);
+                found->second.expression, constants, definitions, result_reference, expansion_stack);
             expansion_stack.erase(identifier);
 
             if (is_braced_list_literal(variable_expression)) {
@@ -133,19 +134,19 @@ std::string expand_expression_identifiers_impl(
 
 std::string expand_expression_identifiers(std::string_view expression,
                                           const ConstantTable& constants,
-                                          const VariableTable& variables,
+                                          const DefinitionTable& definitions,
                                           const std::optional<Value>& result_reference) {
     std::unordered_set<std::string> expansion_stack;
     return expand_expression_identifiers_impl(
-        expression, constants, variables, result_reference, expansion_stack);
+        expression, constants, definitions, result_reference, expansion_stack);
 }
 
 Value evaluate_expanded_expression(const ExpressionParser& parser, std::string_view expression,
                                    const ConstantTable& constants,
-                                   const VariableTable& variables,
+                                   const DefinitionTable& definitions,
                                    const std::optional<Value>& result_reference) {
     return evaluate_expanded_expression(
-        parser, expand_expression_identifiers(expression, constants, variables, result_reference));
+        parser, expand_expression_identifiers(expression, constants, definitions, result_reference));
 }
 
 Value evaluate_expanded_expression(const ExpressionParser& parser,

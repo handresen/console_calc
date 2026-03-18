@@ -1,7 +1,7 @@
 #include "console_session.h"
 
-#include <cctype>
 #include <algorithm>
+#include <cctype>
 #include <exception>
 #include <istream>
 #include <optional>
@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "console_assignment.h"
+#include "console_listing.h"
 #include "console_calc/builtin_function.h"
 #include "console_calc/expression_parser.h"
 #include "console_calc/value_format.h"
@@ -98,24 +99,14 @@ int ConsoleSession::handle_line(std::string_view line) {
                 if (constants_.contains(assignment->name)) {
                     throw std::invalid_argument("cannot redefine constant: " + assignment->name);
                 }
-                const std::string normalized_expression =
-                    normalize_assignment_expression(assignment->expression);
-                VariableTable validation_variables = variables_;
-                validation_variables[assignment->name] = normalized_expression;
-                const std::string expanded_expression = expand_expression_identifiers(
-                    normalized_expression, constants_, validation_variables, result_reference);
-                (void)parser_.evaluate_value(expanded_expression);
-                variables_[assignment->name] = normalized_expression;
+                assign_definition(assignment->name, assignment->expression, result_reference);
                 return -1;
             }
         }
 
         const Value result = evaluate_expanded_expression(
-            parser_, trimmed, constants_, variables_, result_reference);
-        if (result_stack_.size() >= k_max_stack_depth) {
-            throw std::invalid_argument("stack is full");
-        }
-        result_stack_.push_back(result);
+            parser_, trimmed, constants_, definitions_, result_reference);
+        push_result(result);
         print_result(result);
     } catch (const std::exception& ex) {
         error_ << "error: " << ex.what() << '\n';
@@ -134,65 +125,19 @@ void ConsoleSession::print_prompt() const {
 }
 
 void ConsoleSession::print_stack() const {
-    for (std::size_t index = 0; index < result_stack_.size(); ++index) {
-        output_ << index << ':' << format_value(result_stack_[index]) << '\n';
-    }
+    output_ << format_stack_listing(result_stack_);
 }
 
 void ConsoleSession::print_variables() const {
-    std::vector<std::string> names;
-    names.reserve(variables_.size());
-    for (const auto& [name, _] : variables_) {
-        names.push_back(name);
-    }
-
-    std::sort(names.begin(), names.end());
-    for (const auto& name : names) {
-        output_ << name << ':' << variables_.at(name) << '\n';
-    }
+    output_ << format_definition_listing(definitions_);
 }
 
 void ConsoleSession::print_constants() const {
-    std::vector<std::string> names;
-    names.reserve(constants_.size());
-    for (const auto& [name, _] : constants_) {
-        names.push_back(name);
-    }
-
-    std::sort(names.begin(), names.end());
-    for (const auto& name : names) {
-        output_ << name << ':' << format_scalar(constants_.at(name)) << '\n';
-    }
+    output_ << format_constant_listing(constants_);
 }
 
 void ConsoleSession::print_functions() const {
-    std::vector<std::string> scalar_names;
-    std::vector<std::string> list_names;
-    scalar_names.reserve(builtin_functions().size());
-    list_names.reserve(builtin_functions().size());
-    for (const Function function : builtin_functions()) {
-        std::string name(builtin_function_name(function));
-        if (is_list_function(function)) {
-            list_names.push_back(std::move(name));
-        } else {
-            scalar_names.push_back(std::move(name));
-        }
-    }
-
-    std::sort(scalar_names.begin(), scalar_names.end());
-    std::sort(list_names.begin(), list_names.end());
-
-    output_ << "Scalar functions\n";
-    for (const auto& name : scalar_names) {
-        const auto function = parse_builtin_function(name);
-        output_ << name << '/' << builtin_function_arity(*function) << '\n';
-    }
-
-    output_ << "List functions\n";
-    for (const auto& name : list_names) {
-        const auto function = parse_builtin_function(name);
-        output_ << name << '/' << builtin_function_arity(*function) << '\n';
-    }
+    output_ << format_builtin_function_listing(builtin_functions());
 }
 
 void ConsoleSession::print_result(const Value& value) {
@@ -248,6 +193,25 @@ void ConsoleSession::execute_stack_command(ConsoleCommandKind command) {
     if (command == ConsoleCommandKind::clear) {
         result_stack_.clear();
     }
+}
+
+void ConsoleSession::assign_definition(std::string_view name, std::string_view expression,
+                                       const std::optional<Value>& result_reference) {
+    const std::string normalized_expression = normalize_assignment_expression(expression);
+    DefinitionTable validation_definitions = definitions_;
+    validation_definitions[std::string(name)] = UserDefinition{normalized_expression};
+    const std::string expanded_expression = expand_expression_identifiers(
+        normalized_expression, constants_, validation_definitions, result_reference);
+    (void)parser_.evaluate_value(expanded_expression);
+    definitions_[std::string(name)] = UserDefinition{normalized_expression};
+}
+
+void ConsoleSession::push_result(Value result) {
+    if (result_stack_.size() >= k_max_stack_depth) {
+        throw std::invalid_argument("stack is full");
+    }
+
+    result_stack_.push_back(std::move(result));
 }
 
 double ConsoleSession::apply_stack_operator(char op) {

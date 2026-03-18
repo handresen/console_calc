@@ -33,7 +33,7 @@ int evaluate_expression(const ExpressionParser& parser, std::string_view express
                         std::ostream& error) {
     try {
         output << parser.evaluate(
-            expand_expression_identifiers(expression, constants, VariableTable{}, std::nullopt))
+            expand_expression_identifiers(expression, constants, DefinitionTable{}, std::nullopt))
                << '\n';
         return 0;
     } catch (const std::exception& ex) {

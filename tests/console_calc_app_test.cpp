@@ -4,7 +4,6 @@
 #include <string_view>
 #include <vector>
 
-#include "console_command.h"
 #include "console_history.h"
 #include "expression_environment.h"
 #include "console_calc_app.h"
@@ -81,33 +80,14 @@ bool expect_console_history_ignores_empty() {
     return latest.has_value() && oldest.has_value() && *latest == "one" && *oldest == "one";
 }
 
-bool expect_console_command_classification() {
-    using console_calc::ConsoleCommandKind;
-    return console_calc::classify_console_command("q").kind == ConsoleCommandKind::quit &&
-           console_calc::classify_console_command("s").kind == ConsoleCommandKind::list_stack &&
-           console_calc::classify_console_command("vars").kind ==
-               ConsoleCommandKind::list_variables &&
-           console_calc::classify_console_command("consts").kind ==
-               ConsoleCommandKind::list_constants &&
-           console_calc::classify_console_command("funcs").kind ==
-               ConsoleCommandKind::list_functions &&
-           console_calc::classify_console_command("dup").kind == ConsoleCommandKind::duplicate &&
-           console_calc::classify_console_command("+").kind ==
-               ConsoleCommandKind::stack_operator &&
-           console_calc::classify_console_command("x:1").kind ==
-               ConsoleCommandKind::assignment &&
-           console_calc::classify_console_command("sin(pi)").kind ==
-               ConsoleCommandKind::expression;
-}
-
 bool expect_expanded_expression_helper() {
     console_calc::ExpressionParser parser;
     const console_calc::ConstantTable constants{
         {"pi", 3.14159265358979323846},
     };
-    const console_calc::VariableTable variables{
-        {"x", "pi + 1"},
-        {"y", "sin(x)"},
+    const console_calc::DefinitionTable variables{
+        {"x", {"pi + 1"}},
+        {"y", {"sin(x)"}},
     };
 
     const auto value =
@@ -481,10 +461,6 @@ int main() {
     }
 
     if (!expect_console_history_ignores_empty()) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_console_command_classification()) {
         return EXIT_FAILURE;
     }
 

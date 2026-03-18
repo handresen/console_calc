@@ -2,6 +2,7 @@
 
 #include <iosfwd>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -32,6 +33,9 @@ private:
     void print_functions() const;
     void print_result(const Value& value);
     void execute_stack_command(ConsoleCommandKind command);
+    void assign_definition(std::string_view name, std::string_view expression,
+                           const std::optional<Value>& result_reference);
+    void push_result(Value result);
     double apply_stack_operator(char op);
     std::optional<Value> top_result() const;
 
@@ -41,7 +45,7 @@ private:
     std::ostream& output_;
     std::ostream& error_;
     std::vector<Value> result_stack_;
-    VariableTable variables_;
+    DefinitionTable definitions_;
     ConsoleHistory history_;
     ConsoleLineEditor line_editor_;
 };

@@ -1,160 +1,70 @@
 #include "console_calc/builtin_function.h"
 
 #include <array>
+#include <stdexcept>
 
 namespace console_calc {
 
 namespace {
 
-constexpr std::array k_builtin_functions = {
-    Function::sin,  Function::cos,    Function::tan,   Function::sind, Function::cosd,
-    Function::tand, Function::pow,    Function::sum,   Function::len,  Function::product,
-    Function::avg,  Function::min,    Function::max,   Function::first, Function::drop,
-};
+constexpr std::array<BuiltinFunctionInfo, 15> k_builtin_functions = {{
+    {Function::sin, "sin", 1, BuiltinFunctionCategory::scalar, "sine in radians"},
+    {Function::cos, "cos", 1, BuiltinFunctionCategory::scalar, "cosine in radians"},
+    {Function::tan, "tan", 1, BuiltinFunctionCategory::scalar, "tangent in radians"},
+    {Function::sind, "sind", 1, BuiltinFunctionCategory::scalar, "sine in degrees"},
+    {Function::cosd, "cosd", 1, BuiltinFunctionCategory::scalar, "cosine in degrees"},
+    {Function::tand, "tand", 1, BuiltinFunctionCategory::scalar, "tangent in degrees"},
+    {Function::pow, "pow", 2, BuiltinFunctionCategory::scalar, "power"},
+    {Function::sum, "sum", 1, BuiltinFunctionCategory::list, "sum list elements"},
+    {Function::len, "len", 1, BuiltinFunctionCategory::list, "list length"},
+    {Function::product, "product", 1, BuiltinFunctionCategory::list, "product of list elements"},
+    {Function::avg, "avg", 1, BuiltinFunctionCategory::list, "average of list elements"},
+    {Function::min, "min", 1, BuiltinFunctionCategory::list, "minimum list element"},
+    {Function::max, "max", 1, BuiltinFunctionCategory::list, "maximum list element"},
+    {Function::first, "first", 2, BuiltinFunctionCategory::list, "first n list elements"},
+    {Function::drop, "drop", 2, BuiltinFunctionCategory::list, "drop first n list elements"},
+}};
 
 }  // namespace
 
 std::optional<Function> parse_builtin_function(std::string_view name) {
-    if (name == "sin") {
-        return Function::sin;
-    }
-    if (name == "cos") {
-        return Function::cos;
-    }
-    if (name == "tan") {
-        return Function::tan;
-    }
-    if (name == "sind") {
-        return Function::sind;
-    }
-    if (name == "cosd") {
-        return Function::cosd;
-    }
-    if (name == "tand") {
-        return Function::tand;
-    }
-    if (name == "pow") {
-        return Function::pow;
-    }
-    if (name == "sum") {
-        return Function::sum;
-    }
-    if (name == "len") {
-        return Function::len;
-    }
-    if (name == "product") {
-        return Function::product;
-    }
-    if (name == "avg") {
-        return Function::avg;
-    }
-    if (name == "min") {
-        return Function::min;
-    }
-    if (name == "max") {
-        return Function::max;
-    }
-    if (name == "first") {
-        return Function::first;
-    }
-    if (name == "drop") {
-        return Function::drop;
+    for (const auto& function : k_builtin_functions) {
+        if (function.name == name) {
+            return function.function;
+        }
     }
 
     return std::nullopt;
 }
 
-std::string_view builtin_function_name(Function function) {
-    switch (function) {
-    case Function::sin:
-        return "sin";
-    case Function::cos:
-        return "cos";
-    case Function::tan:
-        return "tan";
-    case Function::sind:
-        return "sind";
-    case Function::cosd:
-        return "cosd";
-    case Function::tand:
-        return "tand";
-    case Function::pow:
-        return "pow";
-    case Function::sum:
-        return "sum";
-    case Function::len:
-        return "len";
-    case Function::product:
-        return "product";
-    case Function::avg:
-        return "avg";
-    case Function::min:
-        return "min";
-    case Function::max:
-        return "max";
-    case Function::first:
-        return "first";
-    case Function::drop:
-        return "drop";
+const BuiltinFunctionInfo& builtin_function_info(Function function) {
+    for (const auto& info : k_builtin_functions) {
+        if (info.function == function) {
+            return info;
+        }
     }
 
-    return "";
+    throw std::invalid_argument("unknown builtin function");
+}
+
+std::string_view builtin_function_name(Function function) {
+    return builtin_function_info(function).name;
 }
 
 std::size_t builtin_function_arity(Function function) {
-    switch (function) {
-    case Function::sin:
-    case Function::cos:
-    case Function::tan:
-    case Function::sind:
-    case Function::cosd:
-    case Function::tand:
-    case Function::sum:
-    case Function::len:
-    case Function::product:
-    case Function::avg:
-    case Function::min:
-    case Function::max:
-        return 1;
-    case Function::pow:
-    case Function::first:
-    case Function::drop:
-        return 2;
-    }
-
-    return 0;
+    return builtin_function_info(function).arity;
 }
 
 bool is_builtin_function_name(std::string_view name) {
     return parse_builtin_function(name).has_value();
 }
 
-std::span<const Function> builtin_functions() {
+std::span<const BuiltinFunctionInfo> builtin_functions() {
     return k_builtin_functions;
 }
 
 bool is_list_function(Function function) {
-    switch (function) {
-    case Function::sum:
-    case Function::len:
-    case Function::product:
-    case Function::avg:
-    case Function::min:
-    case Function::max:
-    case Function::first:
-    case Function::drop:
-        return true;
-    case Function::sin:
-    case Function::cos:
-    case Function::tan:
-    case Function::sind:
-    case Function::cosd:
-    case Function::tand:
-    case Function::pow:
-        return false;
-    }
-
-    return false;
+    return builtin_function_info(function).category == BuiltinFunctionCategory::list;
 }
 
 }  // namespace console_calc

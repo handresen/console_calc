@@ -34,3 +34,20 @@ target_link_libraries(console_calc_app_test
 )
 
 add_test(NAME console_calc_app_test COMMAND $<TARGET_FILE:console_calc_app_test>)
+
+add_executable(console_calc_console_command_test
+    console_command_test.cpp
+)
+
+target_include_directories(console_calc_console_command_test
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/apps
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(console_calc_console_command_test
+    PRIVATE
+        console_calc_app_lib
+)
+
+add_test(NAME console_calc_console_command_test COMMAND $<TARGET_FILE:console_calc_console_command_test>)
