@@ -362,6 +362,20 @@ bool expect_console_mode_integer_display_modes() {
     return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
 
+bool expect_console_mode_radix_literals() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("0x10+5\n0b1010+1\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) + "21\n" +
+        prompt(1) + "11\n" +
+        prompt(2);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+}
+
 bool expect_console_mode_circular_reference_error() {
     const std::vector<std::string_view> args;
     std::istringstream input("a:1\nb:a+1\na:b+1\na\nq\n");
@@ -571,6 +585,10 @@ int main() {
     }
 
     if (!expect_console_mode_integer_display_modes()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_radix_literals()) {
         return EXIT_FAILURE;
     }
 

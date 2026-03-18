@@ -31,6 +31,61 @@ namespace {
     return index < expression.size() && expression[index] == '(';
 }
 
+[[nodiscard]] bool is_map_function_argument(std::string_view expression, std::size_t identifier_begin) {
+    int paren_depth = 0;
+    int brace_depth = 0;
+    std::optional<std::size_t> comma_index;
+
+    for (std::size_t index = identifier_begin; index-- > 0;) {
+        const char ch = expression[index];
+        if (ch == ')') {
+            ++paren_depth;
+            continue;
+        }
+        if (ch == '}') {
+            ++brace_depth;
+            continue;
+        }
+        if (ch == '(') {
+            if (paren_depth == 0 && brace_depth == 0) {
+                if (!comma_index.has_value()) {
+                    return false;
+                }
+
+                std::size_t name_end = index;
+                while (name_end > 0 &&
+                       std::isspace(static_cast<unsigned char>(expression[name_end - 1]))) {
+                    --name_end;
+                }
+
+                std::size_t name_begin = name_end;
+                while (name_begin > 0 && is_identifier_char(expression[name_begin - 1])) {
+                    --name_begin;
+                }
+
+                return expression.substr(name_begin, name_end - name_begin) == "map";
+            }
+
+            --paren_depth;
+            continue;
+        }
+        if (ch == '{') {
+            --brace_depth;
+            continue;
+        }
+        if (ch == ',' && paren_depth == 0 && brace_depth == 0) {
+            comma_index = index;
+            continue;
+        }
+    }
+
+    return false;
+}
+
+[[nodiscard]] bool is_radix_digit(char ch, int base) {
+    return base == 16 ? std::isxdigit(static_cast<unsigned char>(ch)) != 0 : (ch == '0' || ch == '1');
+}
+
 }  // namespace
 
 bool is_identifier(std::string_view text) {
@@ -83,6 +138,23 @@ std::string expand_expression_identifiers_impl(
     std::size_t index = 0;
     while (index < expression.size()) {
         const char ch = expression[index];
+        if (ch == '0' && index + 2 <= expression.size()) {
+            const char prefix = expression[index + 1];
+            if (prefix == 'x' || prefix == 'X' || prefix == 'b' || prefix == 'B') {
+                const int base = (prefix == 'x' || prefix == 'X') ? 16 : 2;
+                std::size_t end = index + 2;
+                while (end < expression.size() && is_radix_digit(expression[end], base)) {
+                    ++end;
+                }
+
+                if (end > index + 2) {
+                    expanded += std::string(expression.substr(index, end - index));
+                    index = end;
+                    continue;
+                }
+            }
+        }
+
         if (!is_identifier_start(ch)) {
             expanded += ch;
             ++index;
@@ -95,7 +167,8 @@ std::string expand_expression_identifiers_impl(
         }
 
         const std::string identifier(expression.substr(index, end - index));
-        if (is_builtin_function_name(identifier) && is_followed_by_call(expression, end)) {
+        if (is_builtin_function_name(identifier) &&
+            (is_followed_by_call(expression, end) || is_map_function_argument(expression, index))) {
             expanded += identifier;
         } else if (identifier == "r") {
             if (!result_reference.has_value()) {

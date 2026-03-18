@@ -121,7 +121,13 @@ bool expect_expression_identifier_expansion() {
                "map({1, 2, 3}, sin)" &&
            console_calc::expand_expression_identifiers(
                "map({1, 2}, sind)", constants, definitions, std::nullopt) ==
-               "map({1, 2}, sind)";
+               "map({1, 2}, sind)" &&
+           console_calc::expand_expression_identifiers(
+               "0x10 + 5", constants, definitions, std::nullopt) ==
+               "0x10 + 5" &&
+           console_calc::expand_expression_identifiers(
+               "0b1010 + 1", constants, definitions, std::nullopt) ==
+               "0b1010 + 1";
 }
 
 }  // namespace
