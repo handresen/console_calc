@@ -51,3 +51,14 @@ target_link_libraries(console_calc_console_command_test
 )
 
 add_test(NAME console_calc_console_command_test COMMAND $<TARGET_FILE:console_calc_console_command_test>)
+
+add_executable(console_calc_value_format_test
+    value_format_test.cpp
+)
+
+target_link_libraries(console_calc_value_format_test
+    PRIVATE
+        console_calc_lib
+)
+
+add_test(NAME console_calc_value_format_test COMMAND $<TARGET_FILE:console_calc_value_format_test>)

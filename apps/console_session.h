@@ -38,7 +38,7 @@ private:
                            const std::optional<Value>& result_reference);
     void push_result(Value result);
     void set_display_mode(IntegerDisplayMode mode);
-    double apply_stack_operator(char op);
+    [[nodiscard]] Value apply_stack_operator(char op);
     std::optional<Value> top_result() const;
 
     const ExpressionParser& parser_;

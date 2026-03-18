@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 
+#include "console_calc/expression_ast.h"
 #include "console_calc/value.h"
 
 namespace console_calc {
@@ -22,5 +23,7 @@ namespace console_calc {
 [[nodiscard]] ScalarValue modulo_scalars(const ScalarValue& lhs, const ScalarValue& rhs);
 [[nodiscard]] ScalarValue power_scalars(const ScalarValue& lhs, const ScalarValue& rhs);
 [[nodiscard]] ScalarValue negate_scalar(const ScalarValue& value);
+[[nodiscard]] ScalarValue apply_binary_operator(BinaryOperator op, const ScalarValue& lhs,
+                                                const ScalarValue& rhs);
 
 }  // namespace console_calc

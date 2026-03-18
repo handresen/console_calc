@@ -19,6 +19,31 @@ double require_finite_result(double value) {
     return value;
 }
 
+std::int64_t require_integer_operand(const ScalarValue& value) {
+    if (const auto integer = try_get_int64(value); integer.has_value()) {
+        return *integer;
+    }
+
+    const double numeric_value = scalar_to_double(value);
+    if (!std::isfinite(numeric_value)) {
+        throw EvaluationError("bitwise operators require 64-bit integer operands");
+    }
+
+    double integral_part = 0.0;
+    if (std::modf(numeric_value, &integral_part) != 0.0) {
+        throw EvaluationError("bitwise operators require 64-bit integer operands");
+    }
+
+    const long double integral_value = static_cast<long double>(integral_part);
+    const long double min_value = static_cast<long double>(std::numeric_limits<std::int64_t>::min());
+    const long double max_value = static_cast<long double>(std::numeric_limits<std::int64_t>::max());
+    if (integral_value < min_value || integral_value > max_value) {
+        throw EvaluationError("bitwise operators require 64-bit integer operands");
+    }
+
+    return static_cast<std::int64_t>(integral_part);
+}
+
 }  // namespace
 
 std::optional<std::int64_t> checked_add_int64(std::int64_t lhs, std::int64_t rhs) {
@@ -187,6 +212,32 @@ ScalarValue negate_scalar(const ScalarValue& value) {
     }
 
     return require_finite_result(-scalar_to_double(value));
+}
+
+ScalarValue apply_binary_operator(BinaryOperator op, const ScalarValue& lhs,
+                                  const ScalarValue& rhs) {
+    switch (op) {
+    case BinaryOperator::add:
+        return add_scalars(lhs, rhs);
+    case BinaryOperator::subtract:
+        return subtract_scalars(lhs, rhs);
+    case BinaryOperator::multiply:
+        return multiply_scalars(lhs, rhs);
+    case BinaryOperator::divide:
+        return divide_scalars(lhs, rhs);
+    case BinaryOperator::modulo:
+        return modulo_scalars(lhs, rhs);
+    case BinaryOperator::power:
+        return power_scalars(lhs, rhs);
+    case BinaryOperator::bitwise_and: {
+        return require_integer_operand(lhs) & require_integer_operand(rhs);
+    }
+    case BinaryOperator::bitwise_or: {
+        return require_integer_operand(lhs) | require_integer_operand(rhs);
+    }
+    }
+
+    throw EvaluationError("unknown binary operator");
 }
 
 }  // namespace console_calc

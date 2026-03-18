@@ -58,6 +58,8 @@ add_library(console_calc_app_lib
 target_include_directories(console_calc_app_lib
     PUBLIC
         ${PROJECT_SOURCE_DIR}/apps
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/src
 )
 
 target_link_libraries(console_calc_app_lib

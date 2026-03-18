@@ -14,7 +14,9 @@
 #include "console_listing.h"
 #include "console_calc/builtin_function.h"
 #include "console_calc/expression_parser.h"
+#include "console_calc/scalar_value.h"
 #include "console_calc/value_format.h"
+#include "scalar_math.h"
 
 namespace console_calc {
 
@@ -91,7 +93,7 @@ int ConsoleSession::handle_line(std::string_view line) {
         }
 
         if (command.kind == ConsoleCommandKind::stack_operator) {
-            output_ << apply_stack_operator(command.stack_operator) << '\n';
+            print_result(apply_stack_operator(command.stack_operator));
             return -1;
         }
 
@@ -238,7 +240,7 @@ void ConsoleSession::set_display_mode(IntegerDisplayMode mode) {
     display_mode_ = mode;
 }
 
-double ConsoleSession::apply_stack_operator(char op) {
+Value ConsoleSession::apply_stack_operator(char op) {
     if (result_stack_.size() < 2) {
         throw std::invalid_argument("stack requires at least two values");
     }
@@ -268,14 +270,32 @@ double ConsoleSession::apply_stack_operator(char op) {
                                 ? ScalarValue{std::get<std::int64_t>(rhs_value)}
                                 : ScalarValue{std::get<double>(rhs_value)};
 
-    const std::string expression = format_scalar(lhs) + ' ' + op + ' ' + format_scalar(rhs);
     try {
-        const Value result = parser_.evaluate_value(expression);
+        const BinaryOperator binary_operator = [&]() {
+            switch (op) {
+            case '+':
+                return BinaryOperator::add;
+            case '-':
+                return BinaryOperator::subtract;
+            case '*':
+                return BinaryOperator::multiply;
+            case '/':
+                return BinaryOperator::divide;
+            case '%':
+                return BinaryOperator::modulo;
+            case '^':
+                return BinaryOperator::power;
+            case '&':
+                return BinaryOperator::bitwise_and;
+            case '|':
+                return BinaryOperator::bitwise_or;
+            default:
+                throw std::invalid_argument("unknown stack operator");
+            }
+        }();
+        const Value result = to_value(apply_binary_operator(binary_operator, lhs, rhs));
         result_stack_.push_back(result);
-        if (const auto* integer = std::get_if<std::int64_t>(&result)) {
-            return static_cast<double>(*integer);
-        }
-        return std::get<double>(result);
+        return result;
     } catch (...) {
         result_stack_.push_back(lhs_value);
         result_stack_.push_back(rhs_value);
