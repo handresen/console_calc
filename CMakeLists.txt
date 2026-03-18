@@ -24,6 +24,7 @@ if(CONSOLE_CALC_ENABLE_CLANG_TIDY)
 endif()
 
 add_library(console_calc_lib
+    src/builtin_function.cpp
     src/expression_ast_parser.cpp
     src/expression_evaluator.cpp
     src/expression_parser.cpp
@@ -42,6 +43,7 @@ target_compile_features(console_calc_lib PUBLIC cxx_std_20)
 add_library(console_calc_app_lib
     apps/console_calc_app.cpp
     apps/console_mode.cpp
+    apps/expression_environment.cpp
 )
 
 target_include_directories(console_calc_app_lib

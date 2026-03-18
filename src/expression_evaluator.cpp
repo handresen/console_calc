@@ -13,6 +13,22 @@ namespace console_calc {
 
 namespace {
 
+[[nodiscard]] double require_scalar(const Value& value) {
+    if (const auto* scalar = std::get_if<double>(&value)) {
+        return *scalar;
+    }
+
+    throw EvaluationError("list value cannot be used as a scalar");
+}
+
+[[nodiscard]] ListValue require_list(const Value& value) {
+    if (const auto* list = std::get_if<ListValue>(&value)) {
+        return *list;
+    }
+
+    throw EvaluationError("list value required");
+}
+
 [[nodiscard]] std::int64_t require_integer_operand(double value) {
     if (!std::isfinite(value)) {
         throw EvaluationError("bitwise operators require 64-bit integer operands");
@@ -45,54 +61,50 @@ namespace {
     return value * std::numbers::pi_v<double> / 180.0;
 }
 
-[[nodiscard]] std::vector<double> evaluate_list_expression(const Expression& expression) {
-    if (const auto* list = std::get_if<ListLiteral>(&expression.node)) {
-        std::vector<double> values;
-        values.reserve(list->elements.size());
-        for (const auto& element : list->elements) {
-            values.push_back(evaluate_expression(*element));
-        }
-        return values;
-    }
-
-    throw EvaluationError("list value required");
-}
-
 }  // namespace
 
-double evaluate_expression(const Expression& expression) {
+Value evaluate_expression(const Expression& expression) {
     return std::visit(
-        [](const auto& node) -> double {
+        [](const auto& node) -> Value {
             using Node = std::decay_t<decltype(node)>;
 
             if constexpr (std::is_same_v<Node, NumberLiteral>) {
                 return node.value;
             } else if constexpr (std::is_same_v<Node, UnaryExpression>) {
-                return require_finite_result(-evaluate_expression(*node.operand));
+                return require_finite_result(-require_scalar(evaluate_expression(*node.operand)));
             } else if constexpr (std::is_same_v<Node, ListLiteral>) {
-                throw EvaluationError("list value cannot be used as a scalar");
+                ListValue values;
+                values.reserve(node.elements.size());
+                for (const auto& element : node.elements) {
+                    values.push_back(require_scalar(evaluate_expression(*element)));
+                }
+                return values;
             } else if constexpr (std::is_same_v<Node, FunctionCall>) {
                 switch (node.function) {
                 case Function::sin:
-                    return require_finite_result(std::sin(evaluate_expression(*node.arguments[0])));
+                    return require_finite_result(
+                        std::sin(require_scalar(evaluate_expression(*node.arguments[0]))));
                 case Function::cos:
-                    return require_finite_result(std::cos(evaluate_expression(*node.arguments[0])));
+                    return require_finite_result(
+                        std::cos(require_scalar(evaluate_expression(*node.arguments[0]))));
                 case Function::tan:
-                    return require_finite_result(std::tan(evaluate_expression(*node.arguments[0])));
+                    return require_finite_result(
+                        std::tan(require_scalar(evaluate_expression(*node.arguments[0]))));
                 case Function::sind:
-                    return require_finite_result(
-                        std::sin(degrees_to_radians(evaluate_expression(*node.arguments[0]))));
+                    return require_finite_result(std::sin(degrees_to_radians(
+                        require_scalar(evaluate_expression(*node.arguments[0])))));
                 case Function::cosd:
-                    return require_finite_result(
-                        std::cos(degrees_to_radians(evaluate_expression(*node.arguments[0]))));
+                    return require_finite_result(std::cos(degrees_to_radians(
+                        require_scalar(evaluate_expression(*node.arguments[0])))));
                 case Function::tand:
-                    return require_finite_result(
-                        std::tan(degrees_to_radians(evaluate_expression(*node.arguments[0]))));
+                    return require_finite_result(std::tan(degrees_to_radians(
+                        require_scalar(evaluate_expression(*node.arguments[0])))));
                 case Function::pow:
-                    return require_finite_result(std::pow(evaluate_expression(*node.arguments[0]),
-                                                          evaluate_expression(*node.arguments[1])));
+                    return require_finite_result(std::pow(
+                        require_scalar(evaluate_expression(*node.arguments[0])),
+                        require_scalar(evaluate_expression(*node.arguments[1]))));
                 case Function::sum: {
-                    const std::vector<double> values = evaluate_list_expression(*node.arguments[0]);
+                    const ListValue values = require_list(evaluate_expression(*node.arguments[0]));
                     double total = 0.0;
                     for (const double value : values) {
                         total = require_finite_result(total + value);
@@ -103,8 +115,8 @@ double evaluate_expression(const Expression& expression) {
 
                 throw EvaluationError("unknown function");
             } else {
-                const double lhs = evaluate_expression(*node.left);
-                const double rhs = evaluate_expression(*node.right);
+                const double lhs = require_scalar(evaluate_expression(*node.left));
+                const double rhs = require_scalar(evaluate_expression(*node.right));
 
                 switch (node.op) {
                 case BinaryOperator::add:
@@ -139,6 +151,10 @@ double evaluate_expression(const Expression& expression) {
             }
         },
         expression.node);
+}
+
+double evaluate_scalar_expression(const Expression& expression) {
+    return require_scalar(evaluate_expression(expression));
 }
 
 }  // namespace console_calc

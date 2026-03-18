@@ -1,5 +1,7 @@
 #include "expression_environment.h"
 
+#include "console_calc/builtin_function.h"
+
 #include <cctype>
 #include <iomanip>
 #include <limits>
@@ -60,11 +62,6 @@ bool is_identifier(std::string_view text) {
     }
 
     return true;
-}
-
-bool is_builtin_function_name(std::string_view text) {
-    return text == "sin" || text == "cos" || text == "tan" || text == "sind" ||
-           text == "cosd" || text == "tand" || text == "pow" || text == "sum";
 }
 
 std::string expand_expression_identifiers(std::string_view expression,

@@ -9,8 +9,12 @@ Expression ExpressionParser::parse(const std::string& expression) const {
     return parse_expression(expression);
 }
 
-double ExpressionParser::evaluate(const std::string& expression) const {
+Value ExpressionParser::evaluate_value(const std::string& expression) const {
     return evaluate_expression(parse(expression));
+}
+
+double ExpressionParser::evaluate(const std::string& expression) const {
+    return evaluate_scalar_expression(parse(expression));
 }
 
 }  // namespace console_calc

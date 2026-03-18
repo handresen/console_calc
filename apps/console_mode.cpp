@@ -170,33 +170,26 @@ enum class StackCommand {
                                                       std::string_view expression) {
     const std::string trimmed = trim(expression);
     if (is_braced_list_literal(trimmed)) {
-        const std::vector<std::string> items =
-            split_top_level_items(std::string_view(trimmed).substr(1, trimmed.size() - 2));
-        std::vector<double> values;
-        values.reserve(items.size());
-        for (const auto& item : items) {
-            if (item.empty()) {
-                throw std::invalid_argument("expected expression after ','");
-            }
-            values.push_back(parser.evaluate(item));
-        }
-        return values;
+        return parser.evaluate_value(trimmed);
     }
 
     const std::vector<std::string> items = split_top_level_items(trimmed);
     if (items.size() == 1) {
-        return parser.evaluate(trimmed);
+        return parser.evaluate_value(trimmed);
     }
 
-    std::vector<double> values;
-    values.reserve(items.size());
-    for (const auto& item : items) {
-        if (item.empty()) {
+    std::string list_expression = "{";
+    for (std::size_t index = 0; index < items.size(); ++index) {
+        if (items[index].empty()) {
             throw std::invalid_argument("expected expression after ','");
         }
-        values.push_back(parser.evaluate(item));
+        if (index != 0) {
+            list_expression += ", ";
+        }
+        list_expression += items[index];
     }
-    return values;
+    list_expression += '}';
+    return parser.evaluate_value(list_expression);
 }
 
 void print_stack(const std::vector<double>& result_stack, std::ostream& output) {

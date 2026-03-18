@@ -1,11 +1,10 @@
 #include "expression_ast_parser.h"
 
+#include "console_calc/builtin_function.h"
 #include "console_calc/expression_error.h"
 
 #include <memory>
-#include <optional>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -45,76 +44,6 @@ namespace {
     }
 
     throw ParseError("expected binary operator");
-}
-
-[[nodiscard]] std::optional<Function> to_function(std::string_view name) {
-    if (name == "sin") {
-        return Function::sin;
-    }
-    if (name == "cos") {
-        return Function::cos;
-    }
-    if (name == "tan") {
-        return Function::tan;
-    }
-    if (name == "sind") {
-        return Function::sind;
-    }
-    if (name == "cosd") {
-        return Function::cosd;
-    }
-    if (name == "tand") {
-        return Function::tand;
-    }
-    if (name == "pow") {
-        return Function::pow;
-    }
-    if (name == "sum") {
-        return Function::sum;
-    }
-
-    return std::nullopt;
-}
-
-[[nodiscard]] std::size_t function_arity(Function function) {
-    switch (function) {
-    case Function::sin:
-    case Function::cos:
-    case Function::tan:
-    case Function::sind:
-    case Function::cosd:
-    case Function::tand:
-        return 1;
-    case Function::pow:
-        return 2;
-    case Function::sum:
-        return 1;
-    }
-
-    throw ParseError("unknown function");
-}
-
-[[nodiscard]] std::string function_name(Function function) {
-    switch (function) {
-    case Function::sin:
-        return "sin";
-    case Function::cos:
-        return "cos";
-    case Function::tan:
-        return "tan";
-    case Function::sind:
-        return "sind";
-    case Function::cosd:
-        return "cosd";
-    case Function::tand:
-        return "tand";
-    case Function::pow:
-        return "pow";
-    case Function::sum:
-        return "sum";
-    }
-
-    throw ParseError("unknown function");
 }
 
 [[nodiscard]] std::unique_ptr<Expression> make_expression(Expression expression) {
@@ -305,7 +234,7 @@ private:
     }
 
     [[nodiscard]] Expression parse_function_call() {
-        const auto function = to_function(current_.identifier_text);
+        const auto function = parse_builtin_function(current_.identifier_text);
         if (!function.has_value()) {
             throw ParseError("unknown function");
         }
@@ -318,17 +247,13 @@ private:
         advance();
         std::vector<std::unique_ptr<Expression>> arguments;
         if (current_.kind != TokenKind::right_paren) {
-            if (*function == Function::sum) {
-                arguments.push_back(make_expression(parse_sum_argument()));
-            } else {
-                arguments.push_back(make_expression(parse_bitwise_or_expression()));
-                while (current_.kind == TokenKind::comma) {
-                    advance();
-                    if (!starts_operand_expression(current_.kind)) {
-                        throw ParseError("expected expression after ','");
-                    }
-                    arguments.push_back(make_expression(parse_bitwise_or_expression()));
+            arguments.push_back(make_expression(parse_bitwise_or_expression()));
+            while (current_.kind == TokenKind::comma) {
+                advance();
+                if (!starts_operand_expression(current_.kind)) {
+                    throw ParseError("expected expression after ','");
                 }
+                arguments.push_back(make_expression(parse_bitwise_or_expression()));
             }
         }
 
@@ -336,9 +261,9 @@ private:
             throw ParseError("expected ')'");
         }
 
-        const std::size_t expected_arity = function_arity(*function);
+        const std::size_t expected_arity = builtin_function_arity(*function);
         if (arguments.size() != expected_arity) {
-            throw ParseError("function '" + function_name(*function) + "' expects " +
+            throw ParseError("function '" + std::string(builtin_function_name(*function)) + "' expects " +
                              std::to_string(expected_arity) +
                              (expected_arity == 1 ? " argument" : " arguments"));
         }
@@ -349,14 +274,6 @@ private:
                 .function = *function,
                 .arguments = std::move(arguments),
             }};
-    }
-
-    [[nodiscard]] Expression parse_sum_argument() {
-        if (current_.kind == TokenKind::left_brace) {
-            return parse_list_literal();
-        }
-
-        return parse_bitwise_or_expression();
     }
 
     [[nodiscard]] Expression parse_list_literal() {
