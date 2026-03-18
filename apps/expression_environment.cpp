@@ -139,4 +139,17 @@ std::string expand_expression_identifiers(std::string_view expression,
         expression, constants, variables, result_reference, expansion_stack);
 }
 
+Value evaluate_expanded_expression(const ExpressionParser& parser, std::string_view expression,
+                                   const ConstantTable& constants,
+                                   const VariableTable& variables,
+                                   const std::optional<Value>& result_reference) {
+    return evaluate_expanded_expression(
+        parser, expand_expression_identifiers(expression, constants, variables, result_reference));
+}
+
+Value evaluate_expanded_expression(const ExpressionParser& parser,
+                                   std::string_view expanded_expression) {
+    return parser.evaluate_value(std::string(expanded_expression));
+}
+
 }  // namespace console_calc

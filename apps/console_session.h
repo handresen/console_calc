@@ -5,7 +5,9 @@
 #include <string_view>
 #include <vector>
 
+#include "console_command.h"
 #include "console_history.h"
+#include "console_line_editor.h"
 #include "expression_environment.h"
 #include "console_calc/value.h"
 
@@ -21,14 +23,13 @@ public:
     int run();
 
 private:
-    std::optional<std::string> read_command_line();
-    void redraw_input_line(std::string_view buffer, std::size_t cursor) const;
     int handle_line(std::string_view line);
     void print_prompt() const;
+    [[nodiscard]] std::string prompt_text() const;
     void print_stack() const;
     void print_constants() const;
     void print_result(const Value& value);
-    void execute_stack_command(std::string_view command);
+    void execute_stack_command(ConsoleCommandKind command);
     double apply_stack_operator(char op);
     std::optional<Value> top_result() const;
 
@@ -40,6 +41,7 @@ private:
     std::vector<Value> result_stack_;
     VariableTable variables_;
     ConsoleHistory history_;
+    ConsoleLineEditor line_editor_;
 };
 
 }  // namespace console_calc

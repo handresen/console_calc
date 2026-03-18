@@ -1,0 +1,155 @@
+#include "console_line_editor.h"
+
+#include <cctype>
+#include <iostream>
+#include <istream>
+#include <ostream>
+
+#if defined(__unix__) || defined(__APPLE__)
+#include <termios.h>
+#include <unistd.h>
+#endif
+
+namespace console_calc {
+
+namespace {
+
+constexpr std::string_view k_clear_line = "\r\x1b[2K";
+
+#if defined(__unix__) || defined(__APPLE__)
+class TerminalRawModeGuard {
+public:
+    explicit TerminalRawModeGuard(bool enabled) : enabled_(enabled) {
+        if (!enabled_) {
+            return;
+        }
+
+        if (::tcgetattr(STDIN_FILENO, &original_) != 0) {
+            enabled_ = false;
+            return;
+        }
+
+        termios raw = original_;
+        raw.c_lflag &= static_cast<tcflag_t>(~(ICANON | ECHO));
+        raw.c_cc[VMIN] = 1;
+        raw.c_cc[VTIME] = 0;
+        if (::tcsetattr(STDIN_FILENO, TCSANOW, &raw) != 0) {
+            enabled_ = false;
+        }
+    }
+
+    ~TerminalRawModeGuard() {
+        if (enabled_) {
+            (void)::tcsetattr(STDIN_FILENO, TCSANOW, &original_);
+        }
+    }
+
+    TerminalRawModeGuard(const TerminalRawModeGuard&) = delete;
+    TerminalRawModeGuard& operator=(const TerminalRawModeGuard&) = delete;
+
+private:
+    bool enabled_;
+    termios original_{};
+};
+#endif
+
+}  // namespace
+
+ConsoleLineEditor::ConsoleLineEditor(std::istream& input, std::ostream& output,
+                                     ConsoleHistory& history)
+    : input_(input), output_(output), history_(history) {}
+
+std::optional<std::string> ConsoleLineEditor::read_line(std::string_view prompt) {
+    output_ << prompt;
+    output_.flush();
+
+    if (!use_interactive_input()) {
+        std::string line;
+        if (!std::getline(input_, line)) {
+            return std::nullopt;
+        }
+        return line;
+    }
+
+#if defined(__unix__) || defined(__APPLE__)
+    TerminalRawModeGuard raw_mode(true);
+#endif
+    history_.reset_navigation();
+    std::string buffer;
+    std::size_t cursor = 0;
+
+    while (true) {
+        const int next = input_.get();
+        if (next == EOF) {
+            return std::nullopt;
+        }
+
+        const char ch = static_cast<char>(next);
+        if (ch == '\n' || ch == '\r') {
+            output_ << '\n';
+            history_.record(buffer);
+            return buffer;
+        }
+
+        if (ch == '\x7f' || ch == '\b') {
+            if (cursor > 0) {
+                buffer.erase(cursor - 1, 1);
+                --cursor;
+                redraw_input_line(prompt, buffer, cursor);
+            }
+            continue;
+        }
+
+        if (ch == '\x1b') {
+            if (input_.peek() == '[') {
+                (void)input_.get();
+                const int code = input_.get();
+                if (code == 'A') {
+                    if (const auto previous = history_.previous()) {
+                        buffer = *previous;
+                        cursor = buffer.size();
+                        redraw_input_line(prompt, buffer, cursor);
+                    }
+                } else if (code == 'C') {
+                    if (cursor < buffer.size()) {
+                        ++cursor;
+                        redraw_input_line(prompt, buffer, cursor);
+                    }
+                } else if (code == 'D') {
+                    if (cursor > 0) {
+                        --cursor;
+                        redraw_input_line(prompt, buffer, cursor);
+                    }
+                }
+            }
+            continue;
+        }
+
+        if (!std::isprint(static_cast<unsigned char>(ch))) {
+            continue;
+        }
+
+        buffer.insert(buffer.begin() + static_cast<std::ptrdiff_t>(cursor), ch);
+        ++cursor;
+        redraw_input_line(prompt, buffer, cursor);
+    }
+}
+
+void ConsoleLineEditor::redraw_input_line(std::string_view prompt, std::string_view buffer,
+                                          std::size_t cursor) const {
+    output_ << k_clear_line << prompt << buffer;
+    if (cursor < buffer.size()) {
+        output_ << '\r' << prompt << buffer.substr(0, cursor);
+    }
+    output_.flush();
+}
+
+bool ConsoleLineEditor::use_interactive_input() const {
+#if defined(__unix__) || defined(__APPLE__)
+    return &input_ == &std::cin && ::isatty(STDIN_FILENO) != 0;
+#else
+    return false;
+#endif
+}
+
+}  // namespace console_calc

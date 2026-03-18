@@ -5,6 +5,7 @@
 #include <string_view>
 #include <unordered_map>
 
+#include "console_calc/expression_parser.h"
 #include "console_calc/value.h"
 
 namespace console_calc {
@@ -18,5 +19,14 @@ using VariableTable = std::unordered_map<std::string, std::string>;
 [[nodiscard]] std::string expand_expression_identifiers(
     std::string_view expression, const ConstantTable& constants, const VariableTable& variables,
     const std::optional<Value>& result_reference);
+
+[[nodiscard]] Value evaluate_expanded_expression(const ExpressionParser& parser,
+                                                 std::string_view expression,
+                                                 const ConstantTable& constants,
+                                                 const VariableTable& variables,
+                                                 const std::optional<Value>& result_reference);
+
+[[nodiscard]] Value evaluate_expanded_expression(const ExpressionParser& parser,
+                                                 std::string_view expanded_expression);
 
 }  // namespace console_calc

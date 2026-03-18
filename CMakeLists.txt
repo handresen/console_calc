@@ -44,7 +44,9 @@ target_compile_features(console_calc_lib PUBLIC cxx_std_20)
 add_library(console_calc_app_lib
     apps/console_calc_app.cpp
     apps/console_assignment.cpp
+    apps/console_command.cpp
     apps/console_history.cpp
+    apps/console_line_editor.cpp
     apps/console_mode.cpp
     apps/console_session.cpp
     apps/expression_environment.cpp

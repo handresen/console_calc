@@ -270,6 +270,23 @@ bool expect_console_mode_list_result_reference() {
     return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
 
+bool expect_console_mode_circular_reference_error() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("a:1\nb:a+1\na:b+1\na\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) +
+        prompt(0) +
+        prompt(0) +
+        prompt(0) + "1\n" +
+        prompt(1);
+    return exit_code == 0 && output.str() == expected_output &&
+           error.str() == "error: circular variable reference: a\n";
+}
+
 bool expect_console_mode_variable_constant_conflict() {
     const std::vector<std::string_view> args;
     std::istringstream input("pi:7\nq\n");
@@ -386,6 +403,10 @@ int main() {
     }
 
     if (!expect_console_mode_list_result_reference()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_circular_reference_error()) {
         return EXIT_FAILURE;
     }
 

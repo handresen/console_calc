@@ -50,6 +50,26 @@ bool expect_value_api(console_calc::ExpressionParser& parser) {
            almost_equal((*list_value)[2], 3.0);
 }
 
+bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
+    try {
+        (void)parser.evaluate("{1, 2, 3}");
+        return false;
+    } catch (const std::invalid_argument&) {
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.evaluate("sum(1)");
+        return false;
+    } catch (const std::invalid_argument&) {
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    return true;
+}
+
 bool expect_ast_shape(console_calc::ExpressionParser& parser) {
     using console_calc::BinaryExpression;
     using console_calc::BinaryOperator;
@@ -287,6 +307,10 @@ int main() {
     }
 
     if (!expect_value_api(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_value_api_boundaries(parser)) {
         return EXIT_FAILURE;
     }
 
