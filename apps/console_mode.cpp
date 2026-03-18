@@ -5,10 +5,12 @@
 #include <iomanip>
 #include <istream>
 #include <limits>
+#include <optional>
 #include <ostream>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "console_calc/expression_parser.h"
@@ -39,6 +41,34 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
     return text.size() == 1 &&
            (text[0] == '+' || text[0] == '-' || text[0] == '*' || text[0] == '/' ||
             text[0] == '%' || text[0] == '^' || text[0] == '&' || text[0] == '|');
+}
+
+enum class StackCommand {
+    list,
+    duplicate,
+    drop,
+    swap,
+    clear,
+};
+
+[[nodiscard]] std::optional<StackCommand> parse_stack_command(std::string_view text) {
+    if (text == "s") {
+        return StackCommand::list;
+    }
+    if (text == "dup") {
+        return StackCommand::duplicate;
+    }
+    if (text == "drop") {
+        return StackCommand::drop;
+    }
+    if (text == "swap") {
+        return StackCommand::swap;
+    }
+    if (text == "clear") {
+        return StackCommand::clear;
+    }
+
+    return std::nullopt;
 }
 
 [[nodiscard]] std::string format_number(double value) {
@@ -81,6 +111,39 @@ double apply_stack_operator(const ExpressionParser& parser, std::vector<double>&
     }
 }
 
+void execute_stack_command(StackCommand command, std::vector<double>& result_stack,
+                           std::ostream& output) {
+    switch (command) {
+    case StackCommand::list:
+        print_stack(result_stack, output);
+        return;
+    case StackCommand::duplicate:
+        if (result_stack.empty()) {
+            throw std::invalid_argument("stack requires at least one value");
+        }
+        if (result_stack.size() >= k_max_stack_depth) {
+            throw std::invalid_argument("stack is full");
+        }
+        result_stack.push_back(result_stack.back());
+        return;
+    case StackCommand::drop:
+        if (result_stack.empty()) {
+            throw std::invalid_argument("stack requires at least one value");
+        }
+        result_stack.pop_back();
+        return;
+    case StackCommand::swap:
+        if (result_stack.size() < 2) {
+            throw std::invalid_argument("stack requires at least two values");
+        }
+        std::swap(result_stack[result_stack.size() - 1], result_stack[result_stack.size() - 2]);
+        return;
+    case StackCommand::clear:
+        result_stack.clear();
+        return;
+    }
+}
+
 }  // namespace
 
 int run_console_mode(const ExpressionParser& parser, std::istream& input, std::ostream& output,
@@ -105,8 +168,8 @@ int run_console_mode(const ExpressionParser& parser, std::istream& input, std::o
         }
 
         try {
-            if (trimmed == "s") {
-                print_stack(result_stack, output);
+            if (const auto command = parse_stack_command(trimmed)) {
+                execute_stack_command(*command, result_stack, output);
                 continue;
             }
 

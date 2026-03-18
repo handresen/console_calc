@@ -92,6 +92,41 @@ bool expect_console_mode_stack_limit() {
            error.str() == "error: stack is full\n";
 }
 
+bool expect_console_mode_stack_commands() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("1\n2\ndup\nswap\ns\ndrop\ns\nclear\ns\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) + "1\n" +
+        prompt(1) + "2\n" +
+        prompt(2) +
+        prompt(3) +
+        prompt(3) + "0:1\n1:2\n2:2\n" +
+        prompt(3) +
+        prompt(2) + "0:1\n1:2\n" +
+        prompt(2) +
+        prompt(0);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+}
+
+bool expect_console_mode_stack_command_errors() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("dup\ndrop\nswap\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output = prompt(0) + prompt(0) + prompt(0) + prompt(0);
+    return exit_code == 0 && output.str() == expected_output &&
+           error.str() ==
+               "error: stack requires at least one value\n"
+               "error: stack requires at least one value\n"
+               "error: stack requires at least two values\n";
+}
+
 }  // namespace
 
 int main() {
@@ -112,6 +147,14 @@ int main() {
     }
 
     if (!expect_console_mode_stack_limit()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_stack_commands()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_stack_command_errors()) {
         return EXIT_FAILURE;
     }
 
