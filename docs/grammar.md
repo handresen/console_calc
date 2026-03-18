@@ -11,7 +11,7 @@ Current scope:
 - binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - parentheses for grouping
 - list literals with `{ ... }`
-- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`, `map`
+- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`, `map`, `range`, `geom`, `repeat`, `linspace`
 - optional whitespace between tokens
 
 Explicitly out of scope for this first version:
@@ -85,6 +85,10 @@ Builtin functions:
 - `first(n, list)` returns the first `n` items as a list
 - `drop(n, list)` returns the list without its first `n` items
 - `map(list, func)` applies a unary scalar builtin function to each list item and returns a list of the same length
+- `range(start, count[, step])` generates a list beginning at `start`, with `count` elements, incrementing by `step` or by `1` when omitted
+- `geom(start, count[, ratio])` generates a geometric series beginning at `start`, multiplying by `ratio` or by `2` when omitted
+- `repeat(value, count)` repeats `value` `count` times
+- `linspace(start, stop, count)` generates `count` evenly spaced values from `start` to `stop`
 
 Integer-preserving behavior:
 - `+`, `-`, and `*` preserve integer results when both operands are integers and the result fits in 64 bits
@@ -112,6 +116,10 @@ Examples:
 - `max({2, -1, 5})` => `5`
 - `sum({1, 2, 3})` => `6`
 - `sum(map({0, 90}, sind))` => `1`
+- `sum(range(2, 4, 3))` => `26`
+- `sum(geom(3, 4, 3))` => `120`
+- `sum(repeat(2, 4))` => `8`
+- `sum(linspace(1, 4, 4))` => `10`
 - `first(1, {2, 3}) + 4` => `6`
 - `10 % 3` => `1`
 - `6 & 3 | 8` => `10`
@@ -142,6 +150,11 @@ Examples:
 - `first(2, {1, 2, 3})`
 - `drop(1, {1, 2, 3})`
 - `map({0, 90}, sind)`
+- `range(10, 4)`
+- `range(1.5, 3, 0.5)`
+- `geom(2, 4)`
+- `repeat(3, 4)`
+- `linspace(0, 1, 5)`
 - `sin(first(1, {0}))`
 - `sum({1, 2, 3})`
 - `2 ^ 3`
@@ -165,6 +178,12 @@ Examples:
 - `drop(1, 2)`
 - `map({1, 2}, sum)`
 - `map({1, 2}, pow)`
+- `range(1)`
+- `range(1, 2, 3, 4)`
+- `range(1, -1)`
+- `geom(1)`
+- `repeat(1, -1)`
+- `linspace(1, 2)`
 - `first(2, {1, 2, 3}) + 1`
 - `1 / 0`
 - `1 % 0`

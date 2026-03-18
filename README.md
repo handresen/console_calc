@@ -134,12 +134,28 @@ pow(e, 1)
 - `drop(n, list)`    drop first `n` list elements
 - `map(list, func)`  map unary scalar builtin over list
 
+### List Generation Functions
+
+- `range(start, count[, step])` generate `count` values starting at `start`
+- `geom(start, count[, ratio])` generate a geometric series
+- `repeat(value, count)` repeat a value `count` times
+- `linspace(start, stop, count)` generate evenly spaced values over an interval
+
 Function notes:
 - `product({})` is `1`
 - `avg`, `min`, and `max` require a non-empty list
 - `first` and `drop` require `n` to be a non-negative integer
 - `map` only accepts unary scalar builtin functions such as `sin`, `cos`, `sind`, `tand`
 - `map({1, 2}, sum)` and `map({1, 2}, pow)` are invalid
+- `range` requires `count` to be a non-negative integer
+- `range(start, count)` uses a default step of `1`
+- `range` preserves integer list elements when `start` and `step` are integers
+- `geom` requires `count` to be a non-negative integer
+- `geom(start, count)` uses a default ratio of `2`
+- `repeat` requires `count` to be a non-negative integer
+- `linspace` requires `count` to be a non-negative integer
+- `linspace(start, stop, 0)` returns `{}`
+- `linspace(start, stop, 1)` returns `{start}`
 
 Examples:
 
@@ -150,6 +166,11 @@ first(2, {10, 20, 30})        => {10, 20}
 drop(1, {10, 20, 30})         => {20, 30}
 map({0, 90}, sind)            => {0, 1}
 sum(map({1, 2, 3}, sin))      => 1.89189...
+range(10, 4)                  => {10, 11, 12, 13}
+range(2, 4, 3)                => {2, 5, 8, 11}
+geom(2, 4)                    => {2, 4, 8, 16}
+repeat(3, 4)                  => {3, 3, 3, 3}
+linspace(0, 1, 5)             => {0, 0.25, 0.5, 0.75, 1}
 ```
 
 ## Console Mode

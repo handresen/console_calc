@@ -63,6 +63,15 @@
 "sum(map({0, 1.5707963267948966}, sin))", 1.0
 "sum(map({0, 90}, sind))", 1.0
 "sum(map({2, 3, 4}, cos))", -2.0597829540111997
+"sum(range(1, 4))", 10.0
+"sum(range(2, 4, 3))", 26.0
+"sum(range(1.5, 3, 0.5))", 6.0
+"sum(geom(2, 4))", 30.0
+"sum(geom(3, 4, 3))", 120.0
+"sum(repeat(2, 4))", 8.0
+"sum(linspace(1, 4, 4))", 10.0
+"sum(linspace(2, 5, 1))", 2.0
+"sum(linspace(2, 5, 0))", 0.0
 "sum({1, 2, 3})", 6.0
 "sum({1, 2, sin(0)})", 3.0
 "sum({})", 0.0
@@ -115,6 +124,21 @@
 "map({1, 2}, foo)", INVALID
 "map(1, sin)", INVALID
 "map({1, 2}, sin())", INVALID
+"range(1)", INVALID
+"range(1, 2, 3, 4)", INVALID
+"range(1, -1)", INVALID
+"range(1, 1.5)", INVALID
+"geom(1)", INVALID
+"geom(1, 2, 3, 4)", INVALID
+"geom(1, -1)", INVALID
+"geom(1, 1.5)", INVALID
+"repeat(1)", INVALID
+"repeat(1, -1)", INVALID
+"repeat(1, 1.5)", INVALID
+"linspace(1, 2)", INVALID
+"linspace(1, 2, 3, 4)", INVALID
+"linspace(1, 2, -1)", INVALID
+"linspace(1, 2, 1.5)", INVALID
 "sin({1, 2})", INVALID
 "pow({2, 3}, 2)", INVALID
 "{1, 2, 3} + 1", INVALID

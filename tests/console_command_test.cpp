@@ -36,24 +36,30 @@ bool expect_command_classification() {
 bool expect_builtin_function_listing() {
     return console_calc::format_builtin_function_listing(console_calc::builtin_functions()) ==
            "Scalar functions\n"
-           "  cos/1      cosine in radians\n"
-           "  cosd/1     cosine in degrees\n"
-           "  pow/2      power\n"
-           "  sin/1      sine in radians\n"
-           "  sind/1     sine in degrees\n"
-           "  tan/1      tangent in radians\n"
-           "  tand/1     tangent in degrees\n"
+           "  cos/1       cosine in radians\n"
+           "  cosd/1      cosine in degrees\n"
+           "  pow/2       power\n"
+           "  sin/1       sine in radians\n"
+           "  sind/1      sine in degrees\n"
+           "  tan/1       tangent in radians\n"
+           "  tand/1      tangent in degrees\n"
            "\n"
            "List functions\n"
-           "  avg/1      average of list elements\n"
-           "  drop/2     drop first n list elements\n"
-           "  first/2    first n list elements\n"
-           "  len/1      list length\n"
-           "  map/2      map unary scalar builtin over list\n"
-           "  max/1      maximum list element\n"
-           "  min/1      minimum list element\n"
-           "  product/1  product of list elements\n"
-           "  sum/1      sum list elements\n";
+           "  avg/1       average of list elements\n"
+           "  drop/2      drop first n list elements\n"
+           "  first/2     first n list elements\n"
+           "  len/1       list length\n"
+           "  map/2       map unary scalar builtin over list\n"
+           "  max/1       maximum list element\n"
+           "  min/1       minimum list element\n"
+           "  product/1   product of list elements\n"
+           "  sum/1       sum list elements\n"
+           "\n"
+           "List generation functions\n"
+           "  geom/2-3    generate geometric series from start\n"
+           "  linspace/3  generate evenly spaced values over interval\n"
+           "  range/2-3   generate linear series from start\n"
+           "  repeat/2    repeat value count times\n";
 }
 
 bool expect_constant_and_definition_listing() {
@@ -81,18 +87,33 @@ bool expect_constant_and_definition_listing() {
 bool expect_builtin_function_metadata() {
     const auto sum_info = console_calc::builtin_function_info(console_calc::Function::sum);
     const auto map_info = console_calc::builtin_function_info(console_calc::Function::map);
-    return sum_info.name == "sum" && sum_info.arity == 1 &&
+    const auto range_info = console_calc::builtin_function_info(console_calc::Function::range);
+    const auto geom_info = console_calc::builtin_function_info(console_calc::Function::geom);
+    const auto repeat_info = console_calc::builtin_function_info(console_calc::Function::repeat);
+    const auto linspace_info = console_calc::builtin_function_info(console_calc::Function::linspace);
+    return sum_info.name == "sum" && sum_info.min_arity == 1 && sum_info.max_arity == 1 &&
            sum_info.category == console_calc::BuiltinFunctionCategory::list &&
            sum_info.summary == "sum list elements" && !sum_info.mappable &&
-           map_info.name == "map" && map_info.arity == 2 &&
+           map_info.name == "map" && map_info.min_arity == 2 && map_info.max_arity == 2 &&
            map_info.category == console_calc::BuiltinFunctionCategory::list &&
-           map_info.summary == "map unary scalar builtin over list" && !map_info.mappable;
+           map_info.summary == "map unary scalar builtin over list" && !map_info.mappable &&
+           range_info.name == "range" && range_info.min_arity == 2 && range_info.max_arity == 3 &&
+           range_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
+           range_info.summary == "generate linear series from start" &&
+           console_calc::builtin_function_arity_label(console_calc::Function::range) == "2-3" &&
+           geom_info.min_arity == 2 && geom_info.max_arity == 3 &&
+           geom_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
+           repeat_info.min_arity == 2 && repeat_info.max_arity == 2 &&
+           repeat_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
+           linspace_info.min_arity == 3 && linspace_info.max_arity == 3 &&
+           linspace_info.category == console_calc::BuiltinFunctionCategory::list_generation;
 }
 
 bool expect_builtin_function_helpers() {
     return console_calc::is_scalar_function(console_calc::Function::sin) &&
            !console_calc::is_scalar_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::sum) &&
+           console_calc::is_list_function(console_calc::Function::range) &&
            !console_calc::is_list_function(console_calc::Function::pow) &&
            console_calc::is_unary_scalar_function(console_calc::Function::sin) &&
            !console_calc::is_unary_scalar_function(console_calc::Function::pow) &&

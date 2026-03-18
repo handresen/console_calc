@@ -135,6 +135,10 @@ namespace {
     case Function::first:
     case Function::drop:
     case Function::map:
+    case Function::range:
+    case Function::geom:
+    case Function::repeat:
+    case Function::linspace:
         break;
     }
 
@@ -231,6 +235,73 @@ namespace {
     }
     case Function::map:
         break;
+    case Function::range: {
+        const ScalarValue start = require_scalar_or_singleton_list_value(arguments[0]);
+        const std::size_t count =
+            require_list_index(require_scalar_or_singleton_list_value(arguments[1]));
+        const ScalarValue step =
+            arguments.size() == 3 ? require_scalar_or_singleton_list_value(arguments[2])
+                                  : ScalarValue{std::int64_t{1}};
+
+        ListValue values;
+        values.reserve(count);
+        ScalarValue current = start;
+        for (std::size_t index = 0; index < count; ++index) {
+            values.push_back(current);
+            current = add_scalars(current, step);
+        }
+        return values;
+    }
+    case Function::geom: {
+        const ScalarValue start = require_scalar_or_singleton_list_value(arguments[0]);
+        const std::size_t count =
+            require_list_index(require_scalar_or_singleton_list_value(arguments[1]));
+        const ScalarValue ratio =
+            arguments.size() == 3 ? require_scalar_or_singleton_list_value(arguments[2])
+                                  : ScalarValue{std::int64_t{2}};
+
+        ListValue values;
+        values.reserve(count);
+        ScalarValue current = start;
+        for (std::size_t index = 0; index < count; ++index) {
+            values.push_back(current);
+            current = multiply_scalars(current, ratio);
+        }
+        return values;
+    }
+    case Function::repeat: {
+        const ScalarValue value = require_scalar_or_singleton_list_value(arguments[0]);
+        const std::size_t count =
+            require_list_index(require_scalar_or_singleton_list_value(arguments[1]));
+        return ListValue(count, value);
+    }
+    case Function::linspace: {
+        const ScalarValue start = require_scalar_or_singleton_list_value(arguments[0]);
+        const ScalarValue stop = require_scalar_or_singleton_list_value(arguments[1]);
+        const std::size_t count =
+            require_list_index(require_scalar_or_singleton_list_value(arguments[2]));
+
+        ListValue values;
+        values.reserve(count);
+        if (count == 0) {
+            return values;
+        }
+
+        values.push_back(start);
+        if (count == 1) {
+            return values;
+        }
+
+        const ScalarValue denominator = static_cast<std::int64_t>(count - 1);
+        const ScalarValue step =
+            divide_scalars(subtract_scalars(stop, start), denominator);
+        ScalarValue current = start;
+        for (std::size_t index = 1; index < count; ++index) {
+            current = add_scalars(current, step);
+            values.push_back(current);
+        }
+        return values;
+    }
     }
 
     throw EvaluationError("unknown function");

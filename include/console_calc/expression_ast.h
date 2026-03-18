@@ -46,6 +46,10 @@ enum class Function {
     first,
     drop,
     map,
+    range,
+    geom,
+    repeat,
+    linspace,
 };
 
 struct BinaryExpression {

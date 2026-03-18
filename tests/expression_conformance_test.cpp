@@ -115,6 +115,45 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
         return false;
     }
 
+    const console_calc::Value generated_range = parser.evaluate_value("range(2, 4, 3)");
+    const auto* generated_values = std::get_if<console_calc::ListValue>(&generated_range);
+    if (generated_values == nullptr || generated_values->size() != 4 ||
+        !almost_equal(console_calc::scalar_to_double((*generated_values)[0]), 2.0) ||
+        !almost_equal(console_calc::scalar_to_double((*generated_values)[1]), 5.0) ||
+        !almost_equal(console_calc::scalar_to_double((*generated_values)[2]), 8.0) ||
+        !almost_equal(console_calc::scalar_to_double((*generated_values)[3]), 11.0)) {
+        return false;
+    }
+
+    const console_calc::Value generated_geom = parser.evaluate_value("geom(3, 4, 3)");
+    const auto* geometric_values = std::get_if<console_calc::ListValue>(&generated_geom);
+    if (geometric_values == nullptr || geometric_values->size() != 4 ||
+        !almost_equal(console_calc::scalar_to_double((*geometric_values)[0]), 3.0) ||
+        !almost_equal(console_calc::scalar_to_double((*geometric_values)[1]), 9.0) ||
+        !almost_equal(console_calc::scalar_to_double((*geometric_values)[2]), 27.0) ||
+        !almost_equal(console_calc::scalar_to_double((*geometric_values)[3]), 81.0)) {
+        return false;
+    }
+
+    const console_calc::Value generated_repeat = parser.evaluate_value("repeat(2.5, 3)");
+    const auto* repeated_values = std::get_if<console_calc::ListValue>(&generated_repeat);
+    if (repeated_values == nullptr || repeated_values->size() != 3 ||
+        !almost_equal(console_calc::scalar_to_double((*repeated_values)[0]), 2.5) ||
+        !almost_equal(console_calc::scalar_to_double((*repeated_values)[1]), 2.5) ||
+        !almost_equal(console_calc::scalar_to_double((*repeated_values)[2]), 2.5)) {
+        return false;
+    }
+
+    const console_calc::Value generated_linspace = parser.evaluate_value("linspace(1, 4, 4)");
+    const auto* spaced_values = std::get_if<console_calc::ListValue>(&generated_linspace);
+    if (spaced_values == nullptr || spaced_values->size() != 4 ||
+        !almost_equal(console_calc::scalar_to_double((*spaced_values)[0]), 1.0) ||
+        !almost_equal(console_calc::scalar_to_double((*spaced_values)[1]), 2.0) ||
+        !almost_equal(console_calc::scalar_to_double((*spaced_values)[2]), 3.0) ||
+        !almost_equal(console_calc::scalar_to_double((*spaced_values)[3]), 4.0)) {
+        return false;
+    }
+
     try {
         (void)parser.evaluate("sin({1, 2})");
         return false;
@@ -385,6 +424,51 @@ bool expect_map_ast_shape(console_calc::ExpressionParser& parser) {
            almost_equal(second->value, 3.0);
 }
 
+bool expect_range_ast_shape(console_calc::ExpressionParser& parser) {
+    using console_calc::Expression;
+    using console_calc::Function;
+    using console_calc::FunctionCall;
+    using console_calc::NumberLiteral;
+
+    const Expression ast = parser.parse("range(2, 4, 3)");
+    const auto* root = std::get_if<FunctionCall>(&ast.node);
+    if (root == nullptr || root->function != Function::range || root->arguments.size() != 3) {
+        return false;
+    }
+
+    const auto* first = std::get_if<NumberLiteral>(&root->arguments[0]->node);
+    const auto* second = std::get_if<NumberLiteral>(&root->arguments[1]->node);
+    const auto* third = std::get_if<NumberLiteral>(&root->arguments[2]->node);
+    return first != nullptr && second != nullptr && third != nullptr &&
+           almost_equal(first->value, 2.0) && almost_equal(second->value, 4.0) &&
+           almost_equal(third->value, 3.0);
+}
+
+bool expect_generator_ast_shapes(console_calc::ExpressionParser& parser) {
+    using console_calc::Expression;
+    using console_calc::Function;
+    using console_calc::FunctionCall;
+
+    const Expression geom_ast = parser.parse("geom(2, 4, 3)");
+    const auto* geom_call = std::get_if<FunctionCall>(&geom_ast.node);
+    if (geom_call == nullptr || geom_call->function != Function::geom ||
+        geom_call->arguments.size() != 3) {
+        return false;
+    }
+
+    const Expression repeat_ast = parser.parse("repeat(2, 4)");
+    const auto* repeat_call = std::get_if<FunctionCall>(&repeat_ast.node);
+    if (repeat_call == nullptr || repeat_call->function != Function::repeat ||
+        repeat_call->arguments.size() != 2) {
+        return false;
+    }
+
+    const Expression linspace_ast = parser.parse("linspace(1, 4, 4)");
+    const auto* linspace_call = std::get_if<FunctionCall>(&linspace_ast.node);
+    return linspace_call != nullptr && linspace_call->function == Function::linspace &&
+           linspace_call->arguments.size() == 3;
+}
+
 bool expect_integer_semantics(console_calc::ExpressionParser& parser) {
     const console_calc::Value integer_sum = parser.evaluate_value("1 + 2");
     if (!std::holds_alternative<std::int64_t>(integer_sum) || std::get<std::int64_t>(integer_sum) != 3) {
@@ -472,6 +556,14 @@ int main() {
     }
 
     if (!expect_map_ast_shape(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_range_ast_shape(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_generator_ast_shapes(parser)) {
         return EXIT_FAILURE;
     }
 
