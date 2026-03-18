@@ -36,6 +36,14 @@ enum class Function {
     tand,
     pow,
     sum,
+    len,
+    product,
+    avg,
+    min,
+    max,
+    first,
+    drop,
+    map,
 };
 
 struct BinaryExpression {
@@ -53,8 +61,15 @@ struct FunctionCall {
     std::vector<std::unique_ptr<Expression>> arguments;
 };
 
+struct MapCall {
+    std::unique_ptr<Expression> list_argument;
+    Function mapped_function;
+};
+
 struct Expression {
-    std::variant<NumberLiteral, UnaryExpression, BinaryExpression, ListLiteral, FunctionCall> node;
+    std::variant<NumberLiteral, UnaryExpression, BinaryExpression, ListLiteral, FunctionCall,
+                 MapCall>
+        node;
 };
 
 }  // namespace console_calc

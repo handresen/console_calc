@@ -19,6 +19,7 @@ struct BuiltinFunctionInfo {
     std::string_view name;
     std::size_t arity;
     BuiltinFunctionCategory category;
+    bool mappable = false;
     std::string_view summary;
 };
 

@@ -10,7 +10,7 @@ Current scope:
 - binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - parentheses for grouping
 - list literals with `{ ... }`
-- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`
+- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`, `map`
 - optional whitespace between tokens
 
 Explicitly out of scope for this first version:
@@ -42,8 +42,9 @@ sum        = term , { ( "+" | "-" ) , term } ;
 term       = unary , { ( "*" | "/" | "%" ) , unary } ;
 unary      = [ "-" ] , power ;
 power      = primary , [ "^" , unary ] ;
-primary    = number | function_call | list | "(" , expression , ")" ;
+primary    = number | function_call | map_call | list | "(" , expression , ")" ;
 function_call = identifier , "(" , expression , { "," , expression } , ")" ;
+map_call   = "map" , "(" , expression , "," , identifier , ")" ;
 list       = "{" , expression , { "," , expression } , "}" ;
 number     = mantissa , [ exponent ] ;
 mantissa   = digits , [ "." , [ digits ] ]
@@ -78,8 +79,9 @@ Builtin functions:
 - `min(list)` and `max(list)` require non-empty lists
 - `first(n, list)` returns the first `n` items as a list
 - `drop(n, list)` returns the list without its first `n` items
+- `map(list, func)` applies a unary scalar builtin function to each list item and returns a list of the same length
 
-For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds.
+For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, `func` must name a unary scalar builtin such as `sin` or `cosd`; list functions and multi-argument functions are rejected.
 
 Examples:
 - `2 + 3` => `5`
@@ -96,6 +98,7 @@ Examples:
 - `min({2, -1, 5})` => `-1`
 - `max({2, -1, 5})` => `5`
 - `sum({1, 2, 3})` => `6`
+- `sum(map({0, 90}, sind))` => `1`
 - `first(1, {2, 3}) + 4` => `6`
 - `10 % 3` => `1`
 - `6 & 3 | 8` => `10`
@@ -122,6 +125,7 @@ Examples:
 - `avg({2, 4, 6})`
 - `first(2, {1, 2, 3})`
 - `drop(1, {1, 2, 3})`
+- `map({0, 90}, sind)`
 - `sin(first(1, {0}))`
 - `sum({1, 2, 3})`
 - `2 ^ 3`
@@ -143,6 +147,8 @@ Examples:
 - `avg({})`
 - `first(1.5, {1, 2})`
 - `drop(1, 2)`
+- `map({1, 2}, sum)`
+- `map({1, 2}, pow)`
 - `first(2, {1, 2, 3}) + 1`
 - `1 / 0`
 - `1 % 0`

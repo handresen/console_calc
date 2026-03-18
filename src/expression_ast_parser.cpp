@@ -206,6 +206,9 @@ private:
 
     [[nodiscard]] Expression parse_primary_expression() {
         if (current_.kind == TokenKind::identifier) {
+            if (current_.identifier_text == "map") {
+                return parse_map_call();
+            }
             return parse_function_call();
         }
 
@@ -273,6 +276,45 @@ private:
             FunctionCall{
                 .function = *function,
                 .arguments = std::move(arguments),
+            }};
+    }
+
+    [[nodiscard]] Expression parse_map_call() {
+        advance();
+        if (current_.kind != TokenKind::left_paren) {
+            throw ParseError("expected '(' after function name");
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("expected expression after '('");
+        }
+
+        auto list_argument = make_expression(parse_bitwise_or_expression());
+        if (current_.kind != TokenKind::comma) {
+            throw ParseError("expected ',' after first argument");
+        }
+
+        advance();
+        if (current_.kind != TokenKind::identifier) {
+            throw ParseError("expected builtin function name after ','");
+        }
+
+        const auto function = parse_builtin_function(current_.identifier_text);
+        if (!function.has_value()) {
+            throw ParseError("unknown function");
+        }
+
+        advance();
+        if (current_.kind != TokenKind::right_paren) {
+            throw ParseError("expected ')'");
+        }
+
+        advance();
+        return Expression{
+            MapCall{
+                .list_argument = std::move(list_argument),
+                .mapped_function = *function,
             }};
     }
 

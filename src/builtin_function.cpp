@@ -7,22 +7,23 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<BuiltinFunctionInfo, 15> k_builtin_functions = {{
-    {Function::sin, "sin", 1, BuiltinFunctionCategory::scalar, "sine in radians"},
-    {Function::cos, "cos", 1, BuiltinFunctionCategory::scalar, "cosine in radians"},
-    {Function::tan, "tan", 1, BuiltinFunctionCategory::scalar, "tangent in radians"},
-    {Function::sind, "sind", 1, BuiltinFunctionCategory::scalar, "sine in degrees"},
-    {Function::cosd, "cosd", 1, BuiltinFunctionCategory::scalar, "cosine in degrees"},
-    {Function::tand, "tand", 1, BuiltinFunctionCategory::scalar, "tangent in degrees"},
-    {Function::pow, "pow", 2, BuiltinFunctionCategory::scalar, "power"},
-    {Function::sum, "sum", 1, BuiltinFunctionCategory::list, "sum list elements"},
-    {Function::len, "len", 1, BuiltinFunctionCategory::list, "list length"},
-    {Function::product, "product", 1, BuiltinFunctionCategory::list, "product of list elements"},
-    {Function::avg, "avg", 1, BuiltinFunctionCategory::list, "average of list elements"},
-    {Function::min, "min", 1, BuiltinFunctionCategory::list, "minimum list element"},
-    {Function::max, "max", 1, BuiltinFunctionCategory::list, "maximum list element"},
-    {Function::first, "first", 2, BuiltinFunctionCategory::list, "first n list elements"},
-    {Function::drop, "drop", 2, BuiltinFunctionCategory::list, "drop first n list elements"},
+constexpr std::array<BuiltinFunctionInfo, 16> k_builtin_functions = {{
+    {Function::sin, "sin", 1, BuiltinFunctionCategory::scalar, true, "sine in radians"},
+    {Function::cos, "cos", 1, BuiltinFunctionCategory::scalar, true, "cosine in radians"},
+    {Function::tan, "tan", 1, BuiltinFunctionCategory::scalar, true, "tangent in radians"},
+    {Function::sind, "sind", 1, BuiltinFunctionCategory::scalar, true, "sine in degrees"},
+    {Function::cosd, "cosd", 1, BuiltinFunctionCategory::scalar, true, "cosine in degrees"},
+    {Function::tand, "tand", 1, BuiltinFunctionCategory::scalar, true, "tangent in degrees"},
+    {Function::pow, "pow", 2, BuiltinFunctionCategory::scalar, false, "power"},
+    {Function::sum, "sum", 1, BuiltinFunctionCategory::list, false, "sum list elements"},
+    {Function::len, "len", 1, BuiltinFunctionCategory::list, false, "list length"},
+    {Function::product, "product", 1, BuiltinFunctionCategory::list, false, "product of list elements"},
+    {Function::avg, "avg", 1, BuiltinFunctionCategory::list, false, "average of list elements"},
+    {Function::min, "min", 1, BuiltinFunctionCategory::list, false, "minimum list element"},
+    {Function::max, "max", 1, BuiltinFunctionCategory::list, false, "maximum list element"},
+    {Function::first, "first", 2, BuiltinFunctionCategory::list, false, "first n list elements"},
+    {Function::drop, "drop", 2, BuiltinFunctionCategory::list, false, "drop first n list elements"},
+    {Function::map, "map", 2, BuiltinFunctionCategory::list, false, "map unary scalar builtin over list"},
 }};
 
 }  // namespace

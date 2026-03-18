@@ -39,12 +39,13 @@ bool expect_builtin_function_listing() {
            "tand/1\n"
            "List functions\n"
            "avg/1\n"
-           "drop/2\n"
-           "first/2\n"
-           "len/1\n"
-           "max/1\n"
-           "min/1\n"
-           "product/1\n"
+            "drop/2\n"
+            "first/2\n"
+            "len/1\n"
+            "map/2\n"
+            "max/1\n"
+            "min/1\n"
+            "product/1\n"
            "sum/1\n";
 }
 
@@ -71,10 +72,14 @@ bool expect_constant_and_definition_listing() {
 }
 
 bool expect_builtin_function_metadata() {
-    const auto info = console_calc::builtin_function_info(console_calc::Function::sum);
-    return info.name == "sum" && info.arity == 1 &&
-           info.category == console_calc::BuiltinFunctionCategory::list &&
-           info.summary == "sum list elements";
+    const auto sum_info = console_calc::builtin_function_info(console_calc::Function::sum);
+    const auto map_info = console_calc::builtin_function_info(console_calc::Function::map);
+    return sum_info.name == "sum" && sum_info.arity == 1 &&
+           sum_info.category == console_calc::BuiltinFunctionCategory::list &&
+           sum_info.summary == "sum list elements" && !sum_info.mappable &&
+           map_info.name == "map" && map_info.arity == 2 &&
+           map_info.category == console_calc::BuiltinFunctionCategory::list &&
+           map_info.summary == "map unary scalar builtin over list" && !map_info.mappable;
 }
 
 }  // namespace

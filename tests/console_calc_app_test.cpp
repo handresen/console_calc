@@ -437,6 +437,7 @@ bool expect_console_mode_list_variables_and_functions() {
         "drop/2\n"
         "first/2\n"
         "len/1\n"
+        "map/2\n"
         "max/1\n"
         "min/1\n"
         "product/1\n"

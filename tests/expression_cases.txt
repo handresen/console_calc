@@ -55,6 +55,10 @@
 "avg({2, 4, 6})", 4.0
 "min({2, -1, 5})", -1.0
 "max({2, -1, 5})", 5.0
+"sum(map({}, sin))", 0.0
+"sum(map({0, 1.5707963267948966}, sin))", 1.0
+"sum(map({0, 90}, sind))", 1.0
+"sum(map({2, 3, 4}, cos))", -2.0597829540111997
 "sum({1, 2, 3})", 6.0
 "sum({1, 2, sin(0)})", 3.0
 "sum({})", 0.0
@@ -98,6 +102,11 @@
 "first(1, 2)", INVALID
 "drop(1, 2)", INVALID
 "first(2, {1, 2, 3}) + 1", INVALID
+"map({1, 2}, sum)", INVALID
+"map({1, 2}, pow)", INVALID
+"map({1, 2}, foo)", INVALID
+"map(1, sin)", INVALID
+"map({1, 2}, sin())", INVALID
 "sin({1, 2})", INVALID
 "pow({2, 3}, 2)", INVALID
 "{1, 2, 3} + 1", INVALID
