@@ -8,6 +8,14 @@
 
 namespace {
 
+constexpr std::string_view k_green_prompt = "\x1b[32m";
+constexpr std::string_view k_color_reset = "\x1b[0m";
+
+[[nodiscard]] std::string prompt(std::size_t depth) {
+    return std::string(k_green_prompt) + std::to_string(depth) + '>' +
+           std::string(k_color_reset);
+}
+
 bool expect_argument_mode_success() {
     const std::vector<std::string_view> args = {"(", "2", "+", "3", ")", "*", "4"};
     std::istringstream input;
@@ -35,8 +43,15 @@ bool expect_console_mode_success() {
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) + "2\n" +
+        prompt(1) + "20\n" +
+        prompt(2) + "0:2\n1:20\n" +
+        prompt(2) + "22\n" +
+        prompt(1) + "0:22\n" +
+        prompt(1);
     return exit_code == 0 &&
-           output.str() == "0:2\n1:20\n2:0:2\n1:20\n2:22\n1:0:22\n1:" &&
+           output.str() == expected_output &&
            error.str().empty();
 }
 
@@ -47,9 +62,34 @@ bool expect_console_mode_recovery_after_error() {
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 0 && output.str() == "0:0:0:0:2\n1:" &&
+    const std::string expected_output =
+        prompt(0) + prompt(0) + prompt(0) + prompt(0) + "2\n" + prompt(1);
+    return exit_code == 0 && output.str() == expected_output &&
            error.str() ==
                "error: stack requires at least two values\nerror: expected number after operator\n";
+}
+
+bool expect_console_mode_stack_limit() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("1\n2\n3\n4\n5\n6\n7\n8\n9\n10\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) + "1\n" +
+        prompt(1) + "2\n" +
+        prompt(2) + "3\n" +
+        prompt(3) + "4\n" +
+        prompt(4) + "5\n" +
+        prompt(5) + "6\n" +
+        prompt(6) + "7\n" +
+        prompt(7) + "8\n" +
+        prompt(8) + "9\n" +
+        prompt(9) +
+        prompt(9);
+    return exit_code == 0 && output.str() == expected_output &&
+           error.str() == "error: stack is full\n";
 }
 
 }  // namespace
@@ -68,6 +108,10 @@ int main() {
     }
 
     if (!expect_console_mode_recovery_after_error()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_stack_limit()) {
         return EXIT_FAILURE;
     }
 

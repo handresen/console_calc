@@ -17,6 +17,10 @@ namespace console_calc {
 
 namespace {
 
+constexpr std::size_t k_max_stack_depth = 9;
+constexpr std::string_view k_prompt_color = "\x1b[32m";
+constexpr std::string_view k_color_reset = "\x1b[0m";
+
 [[nodiscard]] std::string trim(std::string_view text) {
     std::size_t begin = 0;
     while (begin < text.size() && std::isspace(static_cast<unsigned char>(text[begin]))) {
@@ -47,6 +51,10 @@ void print_stack(const std::vector<double>& result_stack, std::ostream& output) 
     for (std::size_t index = 0; index < result_stack.size(); ++index) {
         output << index << ':' << format_number(result_stack[index]) << '\n';
     }
+}
+
+void print_prompt(std::size_t stack_depth, std::ostream& output) {
+    output << k_prompt_color << stack_depth << '>' << k_color_reset;
 }
 
 double apply_stack_operator(const ExpressionParser& parser, std::vector<double>& result_stack,
@@ -80,7 +88,7 @@ int run_console_mode(const ExpressionParser& parser, std::istream& input, std::o
     std::vector<double> result_stack;
     std::string line;
     while (true) {
-        output << result_stack.size() << ':';
+        print_prompt(result_stack.size(), output);
         output.flush();
 
         if (!std::getline(input, line)) {
@@ -108,6 +116,9 @@ int run_console_mode(const ExpressionParser& parser, std::istream& input, std::o
             }
 
             const double result = parser.evaluate(trimmed);
+            if (result_stack.size() >= k_max_stack_depth) {
+                throw std::invalid_argument("stack is full");
+            }
             result_stack.push_back(result);
             output << result << '\n';
         } catch (const std::exception& ex) {
