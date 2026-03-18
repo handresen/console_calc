@@ -42,6 +42,19 @@
 "pow(2, 3)", 8.0
 "pow(2, 1 + 2)", 8.0
 "pow(2, sum({1, 2}))", 8.0
+"sin(first(1, {0}))", 0.0
+"first(1, {2, 3}) + 4", 6.0
+"pow(first(1, {2}), 3)", 8.0
+"drop(2, {1, 2, 3}) + 4", 7.0
+"pow({2}, 3)", 8.0
+"sin({0})", 0.0
+"len({})", 0.0
+"len({1, 2, 3})", 3.0
+"product({})", 1.0
+"product({2, 3, 4})", 24.0
+"avg({2, 4, 6})", 4.0
+"min({2, -1, 5})", -1.0
+"max({2, -1, 5})", 5.0
 "sum({1, 2, 3})", 6.0
 "sum({1, 2, sin(0)})", 3.0
 "sum({})", 0.0
@@ -75,6 +88,18 @@
 "pow(2, 3, 4)", INVALID
 "sum(1)", INVALID
 "sum({1} + 2)", INVALID
+"avg({})", INVALID
+"min({})", INVALID
+"max({})", INVALID
+"first(-1, {1, 2})", INVALID
+"first(1.5, {1, 2})", INVALID
+"drop(-1, {1, 2})", INVALID
+"drop(1.5, {1, 2})", INVALID
+"first(1, 2)", INVALID
+"drop(1, 2)", INVALID
+"first(2, {1, 2, 3}) + 1", INVALID
+"sin({1, 2})", INVALID
+"pow({2, 3}, 2)", INVALID
 "{1, 2, 3} + 1", INVALID
 "sum({1, {2}})", INVALID
 "sum({1, 2,})", INVALID

@@ -73,6 +73,48 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
         return false;
     }
 
+    const console_calc::Value first_list = parser.evaluate_value("first(2, {1, 2, 3})");
+    const auto* first_values = std::get_if<console_calc::ListValue>(&first_list);
+    if (first_values == nullptr || first_values->size() != 2 ||
+        !almost_equal((*first_values)[0], 1.0) || !almost_equal((*first_values)[1], 2.0)) {
+        return false;
+    }
+
+    const console_calc::Value dropped_list = parser.evaluate_value("drop(2, {1, 2, 3, 4})");
+    const auto* dropped_values = std::get_if<console_calc::ListValue>(&dropped_list);
+    if (dropped_values == nullptr || dropped_values->size() != 2 ||
+        !almost_equal((*dropped_values)[0], 3.0) || !almost_equal((*dropped_values)[1], 4.0)) {
+        return false;
+    }
+
+    if (!almost_equal(parser.evaluate("first(1, {2}) + 3"), 5.0)) {
+        return false;
+    }
+
+    if (!almost_equal(parser.evaluate("drop(2, {1, 2, 3}) + 4"), 7.0)) {
+        return false;
+    }
+
+    if (!almost_equal(parser.evaluate("sin({0})"), 0.0)) {
+        return false;
+    }
+
+    try {
+        (void)parser.evaluate("sin({1, 2})");
+        return false;
+    } catch (const std::invalid_argument&) {
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.evaluate("pow({2, 3}, 2)");
+        return false;
+    } catch (const std::invalid_argument&) {
+    } catch (const std::exception&) {
+        return false;
+    }
+
     return true;
 }
 

@@ -10,7 +10,7 @@ Current scope:
 - binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - parentheses for grouping
 - list literals with `{ ... }`
-- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `sum`
+- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`
 - optional whitespace between tokens
 
 Explicitly out of scope for this first version:
@@ -65,11 +65,21 @@ Expressions use these precedence levels, from highest to lowest: function calls,
 
 `%` uses floating-point modulo via `fmod`. `&` and `|` require integer-valued operands; non-integer operands are rejected. Division by zero, modulo by zero, and non-finite evaluation results are rejected.
 
+Where a scalar is required, a one-element list is accepted and coerced to that element. Multi-element lists are still rejected in scalar positions. List literals themselves remain flat: each list element must evaluate directly to a scalar, so nested lists are still rejected.
+
 Builtin functions:
 - `sin(x)`, `cos(x)`, `tan(x)` use radians
 - `sind(x)`, `cosd(x)`, `tand(x)` use degrees
 - `pow(x, y)` is equivalent to `x ^ y`
 - `sum(list)` sums a list value
+- `len(list)` returns list length
+- `product(list)` multiplies all list values; `product({})` is `1`
+- `avg(list)` returns the arithmetic mean of a non-empty list
+- `min(list)` and `max(list)` require non-empty lists
+- `first(n, list)` returns the first `n` items as a list
+- `drop(n, list)` returns the list without its first `n` items
+
+For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds.
 
 Examples:
 - `2 + 3` => `5`
@@ -80,7 +90,13 @@ Examples:
 - `sin(0)` => `0`
 - `sind(30)` => `0.5`
 - `pow(2, 3)` => `8`
+- `len({1, 2, 3})` => `3`
+- `product({2, 3, 4})` => `24`
+- `avg({2, 4, 6})` => `4`
+- `min({2, -1, 5})` => `-1`
+- `max({2, -1, 5})` => `5`
 - `sum({1, 2, 3})` => `6`
+- `first(1, {2, 3}) + 4` => `6`
 - `10 % 3` => `1`
 - `6 & 3 | 8` => `10`
 - `(2 + 3) * 4` => `20`
@@ -101,6 +117,12 @@ Examples:
 - `sin(0)`
 - `sind(30)`
 - `pow(2, 3)`
+- `len({1, 2, 3})`
+- `product({2, 3, 4})`
+- `avg({2, 4, 6})`
+- `first(2, {1, 2, 3})`
+- `drop(1, {1, 2, 3})`
+- `sin(first(1, {0}))`
 - `sum({1, 2, 3})`
 - `2 ^ 3`
 - `10 % 3`
@@ -118,6 +140,10 @@ Examples:
 - `sin()`
 - `pow(2)`
 - `sum(1)`
+- `avg({})`
+- `first(1.5, {1, 2})`
+- `drop(1, 2)`
+- `first(2, {1, 2, 3}) + 1`
 - `1 / 0`
 - `1 % 0`
 - `0 ^ (1 - 2)`

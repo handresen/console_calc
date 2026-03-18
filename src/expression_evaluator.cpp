@@ -21,12 +21,39 @@ namespace {
     throw EvaluationError("list value cannot be used as a scalar");
 }
 
+[[nodiscard]] double require_scalar_or_singleton_list(const Value& value) {
+    if (const auto* scalar = std::get_if<double>(&value)) {
+        return *scalar;
+    }
+
+    if (const auto* list = std::get_if<ListValue>(&value)) {
+        if (list->size() == 1) {
+            return (*list)[0];
+        }
+    }
+
+    throw EvaluationError("list value cannot be used as a scalar");
+}
+
 [[nodiscard]] ListValue require_list(const Value& value) {
     if (const auto* list = std::get_if<ListValue>(&value)) {
         return *list;
     }
 
     throw EvaluationError("list value required");
+}
+
+[[nodiscard]] std::size_t require_list_index(double value) {
+    if (!std::isfinite(value)) {
+        throw EvaluationError("list count must be a non-negative integer");
+    }
+
+    double integral_part = 0.0;
+    if (std::modf(value, &integral_part) != 0.0 || integral_part < 0.0) {
+        throw EvaluationError("list count must be a non-negative integer");
+    }
+
+    return static_cast<std::size_t>(integral_part);
 }
 
 [[nodiscard]] std::int64_t require_integer_operand(double value) {
@@ -71,7 +98,8 @@ Value evaluate_expression(const Expression& expression) {
             if constexpr (std::is_same_v<Node, NumberLiteral>) {
                 return node.value;
             } else if constexpr (std::is_same_v<Node, UnaryExpression>) {
-                return require_finite_result(-require_scalar(evaluate_expression(*node.operand)));
+                return require_finite_result(
+                    -require_scalar_or_singleton_list(evaluate_expression(*node.operand)));
             } else if constexpr (std::is_same_v<Node, ListLiteral>) {
                 ListValue values;
                 values.reserve(node.elements.size());
@@ -83,26 +111,29 @@ Value evaluate_expression(const Expression& expression) {
                 switch (node.function) {
                 case Function::sin:
                     return require_finite_result(
-                        std::sin(require_scalar(evaluate_expression(*node.arguments[0]))));
+                        std::sin(require_scalar_or_singleton_list(
+                            evaluate_expression(*node.arguments[0]))));
                 case Function::cos:
                     return require_finite_result(
-                        std::cos(require_scalar(evaluate_expression(*node.arguments[0]))));
+                        std::cos(require_scalar_or_singleton_list(
+                            evaluate_expression(*node.arguments[0]))));
                 case Function::tan:
                     return require_finite_result(
-                        std::tan(require_scalar(evaluate_expression(*node.arguments[0]))));
+                        std::tan(require_scalar_or_singleton_list(
+                            evaluate_expression(*node.arguments[0]))));
                 case Function::sind:
                     return require_finite_result(std::sin(degrees_to_radians(
-                        require_scalar(evaluate_expression(*node.arguments[0])))));
+                        require_scalar_or_singleton_list(evaluate_expression(*node.arguments[0])))));
                 case Function::cosd:
                     return require_finite_result(std::cos(degrees_to_radians(
-                        require_scalar(evaluate_expression(*node.arguments[0])))));
+                        require_scalar_or_singleton_list(evaluate_expression(*node.arguments[0])))));
                 case Function::tand:
                     return require_finite_result(std::tan(degrees_to_radians(
-                        require_scalar(evaluate_expression(*node.arguments[0])))));
+                        require_scalar_or_singleton_list(evaluate_expression(*node.arguments[0])))));
                 case Function::pow:
                     return require_finite_result(std::pow(
-                        require_scalar(evaluate_expression(*node.arguments[0])),
-                        require_scalar(evaluate_expression(*node.arguments[1]))));
+                        require_scalar_or_singleton_list(evaluate_expression(*node.arguments[0])),
+                        require_scalar_or_singleton_list(evaluate_expression(*node.arguments[1]))));
                 case Function::sum: {
                     const ListValue values = require_list(evaluate_expression(*node.arguments[0]));
                     double total = 0.0;
@@ -111,12 +142,76 @@ Value evaluate_expression(const Expression& expression) {
                     }
                     return total;
                 }
+                case Function::len: {
+                    const ListValue values = require_list(evaluate_expression(*node.arguments[0]));
+                    return static_cast<double>(values.size());
+                }
+                case Function::product: {
+                    const ListValue values = require_list(evaluate_expression(*node.arguments[0]));
+                    double total = 1.0;
+                    for (const double value : values) {
+                        total = require_finite_result(total * value);
+                    }
+                    return total;
+                }
+                case Function::avg: {
+                    const ListValue values = require_list(evaluate_expression(*node.arguments[0]));
+                    if (values.empty()) {
+                        throw EvaluationError("avg() requires a non-empty list");
+                    }
+
+                    double total = 0.0;
+                    for (const double value : values) {
+                        total = require_finite_result(total + value);
+                    }
+                    return require_finite_result(total / static_cast<double>(values.size()));
+                }
+                case Function::min: {
+                    const ListValue values = require_list(evaluate_expression(*node.arguments[0]));
+                    if (values.empty()) {
+                        throw EvaluationError("min() requires a non-empty list");
+                    }
+
+                    double result = values.front();
+                    for (std::size_t index = 1; index < values.size(); ++index) {
+                        result = std::min(result, values[index]);
+                    }
+                    return result;
+                }
+                case Function::max: {
+                    const ListValue values = require_list(evaluate_expression(*node.arguments[0]));
+                    if (values.empty()) {
+                        throw EvaluationError("max() requires a non-empty list");
+                    }
+
+                    double result = values.front();
+                    for (std::size_t index = 1; index < values.size(); ++index) {
+                        result = std::max(result, values[index]);
+                    }
+                    return result;
+                }
+                case Function::first: {
+                    const std::size_t count = require_list_index(
+                        require_scalar_or_singleton_list(evaluate_expression(*node.arguments[0])));
+                    const ListValue values = require_list(evaluate_expression(*node.arguments[1]));
+                    const std::size_t result_size = std::min(count, values.size());
+                    return ListValue(values.begin(),
+                                     values.begin() + static_cast<std::ptrdiff_t>(result_size));
+                }
+                case Function::drop: {
+                    const std::size_t count = require_list_index(
+                        require_scalar_or_singleton_list(evaluate_expression(*node.arguments[0])));
+                    const ListValue values = require_list(evaluate_expression(*node.arguments[1]));
+                    const std::size_t skip = std::min(count, values.size());
+                    return ListValue(values.begin() + static_cast<std::ptrdiff_t>(skip),
+                                     values.end());
+                }
                 }
 
                 throw EvaluationError("unknown function");
             } else {
-                const double lhs = require_scalar(evaluate_expression(*node.left));
-                const double rhs = require_scalar(evaluate_expression(*node.right));
+                const double lhs = require_scalar_or_singleton_list(evaluate_expression(*node.left));
+                const double rhs = require_scalar_or_singleton_list(evaluate_expression(*node.right));
 
                 switch (node.op) {
                 case BinaryOperator::add:
@@ -154,7 +249,7 @@ Value evaluate_expression(const Expression& expression) {
 }
 
 double evaluate_scalar_expression(const Expression& expression) {
-    return require_scalar(evaluate_expression(expression));
+    return require_scalar_or_singleton_list(evaluate_expression(expression));
 }
 
 }  // namespace console_calc
