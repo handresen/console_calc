@@ -29,6 +29,8 @@ add_library(console_calc_lib
     src/expression_evaluator.cpp
     src/expression_parser.cpp
     src/expression_tokenizer.cpp
+    src/scalar_math.cpp
+    src/scalar_value.cpp
     src/value_format.cpp
 )
 

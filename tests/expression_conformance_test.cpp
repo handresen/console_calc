@@ -5,6 +5,7 @@
 
 #include "console_calc/expression_ast.h"
 #include "console_calc/expression_parser.h"
+#include "console_calc/scalar_value.h"
 #include "expression_case_loader.h"
 
 namespace {
@@ -13,24 +14,8 @@ bool almost_equal(double lhs, double rhs) {
     return std::fabs(lhs - rhs) < 1e-12;
 }
 
-double scalar_to_double(const console_calc::ScalarValue& value) {
-    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
-        return static_cast<double>(*integer);
-    }
-
-    return std::get<double>(value);
-}
-
 bool almost_equal(const console_calc::ScalarValue& lhs, double rhs) {
-    return almost_equal(scalar_to_double(lhs), rhs);
-}
-
-double value_to_double(const console_calc::Value& value) {
-    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
-        return static_cast<double>(*integer);
-    }
-
-    return std::get<double>(value);
+    return almost_equal(console_calc::scalar_to_double(lhs), rhs);
 }
 
 bool expect_value(console_calc::ExpressionParser& parser, const std::string& expression,
@@ -55,7 +40,8 @@ bool expect_invalid(console_calc::ExpressionParser& parser, const std::string& e
 
 bool expect_value_api(console_calc::ExpressionParser& parser) {
     const console_calc::Value scalar = parser.evaluate_value("1 + 2");
-    if (!std::holds_alternative<std::int64_t>(scalar) || !almost_equal(value_to_double(scalar), 3.0)) {
+    if (!std::holds_alternative<std::int64_t>(scalar) ||
+        !almost_equal(console_calc::scalar_to_double(std::get<std::int64_t>(scalar)), 3.0)) {
         return false;
     }
 
@@ -65,9 +51,9 @@ bool expect_value_api(console_calc::ExpressionParser& parser) {
         return false;
     }
 
-    return almost_equal(scalar_to_double((*list_value)[0]), 1.0) &&
-           almost_equal(scalar_to_double((*list_value)[1]), 2.0) &&
-           almost_equal(scalar_to_double((*list_value)[2]), 3.0);
+    return almost_equal(console_calc::scalar_to_double((*list_value)[0]), 1.0) &&
+           almost_equal(console_calc::scalar_to_double((*list_value)[1]), 2.0) &&
+           almost_equal(console_calc::scalar_to_double((*list_value)[2]), 3.0);
 }
 
 bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
@@ -96,16 +82,16 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
     const console_calc::Value first_list = parser.evaluate_value("first(2, {1, 2, 3})");
     const auto* first_values = std::get_if<console_calc::ListValue>(&first_list);
     if (first_values == nullptr || first_values->size() != 2 ||
-        !almost_equal(scalar_to_double((*first_values)[0]), 1.0) ||
-        !almost_equal(scalar_to_double((*first_values)[1]), 2.0)) {
+        !almost_equal(console_calc::scalar_to_double((*first_values)[0]), 1.0) ||
+        !almost_equal(console_calc::scalar_to_double((*first_values)[1]), 2.0)) {
         return false;
     }
 
     const console_calc::Value dropped_list = parser.evaluate_value("drop(2, {1, 2, 3, 4})");
     const auto* dropped_values = std::get_if<console_calc::ListValue>(&dropped_list);
     if (dropped_values == nullptr || dropped_values->size() != 2 ||
-        !almost_equal(scalar_to_double((*dropped_values)[0]), 3.0) ||
-        !almost_equal(scalar_to_double((*dropped_values)[1]), 4.0)) {
+        !almost_equal(console_calc::scalar_to_double((*dropped_values)[0]), 3.0) ||
+        !almost_equal(console_calc::scalar_to_double((*dropped_values)[1]), 4.0)) {
         return false;
     }
 
@@ -124,8 +110,8 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
     const console_calc::Value mapped_list = parser.evaluate_value("map({0, 1.5707963267948966}, sin)");
     const auto* mapped_values = std::get_if<console_calc::ListValue>(&mapped_list);
     if (mapped_values == nullptr || mapped_values->size() != 2 ||
-        !almost_equal(scalar_to_double((*mapped_values)[0]), 0.0) ||
-        !almost_equal(scalar_to_double((*mapped_values)[1]), 1.0)) {
+        !almost_equal(console_calc::scalar_to_double((*mapped_values)[0]), 0.0) ||
+        !almost_equal(console_calc::scalar_to_double((*mapped_values)[1]), 1.0)) {
         return false;
     }
 
@@ -399,6 +385,47 @@ bool expect_map_ast_shape(console_calc::ExpressionParser& parser) {
            almost_equal(second->value, 3.0);
 }
 
+bool expect_integer_semantics(console_calc::ExpressionParser& parser) {
+    const console_calc::Value integer_sum = parser.evaluate_value("1 + 2");
+    if (!std::holds_alternative<std::int64_t>(integer_sum) || std::get<std::int64_t>(integer_sum) != 3) {
+        return false;
+    }
+
+    const console_calc::Value floating_division = parser.evaluate_value("1 / 2");
+    if (!std::holds_alternative<double>(floating_division) ||
+        !almost_equal(std::get<double>(floating_division), 0.5)) {
+        return false;
+    }
+
+    const console_calc::Value integer_sum_list = parser.evaluate_value("sum({1, 2, 3})");
+    if (!std::holds_alternative<std::int64_t>(integer_sum_list) ||
+        std::get<std::int64_t>(integer_sum_list) != 6) {
+        return false;
+    }
+
+    const console_calc::Value mixed_sum_list = parser.evaluate_value("sum({1, 2.5})");
+    if (!std::holds_alternative<double>(mixed_sum_list) ||
+        !almost_equal(std::get<double>(mixed_sum_list), 3.5)) {
+        return false;
+    }
+
+    const console_calc::Value integer_modulo = parser.evaluate_value("7 % 3");
+    if (!std::holds_alternative<std::int64_t>(integer_modulo) ||
+        std::get<std::int64_t>(integer_modulo) != 1) {
+        return false;
+    }
+
+    const console_calc::Value floating_modulo = parser.evaluate_value("7.5 % 2");
+    if (!std::holds_alternative<double>(floating_modulo) ||
+        !almost_equal(std::get<double>(floating_modulo), 1.5)) {
+        return false;
+    }
+
+    const console_calc::Value integer_length = parser.evaluate_value("len({1, 2, 3})");
+    return std::holds_alternative<std::int64_t>(integer_length) &&
+           std::get<std::int64_t>(integer_length) == 3;
+}
+
 }  // namespace
 
 int main() {
@@ -445,6 +472,10 @@ int main() {
     }
 
     if (!expect_map_ast_shape(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_integer_semantics(parser)) {
         return EXIT_FAILURE;
     }
 

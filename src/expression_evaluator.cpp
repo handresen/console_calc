@@ -2,6 +2,7 @@
 
 #include "console_calc/builtin_function.h"
 #include "console_calc/expression_error.h"
+#include "console_calc/scalar_value.h"
 
 #include <cmath>
 #include <cstdint>
@@ -11,25 +12,11 @@
 #include <type_traits>
 #include <variant>
 
+#include "scalar_math.h"
+
 namespace console_calc {
 
 namespace {
-
-[[nodiscard]] Value to_value(const ScalarValue& value) {
-    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
-        return *integer;
-    }
-
-    return std::get<double>(value);
-}
-
-[[nodiscard]] double scalar_to_double(const ScalarValue& value) {
-    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
-        return static_cast<double>(*integer);
-    }
-
-    return std::get<double>(value);
-}
 
 [[nodiscard]] ScalarValue require_scalar_value(const Value& value) {
     if (const auto* integer = std::get_if<std::int64_t>(&value)) {
@@ -64,15 +51,6 @@ namespace {
     }
 
     throw EvaluationError("list value required");
-}
-
-[[nodiscard]] bool is_exact_integer_double(double value) {
-    if (!std::isfinite(value)) {
-        return false;
-    }
-
-    double integral_part = 0.0;
-    return std::modf(value, &integral_part) == 0.0;
 }
 
 [[nodiscard]] std::size_t require_list_index(const ScalarValue& value) {
@@ -131,177 +109,6 @@ namespace {
 
 [[nodiscard]] double degrees_to_radians(double value) {
     return value * std::numbers::pi_v<double> / 180.0;
-}
-
-[[nodiscard]] bool add_int64(std::int64_t lhs, std::int64_t rhs, std::int64_t& result) {
-    if ((rhs > 0 && lhs > std::numeric_limits<std::int64_t>::max() - rhs) ||
-        (rhs < 0 && lhs < std::numeric_limits<std::int64_t>::min() - rhs)) {
-        return false;
-    }
-
-    result = lhs + rhs;
-    return true;
-}
-
-[[nodiscard]] bool subtract_int64(std::int64_t lhs, std::int64_t rhs, std::int64_t& result) {
-    if ((rhs < 0 && lhs > std::numeric_limits<std::int64_t>::max() + rhs) ||
-        (rhs > 0 && lhs < std::numeric_limits<std::int64_t>::min() + rhs)) {
-        return false;
-    }
-
-    result = lhs - rhs;
-    return true;
-}
-
-[[nodiscard]] bool multiply_int64(std::int64_t lhs, std::int64_t rhs, std::int64_t& result) {
-    if (lhs == 0 || rhs == 0) {
-        result = 0;
-        return true;
-    }
-
-    if (lhs == -1) {
-        if (rhs == std::numeric_limits<std::int64_t>::min()) {
-            return false;
-        }
-        result = -rhs;
-        return true;
-    }
-    if (rhs == -1) {
-        if (lhs == std::numeric_limits<std::int64_t>::min()) {
-            return false;
-        }
-        result = -lhs;
-        return true;
-    }
-
-    if (lhs > 0) {
-        if ((rhs > 0 && lhs > std::numeric_limits<std::int64_t>::max() / rhs) ||
-            (rhs < 0 && rhs < std::numeric_limits<std::int64_t>::min() / lhs)) {
-            return false;
-        }
-    } else {
-        if ((rhs > 0 && lhs < std::numeric_limits<std::int64_t>::min() / rhs) ||
-            (rhs < 0 && lhs != 0 && rhs < std::numeric_limits<std::int64_t>::max() / lhs)) {
-            return false;
-        }
-    }
-
-    result = lhs * rhs;
-    return true;
-}
-
-[[nodiscard]] bool power_int64(std::int64_t base, std::int64_t exponent, std::int64_t& result) {
-    if (exponent < 0) {
-        return false;
-    }
-
-    std::int64_t total = 1;
-    std::int64_t factor = base;
-    std::int64_t remaining = exponent;
-    while (remaining > 0) {
-        if ((remaining & 1) != 0) {
-            if (!multiply_int64(total, factor, total)) {
-                return false;
-            }
-        }
-        remaining >>= 1;
-        if (remaining > 0 && !multiply_int64(factor, factor, factor)) {
-            return false;
-        }
-    }
-
-    result = total;
-    return true;
-}
-
-[[nodiscard]] ScalarValue add_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
-    if (const auto* lhs_integer = std::get_if<std::int64_t>(&lhs)) {
-        if (const auto* rhs_integer = std::get_if<std::int64_t>(&rhs)) {
-            std::int64_t result = 0;
-            if (add_int64(*lhs_integer, *rhs_integer, result)) {
-                return result;
-            }
-        }
-    }
-
-    return require_finite_result(scalar_to_double(lhs) + scalar_to_double(rhs));
-}
-
-[[nodiscard]] ScalarValue subtract_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
-    if (const auto* lhs_integer = std::get_if<std::int64_t>(&lhs)) {
-        if (const auto* rhs_integer = std::get_if<std::int64_t>(&rhs)) {
-            std::int64_t result = 0;
-            if (subtract_int64(*lhs_integer, *rhs_integer, result)) {
-                return result;
-            }
-        }
-    }
-
-    return require_finite_result(scalar_to_double(lhs) - scalar_to_double(rhs));
-}
-
-[[nodiscard]] ScalarValue multiply_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
-    if (const auto* lhs_integer = std::get_if<std::int64_t>(&lhs)) {
-        if (const auto* rhs_integer = std::get_if<std::int64_t>(&rhs)) {
-            std::int64_t result = 0;
-            if (multiply_int64(*lhs_integer, *rhs_integer, result)) {
-                return result;
-            }
-        }
-    }
-
-    return require_finite_result(scalar_to_double(lhs) * scalar_to_double(rhs));
-}
-
-[[nodiscard]] ScalarValue divide_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
-    const double rhs_numeric = scalar_to_double(rhs);
-    if (rhs_numeric == 0.0) {
-        throw EvaluationError("division by zero");
-    }
-
-    return require_finite_result(scalar_to_double(lhs) / rhs_numeric);
-}
-
-[[nodiscard]] ScalarValue modulo_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
-    if (const auto* lhs_integer = std::get_if<std::int64_t>(&lhs)) {
-        if (const auto* rhs_integer = std::get_if<std::int64_t>(&rhs)) {
-            if (*rhs_integer == 0) {
-                throw EvaluationError("modulo by zero");
-            }
-            return *lhs_integer % *rhs_integer;
-        }
-    }
-
-    const double rhs_numeric = scalar_to_double(rhs);
-    if (rhs_numeric == 0.0) {
-        throw EvaluationError("modulo by zero");
-    }
-
-    return require_finite_result(std::fmod(scalar_to_double(lhs), rhs_numeric));
-}
-
-[[nodiscard]] ScalarValue power_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
-    if (const auto* lhs_integer = std::get_if<std::int64_t>(&lhs)) {
-        if (const auto* rhs_integer = std::get_if<std::int64_t>(&rhs)) {
-            std::int64_t result = 0;
-            if (power_int64(*lhs_integer, *rhs_integer, result)) {
-                return result;
-            }
-        }
-    }
-
-    return require_finite_result(std::pow(scalar_to_double(lhs), scalar_to_double(rhs)));
-}
-
-[[nodiscard]] ScalarValue negate_scalar(const ScalarValue& value) {
-    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
-        if (*integer == std::numeric_limits<std::int64_t>::min()) {
-            return require_finite_result(-static_cast<double>(*integer));
-        }
-        return -*integer;
-    }
-
-    return require_finite_result(-std::get<double>(value));
 }
 
 [[nodiscard]] double evaluate_unary_scalar_builtin(Function function, double argument) {
