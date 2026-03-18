@@ -11,6 +11,7 @@ enum class ConsoleCommandKind {
     list_variables,
     list_constants,
     list_functions,
+    refresh_currency_rates,
     display_decimal,
     display_hexadecimal,
     display_binary,

@@ -28,6 +28,9 @@ ConsoleCommand classify_console_command(std::string_view text) {
     if (text == "funcs") {
         return {.kind = ConsoleCommandKind::list_functions};
     }
+    if (text == "fx_refresh") {
+        return {.kind = ConsoleCommandKind::refresh_currency_rates};
+    }
     if (text == "dec") {
         return {.kind = ConsoleCommandKind::display_decimal};
     }

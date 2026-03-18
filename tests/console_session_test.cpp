@@ -1,14 +1,37 @@
 #include <cstdlib>
+#include <cstdio>
+#include <deque>
 #include <sstream>
 #include <string_view>
 #include <vector>
 
 #include "console_calc_app.h"
+#include "currency_rate_provider.h"
 #include "console_test_utils.h"
 
 namespace {
 
 using console_calc::test::prompt;
+
+class FakeCurrencyRateProvider final : public console_calc::CurrencyRateProvider {
+public:
+    explicit FakeCurrencyRateProvider(std::deque<console_calc::CurrencyFetchResult> responses)
+        : responses_(std::move(responses)) {}
+
+    console_calc::CurrencyFetchResult fetch_nok_rates(
+        std::span<const std::string_view>, std::chrono::milliseconds) override {
+        if (responses_.empty()) {
+            return {.error = "no fake response configured"};
+        }
+
+        auto response = std::move(responses_.front());
+        responses_.pop_front();
+        return response;
+    }
+
+private:
+    std::deque<console_calc::CurrencyFetchResult> responses_;
+};
 
 bool expect_console_mode_success() {
     const std::vector<std::string_view> args;
@@ -460,6 +483,90 @@ bool expect_console_mode_list_variables_and_functions() {
     return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
 
+bool expect_console_mode_currency_refresh_on_launch() {
+    const std::vector<std::string_view> args;
+    FakeCurrencyRateProvider provider({{
+        .rates = console_calc::CurrencyRateTable{
+            {"usd", 0.1},
+            {"cny", 0.7},
+            {"eur", 0.09},
+            {"gbp", 0.08},
+            {"sek", 1.1},
+            {"dkk", 0.65},
+        },
+    }});
+    std::istringstream input("nok2usd\nusd2nok\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code =
+        console_calc::run_console_calc(args, input, output, error,
+                                       console_calc::ConsoleCalcOptions{
+                                           .currency_rate_provider = &provider,
+                                           .auto_refresh_currency_rates = true,
+                                           .currency_rate_timeout = std::chrono::milliseconds{50},
+                                       });
+    const std::string expected_output =
+        prompt(0) + "0.1\n" +
+        prompt(1) + "10\n" +
+        prompt(2);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+}
+
+bool expect_console_mode_currency_refresh_command() {
+    const std::vector<std::string_view> args;
+    FakeCurrencyRateProvider provider({{
+        .rates = console_calc::CurrencyRateTable{
+            {"usd", 0.2},
+            {"cny", 0.71},
+            {"eur", 0.1},
+            {"gbp", 0.09},
+            {"sek", 1.12},
+            {"dkk", 0.66},
+        },
+    }});
+    std::istringstream input("nok2usd\nfx_refresh\nnok2usd\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code =
+        console_calc::run_console_calc(args, input, output, error,
+                                       console_calc::ConsoleCalcOptions{
+                                           .currency_rate_provider = &provider,
+                                           .auto_refresh_currency_rates = false,
+                                           .currency_rate_timeout = std::chrono::milliseconds{50},
+                                       });
+    const std::string expected_output =
+        prompt(0) + prompt(0) + prompt(0) + "0.2\n" + prompt(1);
+    return exit_code == 0 && output.str() == expected_output &&
+           error.str() == "error: unknown identifier: nok2usd\n";
+}
+
+bool expect_console_mode_currency_refresh_offline() {
+    const std::vector<std::string_view> args;
+    FakeCurrencyRateProvider provider({{
+                                         .error = "timeout",
+                                     },
+                                     {
+                                         .error = "timeout",
+                                     }});
+    std::istringstream input("nok2usd\nfx_refresh\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code =
+        console_calc::run_console_calc(args, input, output, error,
+                                       console_calc::ConsoleCalcOptions{
+                                           .currency_rate_provider = &provider,
+                                           .auto_refresh_currency_rates = true,
+                                           .currency_rate_timeout = std::chrono::milliseconds{50},
+                                       });
+    const std::string expected_output = prompt(0) + prompt(0) + prompt(0);
+    return exit_code == 0 && output.str() == expected_output &&
+           error.str() ==
+               "error: unknown identifier: nok2usd\nerror: currency refresh failed: timeout\n";
+}
+
 }  // namespace
 
 int main() {
@@ -539,6 +646,15 @@ int main() {
         return EXIT_FAILURE;
     }
     if (!expect_console_mode_list_variables_and_functions()) {
+        return EXIT_FAILURE;
+    }
+    if (!expect_console_mode_currency_refresh_on_launch()) {
+        return EXIT_FAILURE;
+    }
+    if (!expect_console_mode_currency_refresh_command()) {
+        return EXIT_FAILURE;
+    }
+    if (!expect_console_mode_currency_refresh_offline()) {
         return EXIT_FAILURE;
     }
 

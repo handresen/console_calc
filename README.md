@@ -225,6 +225,8 @@ Examples:
   List builtin constants
 - `funcs`
   List builtin functions with grouped help text
+- `fx_refresh`
+  Refresh console-only NOK-relative currency conversion variables
 - `dup`
   Duplicate the top stack value
 - `drop`
@@ -310,6 +312,35 @@ Rules:
 - redefining a builtin constant name is rejected
 - redefining an existing user definition replaces it
 - circular references are rejected
+
+## Currency Conversions
+
+Console mode can load a small built-in set of NOK-relative currency conversions on launch.
+This is best-effort with a short timeout. If the fetch fails, console mode still starts and no
+currency variables are added.
+
+You can refresh the rates explicitly with:
+- `fx_refresh`
+
+Current generated variables include:
+- `nok2usd`, `usd2nok`
+- `nok2cny`, `cny2nok`
+- `nok2eur`, `eur2nok`
+- `nok2gbp`, `gbp2nok`
+- `nok2sek`, `sek2nok`
+- `nok2dkk`, `dkk2nok`
+
+Example:
+
+```text
+0> nok2usd
+0.0951
+1> usd2nok
+10.5152
+2> fx_refresh
+2> nok2usd
+0.0953
+```
 
 ## Integer Display Modes
 

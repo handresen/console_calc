@@ -14,6 +14,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(CONSOLE_CALC_BUILD_TESTS "Build tests" ON)
 option(CONSOLE_CALC_ENABLE_CLANG_TIDY "Run clang-tidy during builds when available" OFF)
 
+find_package(CURL REQUIRED)
+
 if(CONSOLE_CALC_ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES clang-tidy)
     if(CLANG_TIDY_EXE)
@@ -53,12 +55,14 @@ add_library(console_calc_app_lib
     apps/console_line_editor.cpp
     apps/console_mode.cpp
     apps/console_session.cpp
+    apps/currency_rate_provider.cpp
     apps/expression_environment.cpp
 )
 
 target_include_directories(console_calc_app_lib
     PUBLIC
         ${PROJECT_SOURCE_DIR}/apps
+        ${PROJECT_SOURCE_DIR}/include
     PRIVATE
         ${PROJECT_SOURCE_DIR}/src
 )
@@ -66,6 +70,7 @@ target_include_directories(console_calc_app_lib
 target_link_libraries(console_calc_app_lib
     PRIVATE
         console_calc_lib
+        CURL::libcurl
 )
 
 target_compile_features(console_calc_app_lib PUBLIC cxx_std_20)

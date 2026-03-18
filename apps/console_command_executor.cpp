@@ -25,6 +25,7 @@ bool is_non_evaluating_console_command(ConsoleCommandKind command) {
     case ConsoleCommandKind::clear:
         return true;
     case ConsoleCommandKind::quit:
+    case ConsoleCommandKind::refresh_currency_rates:
     case ConsoleCommandKind::stack_operator:
     case ConsoleCommandKind::assignment:
     case ConsoleCommandKind::expression:
@@ -84,6 +85,7 @@ void execute_non_evaluating_console_command(
         context.mutable_stack.clear();
         return;
     case ConsoleCommandKind::quit:
+    case ConsoleCommandKind::refresh_currency_rates:
     case ConsoleCommandKind::stack_operator:
     case ConsoleCommandKind::assignment:
     case ConsoleCommandKind::expression:

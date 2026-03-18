@@ -14,6 +14,7 @@
 #include "console_listing.h"
 #include "console_calc/builtin_function.h"
 #include "console_command_executor.h"
+#include "currency_catalog.h"
 #include "console_calc/expression_parser.h"
 #include "console_calc/scalar_value.h"
 #include "console_calc/value_format.h"
@@ -51,7 +52,27 @@ ConsoleSession::ConsoleSession(const ExpressionParser& parser, const ConstantTab
       error_(error),
       line_editor_(input_, output_, history_) {}
 
+ConsoleSession::ConsoleSession(const ExpressionParser& parser, const ConstantTable& constants,
+                               std::istream& input, std::ostream& output,
+                               std::ostream& error,
+                               CurrencyRateProvider* currency_rate_provider,
+                               std::chrono::milliseconds currency_rate_timeout,
+                               bool auto_refresh_currency_rates)
+    : parser_(parser),
+      constants_(constants),
+      input_(input),
+      output_(output),
+      error_(error),
+      currency_rate_provider_(currency_rate_provider),
+      currency_rate_timeout_(currency_rate_timeout),
+      auto_refresh_currency_rates_(auto_refresh_currency_rates),
+      line_editor_(input_, output_, history_) {}
+
 int ConsoleSession::run() {
+    if (auto_refresh_currency_rates_) {
+        refresh_currency_rates(false);
+    }
+
     while (true) {
         const auto line = line_editor_.read_line(prompt_text());
         if (!line.has_value()) {
@@ -81,6 +102,11 @@ int ConsoleSession::handle_line(std::string_view line) {
     }
 
     try {
+        if (command.kind == ConsoleCommandKind::refresh_currency_rates) {
+            refresh_currency_rates(true);
+            return -1;
+        }
+
         if (is_non_evaluating_console_command(command.kind)) {
             execute_non_evaluating_console_command(
                 command.kind,
@@ -184,6 +210,31 @@ void ConsoleSession::assign_definition(std::string_view name, std::string_view e
         normalized_expression, constants_, validation_definitions, result_reference);
     (void)parser_.evaluate_value(expanded_expression);
     definitions_[std::string(name)] = UserDefinition{normalized_expression};
+}
+
+void ConsoleSession::refresh_currency_rates(bool report_errors) {
+    if (currency_rate_provider_ == nullptr) {
+        if (report_errors) {
+            throw std::invalid_argument("currency refresh is unavailable");
+        }
+        return;
+    }
+
+    std::array<std::string_view, k_console_currency_catalog.size()> requested_codes{};
+    for (std::size_t index = 0; index < k_console_currency_catalog.size(); ++index) {
+        requested_codes[index] = k_console_currency_catalog[index].lower_code;
+    }
+
+    const CurrencyFetchResult result =
+        currency_rate_provider_->fetch_nok_rates(requested_codes, currency_rate_timeout_);
+    if (!result.succeeded()) {
+        if (report_errors) {
+            throw std::invalid_argument("currency refresh failed: " + result.error);
+        }
+        return;
+    }
+
+    apply_currency_rate_definitions(definitions_, *result.rates);
 }
 
 void ConsoleSession::push_result(Value result) {

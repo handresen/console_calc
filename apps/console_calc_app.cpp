@@ -2,12 +2,14 @@
 
 #include <exception>
 #include <istream>
+#include <memory>
 #include <ostream>
 #include <optional>
 #include <string>
 
 #include "compile_time_constants.h"
 #include "console_mode.h"
+#include "currency_rate_provider.h"
 #include "expression_environment.h"
 #include "console_calc/expression_parser.h"
 
@@ -46,11 +48,20 @@ int evaluate_expression(const ExpressionParser& parser, std::string_view express
 
 int run_console_calc(std::span<const std::string_view> args, std::istream& input,
                      std::ostream& output, std::ostream& error) {
+    return run_console_calc(args, input, output, error, ConsoleCalcOptions{});
+}
+
+int run_console_calc(std::span<const std::string_view> args, std::istream& input,
+                     std::ostream& output, std::ostream& error,
+                     const ConsoleCalcOptions& options) {
     const ExpressionParser parser;
     const ConstantTable constants = builtin_constant_table();
 
     if (args.empty()) {
-        return run_console_mode(parser, constants, input, output, error);
+        return run_console_mode(parser, constants, input, output, error,
+                                options.currency_rate_provider,
+                                options.currency_rate_timeout,
+                                options.auto_refresh_currency_rates);
     }
 
     return evaluate_expression(parser, join_arguments(args), constants, output, error);
