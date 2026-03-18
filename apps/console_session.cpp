@@ -22,7 +22,6 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::size_t k_max_stack_depth = 9;
 constexpr std::string_view k_prompt_color = "\x1b[32m";
 constexpr std::string_view k_color_reset = "\x1b[0m";
 [[nodiscard]] std::string trim(std::string_view text) {
@@ -68,6 +67,10 @@ int ConsoleSession::run() {
 int ConsoleSession::handle_line(std::string_view line) {
     const std::string trimmed = trim(line);
     if (trimmed.empty()) {
+        return -1;
+    }
+
+    if (try_handle_hidden_command(trimmed)) {
         return -1;
     }
 
@@ -192,8 +195,8 @@ void ConsoleSession::execute_stack_command(ConsoleCommandKind command) {
         if (result_stack_.empty()) {
             throw std::invalid_argument("stack requires at least one value");
         }
-        if (result_stack_.size() >= k_max_stack_depth) {
-            throw std::invalid_argument("stack is full");
+        if (result_stack_.size() >= max_stack_depth_) {
+            result_stack_.erase(result_stack_.begin());
         }
         result_stack_.push_back(result_stack_.back());
         return;
@@ -217,6 +220,38 @@ void ConsoleSession::execute_stack_command(ConsoleCommandKind command) {
     }
 }
 
+bool ConsoleSession::try_handle_hidden_command(std::string_view line) {
+    constexpr std::string_view k_stack_depth_prefix = "stack_depth(";
+    if (!line.starts_with(k_stack_depth_prefix) || !line.ends_with(')')) {
+        return false;
+    }
+
+    const std::string depth_text =
+        trim(line.substr(k_stack_depth_prefix.size(),
+                         line.size() - k_stack_depth_prefix.size() - 1));
+    if (depth_text.empty()) {
+        throw std::invalid_argument("stack_depth() requires a positive integer");
+    }
+
+    std::size_t parsed_depth = 0;
+    try {
+        std::size_t consumed = 0;
+        parsed_depth = std::stoull(depth_text, &consumed);
+        if (consumed != depth_text.size()) {
+            throw std::invalid_argument("invalid");
+        }
+    } catch (const std::exception&) {
+        throw std::invalid_argument("stack_depth() requires a positive integer");
+    }
+
+    if (parsed_depth == 0) {
+        throw std::invalid_argument("stack_depth() requires a positive integer");
+    }
+
+    set_stack_depth(parsed_depth);
+    return true;
+}
+
 void ConsoleSession::assign_definition(std::string_view name, std::string_view expression,
                                        const std::optional<Value>& result_reference) {
     const std::string normalized_expression = normalize_assignment_expression(expression);
@@ -229,8 +264,8 @@ void ConsoleSession::assign_definition(std::string_view name, std::string_view e
 }
 
 void ConsoleSession::push_result(Value result) {
-    if (result_stack_.size() >= k_max_stack_depth) {
-        throw std::invalid_argument("stack is full");
+    if (result_stack_.size() >= max_stack_depth_) {
+        result_stack_.erase(result_stack_.begin());
     }
 
     result_stack_.push_back(std::move(result));
@@ -238,6 +273,13 @@ void ConsoleSession::push_result(Value result) {
 
 void ConsoleSession::set_display_mode(IntegerDisplayMode mode) {
     display_mode_ = mode;
+}
+
+void ConsoleSession::set_stack_depth(std::size_t depth) {
+    max_stack_depth_ = depth;
+    while (result_stack_.size() > max_stack_depth_) {
+        result_stack_.erase(result_stack_.begin());
+    }
 }
 
 Value ConsoleSession::apply_stack_operator(char op) {

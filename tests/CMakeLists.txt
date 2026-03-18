@@ -18,22 +18,57 @@ add_test(
     COMMAND $<TARGET_FILE:console_calc_expression_conformance_test>
 )
 
-add_executable(console_calc_app_test
-    console_calc_app_test.cpp
+add_executable(console_calc_cli_test
+    console_calc_cli_test.cpp
 )
 
-target_include_directories(console_calc_app_test
+target_include_directories(console_calc_cli_test
     PRIVATE
         ${PROJECT_SOURCE_DIR}/apps
         ${PROJECT_SOURCE_DIR}/include
 )
 
-target_link_libraries(console_calc_app_test
+target_link_libraries(console_calc_cli_test
     PRIVATE
         console_calc_app_lib
 )
 
-add_test(NAME console_calc_app_test COMMAND $<TARGET_FILE:console_calc_app_test>)
+add_test(NAME console_calc_cli_test COMMAND $<TARGET_FILE:console_calc_cli_test>)
+
+add_executable(console_calc_history_test
+    console_history_test.cpp
+)
+
+target_include_directories(console_calc_history_test
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/apps
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(console_calc_history_test
+    PRIVATE
+        console_calc_app_lib
+)
+
+add_test(NAME console_calc_history_test COMMAND $<TARGET_FILE:console_calc_history_test>)
+
+add_executable(console_calc_session_test
+    console_session_test.cpp
+)
+
+target_include_directories(console_calc_session_test
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/apps
+        ${PROJECT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(console_calc_session_test
+    PRIVATE
+        console_calc_app_lib
+)
+
+add_test(NAME console_calc_session_test COMMAND $<TARGET_FILE:console_calc_session_test>)
 
 add_executable(console_calc_console_command_test
     console_command_test.cpp

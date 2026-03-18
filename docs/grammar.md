@@ -11,7 +11,7 @@ Current scope:
 - binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - parentheses for grouping
 - list literals with `{ ... }`
-- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`, `map`, `range`, `geom`, `repeat`, `linspace`
+- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`, `list_div`, `list_mul`, `reduce`, `map`, `range`, `geom`, `repeat`, `linspace`, `powers`
 - optional whitespace between tokens
 
 Explicitly out of scope for this first version:
@@ -84,11 +84,15 @@ Builtin functions:
 - `min(list)` and `max(list)` require non-empty lists
 - `first(n, list)` returns the first `n` items as a list
 - `drop(n, list)` returns the list without its first `n` items
+- `list_div(list_a, list_b)` divides list elements pairwise and requires equal list lengths
+- `list_mul(list_a, list_b)` multiplies list elements pairwise and requires equal list lengths
+- `reduce(list, op)` reduces a non-empty list left-to-right using a binary operator such as `+` or `*`
 - `map(list, func)` applies a unary scalar builtin function to each list item and returns a list of the same length
 - `range(start, count[, step])` generates a list beginning at `start`, with `count` elements, incrementing by `step` or by `1` when omitted
 - `geom(start, count[, ratio])` generates a geometric series beginning at `start`, multiplying by `ratio` or by `2` when omitted
 - `repeat(value, count)` repeats `value` `count` times
 - `linspace(start, stop, count)` generates `count` evenly spaced values from `start` to `stop`
+- `powers(base, count[, start_exp])` generates successive powers of `base`, starting at exponent `start_exp` or `0`
 
 Integer-preserving behavior:
 - `+`, `-`, and `*` preserve integer results when both operands are integers and the result fits in 64 bits
@@ -116,6 +120,9 @@ Examples:
 - `max({2, -1, 5})` => `5`
 - `sum({1, 2, 3})` => `6`
 - `sum(map({0, 90}, sind))` => `1`
+- `sum(list_div(powers(-1, 4), range(1, 4, 2)))` => `0.72380952380952379`
+- `sum(list_mul({2, 3, 4}, {5, 6, 7}))` => `56`
+- `reduce({2, 3, 4}, *)` => `24`
 - `sum(range(2, 4, 3))` => `26`
 - `sum(geom(3, 4, 3))` => `120`
 - `sum(repeat(2, 4))` => `8`
@@ -149,12 +156,16 @@ Examples:
 - `avg({2, 4, 6})`
 - `first(2, {1, 2, 3})`
 - `drop(1, {1, 2, 3})`
+- `list_div({8, 9}, {2, 3})`
+- `list_mul({1, 2}, {3, 4})`
+- `reduce({2, 3, 4}, +)`
 - `map({0, 90}, sind)`
 - `range(10, 4)`
 - `range(1.5, 3, 0.5)`
 - `geom(2, 4)`
 - `repeat(3, 4)`
 - `linspace(0, 1, 5)`
+- `powers(-1, 4)`
 - `sin(first(1, {0}))`
 - `sum({1, 2, 3})`
 - `2 ^ 3`
@@ -176,6 +187,9 @@ Examples:
 - `avg({})`
 - `first(1.5, {1, 2})`
 - `drop(1, 2)`
+- `list_div({1, 2}, {3})`
+- `list_mul({1, 2}, {3})`
+- `reduce({}, +)`
 - `map({1, 2}, sum)`
 - `map({1, 2}, pow)`
 - `range(1)`
@@ -184,6 +198,7 @@ Examples:
 - `geom(1)`
 - `repeat(1, -1)`
 - `linspace(1, 2)`
+- `powers(2)`
 - `first(2, {1, 2, 3}) + 1`
 - `1 / 0`
 - `1 % 0`

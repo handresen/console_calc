@@ -16,6 +16,51 @@ namespace {
 
 constexpr std::string_view k_clear_line = "\r\x1b[2K";
 
+enum class EscapeAction {
+    none,
+    history_previous,
+    cursor_left,
+    cursor_right,
+    cursor_home,
+    cursor_end,
+};
+
+[[nodiscard]] EscapeAction read_escape_action(std::istream& input) {
+    if (input.peek() != '[') {
+        return EscapeAction::none;
+    }
+
+    (void)input.get();
+    const int code = input.get();
+    switch (code) {
+    case 'A':
+        return EscapeAction::history_previous;
+    case 'C':
+        return EscapeAction::cursor_right;
+    case 'D':
+        return EscapeAction::cursor_left;
+    case 'F':
+    case 'K':
+        return EscapeAction::cursor_end;
+    case 'H':
+        return EscapeAction::cursor_home;
+    case '1':
+    case '4':
+    case '7':
+    case '8': {
+        if (input.get() != '~') {
+            return EscapeAction::none;
+        }
+        if (code == '1' || code == '7') {
+            return EscapeAction::cursor_home;
+        }
+        return EscapeAction::cursor_end;
+    }
+    default:
+        return EscapeAction::none;
+    }
+}
+
 #if defined(__unix__) || defined(__APPLE__)
 class TerminalRawModeGuard {
 public:
@@ -101,26 +146,40 @@ std::optional<std::string> ConsoleLineEditor::read_line(std::string_view prompt)
         }
 
         if (ch == '\x1b') {
-            if (input_.peek() == '[') {
-                (void)input_.get();
-                const int code = input_.get();
-                if (code == 'A') {
-                    if (const auto previous = history_.previous()) {
-                        buffer = *previous;
-                        cursor = buffer.size();
-                        redraw_input_line(prompt, buffer, cursor);
-                    }
-                } else if (code == 'C') {
-                    if (cursor < buffer.size()) {
-                        ++cursor;
-                        redraw_input_line(prompt, buffer, cursor);
-                    }
-                } else if (code == 'D') {
-                    if (cursor > 0) {
-                        --cursor;
-                        redraw_input_line(prompt, buffer, cursor);
-                    }
+            switch (read_escape_action(input_)) {
+            case EscapeAction::history_previous:
+                if (const auto previous = history_.previous()) {
+                    buffer = *previous;
+                    cursor = buffer.size();
+                    redraw_input_line(prompt, buffer, cursor);
                 }
+                break;
+            case EscapeAction::cursor_right:
+                if (cursor < buffer.size()) {
+                    ++cursor;
+                    redraw_input_line(prompt, buffer, cursor);
+                }
+                break;
+            case EscapeAction::cursor_left:
+                if (cursor > 0) {
+                    --cursor;
+                    redraw_input_line(prompt, buffer, cursor);
+                }
+                break;
+            case EscapeAction::cursor_home:
+                if (cursor != 0) {
+                    cursor = 0;
+                    redraw_input_line(prompt, buffer, cursor);
+                }
+                break;
+            case EscapeAction::cursor_end:
+                if (cursor != buffer.size()) {
+                    cursor = buffer.size();
+                    redraw_input_line(prompt, buffer, cursor);
+                }
+                break;
+            case EscapeAction::none:
+                break;
             }
             continue;
         }

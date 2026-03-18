@@ -1,111 +1,14 @@
 #include <cstdlib>
 #include <sstream>
-#include <string>
 #include <string_view>
 #include <vector>
 
-#include "console_history.h"
-#include "expression_environment.h"
 #include "console_calc_app.h"
-#include "console_calc/expression_parser.h"
+#include "console_test_utils.h"
 
 namespace {
 
-constexpr std::string_view k_green_prompt = "\x1b[32m";
-constexpr std::string_view k_color_reset = "\x1b[0m";
-
-[[nodiscard]] std::string prompt(std::size_t depth) {
-    return std::string(k_green_prompt) + std::to_string(depth) + '>' +
-           std::string(k_color_reset);
-}
-
-bool expect_argument_mode_success() {
-    const std::vector<std::string_view> args = {"pow(2,", "3)", "+", "sin(pi", "/", "2)"};
-    std::istringstream input;
-    std::ostringstream output;
-    std::ostringstream error;
-
-    const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 0 && output.str() == "9\n" && error.str().empty();
-}
-
-bool expect_console_history_previous() {
-    console_calc::ConsoleHistory history;
-    history.record("one");
-    history.record("two");
-    history.record("three");
-
-    const auto first = history.previous();
-    const auto second = history.previous();
-    const auto third = history.previous();
-
-    return first.has_value() && second.has_value() && third.has_value() &&
-           *first == "three" && *second == "two" && *third == "one";
-}
-
-bool expect_console_history_limit() {
-    console_calc::ConsoleHistory history;
-    for (int index = 1; index <= 11; ++index) {
-        history.record("cmd" + std::to_string(index));
-    }
-
-    const auto newest = history.previous();
-    for (int index = 0; index < 8; ++index) {
-        (void)history.previous();
-    }
-    const auto oldest = history.previous();
-
-    return newest.has_value() && oldest.has_value() && *newest == "cmd11" &&
-           *oldest == "cmd2";
-}
-
-bool expect_console_history_reset_navigation() {
-    console_calc::ConsoleHistory history;
-    history.record("one");
-    history.record("two");
-    (void)history.previous();
-    history.reset_navigation();
-
-    const auto latest = history.previous();
-    return latest.has_value() && *latest == "two";
-}
-
-bool expect_console_history_ignores_empty() {
-    console_calc::ConsoleHistory history;
-    history.record("");
-    history.record("one");
-
-    const auto latest = history.previous();
-    const auto oldest = history.previous();
-    return latest.has_value() && oldest.has_value() && *latest == "one" && *oldest == "one";
-}
-
-bool expect_expanded_expression_helper() {
-    console_calc::ExpressionParser parser;
-    const console_calc::ConstantTable constants{
-        {"pi", 3.14159265358979323846},
-    };
-    const console_calc::DefinitionTable variables{
-        {"x", {"pi + 1"}},
-        {"y", {"sin(x)"}},
-    };
-
-    const auto value =
-        console_calc::evaluate_expanded_expression(parser, "y", constants, variables, std::nullopt);
-    const auto* scalar = std::get_if<double>(&value);
-    return scalar != nullptr && *scalar < -0.84 && *scalar > -0.85;
-}
-
-bool expect_argument_mode_failure() {
-    const std::vector<std::string_view> args = {"unknown_name", "+", "1"};
-    std::istringstream input;
-    std::ostringstream output;
-    std::ostringstream error;
-
-    const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 1 && output.str().empty() &&
-           error.str() == "error: unknown identifier: unknown_name\n";
-}
+using console_calc::test::prompt;
 
 bool expect_console_mode_success() {
     const std::vector<std::string_view> args;
@@ -142,7 +45,7 @@ bool expect_console_mode_recovery_after_error() {
 
 bool expect_console_mode_stack_limit() {
     const std::vector<std::string_view> args;
-    std::istringstream input("1\n2\n3\n4\n5\n6\n7\n8\n9\n10\nq\n");
+    std::istringstream input("1\n2\n3\n4\n5\n6\nq\n");
     std::ostringstream output;
     std::ostringstream error;
 
@@ -153,19 +56,14 @@ bool expect_console_mode_stack_limit() {
         prompt(2) + "3\n" +
         prompt(3) + "4\n" +
         prompt(4) + "5\n" +
-        prompt(5) + "6\n" +
-        prompt(6) + "7\n" +
-        prompt(7) + "8\n" +
-        prompt(8) + "9\n" +
-        prompt(9) +
-        prompt(9);
-    return exit_code == 0 && output.str() == expected_output &&
-           error.str() == "error: stack is full\n";
+        prompt(4) + "6\n" +
+        prompt(4);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
 
 bool expect_console_mode_stack_commands() {
     const std::vector<std::string_view> args;
-    std::istringstream input("1\n2\ndup\nswap\ns\ndrop\ns\nclear\ns\nq\n");
+    std::istringstream input("1\n2\n3\n4\ndup\ns\ndrop\ns\nclear\ns\nq\n");
     std::ostringstream output;
     std::ostringstream error;
 
@@ -173,14 +71,38 @@ bool expect_console_mode_stack_commands() {
     const std::string expected_output =
         prompt(0) + "1\n" +
         prompt(1) + "2\n" +
-        prompt(2) +
+        prompt(2) + "3\n" +
+        prompt(3) + "4\n" +
+        prompt(4) +
+        prompt(4) + "0:2\n1:3\n2:4\n3:4\n" +
+        prompt(4) +
+        prompt(3) + "0:2\n1:3\n2:4\n" +
         prompt(3) +
-        prompt(3) + "0:1\n1:2\n2:2\n" +
-        prompt(3) +
-        prompt(2) + "0:1\n1:2\n" +
-        prompt(2) +
         prompt(0) +
         prompt(0);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+}
+
+bool expect_console_mode_dynamic_stack_depth() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("1\n2\n3\n4\n5\nstack_depth(6)\n6\n7\ns\nstack_depth(3)\ns\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) + "1\n" +
+        prompt(1) + "2\n" +
+        prompt(2) + "3\n" +
+        prompt(3) + "4\n" +
+        prompt(4) + "5\n" +
+        prompt(4) +
+        prompt(4) + "6\n" +
+        prompt(5) + "7\n" +
+        prompt(6) + "0:2\n1:3\n2:4\n3:5\n4:6\n5:7\n" +
+        prompt(6) +
+        prompt(3) + "0:5\n1:6\n2:7\n" +
+        prompt(3);
     return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
 
@@ -537,130 +459,81 @@ bool expect_console_mode_list_variables_and_functions() {
 }  // namespace
 
 int main() {
-    if (!expect_console_history_previous()) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_console_history_limit()) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_console_history_reset_navigation()) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_console_history_ignores_empty()) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_expanded_expression_helper()) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_argument_mode_success()) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_argument_mode_failure()) {
-        return EXIT_FAILURE;
-    }
-
     if (!expect_console_mode_success()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_recovery_after_error()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_stack_limit()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_stack_commands()) {
         return EXIT_FAILURE;
     }
-
+    if (!expect_console_mode_dynamic_stack_depth()) {
+        return EXIT_FAILURE;
+    }
     if (!expect_console_mode_stack_command_errors()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_result_reference()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_variables()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_late_bound_variables()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_list_variables()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_late_bound_list_variables()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_list_stack_values()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_list_stack_operator_error()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_list_result_reference()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_long_list_result_output()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_long_list_stack_output()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_map_builtin_identifier()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_integer_display_modes()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_radix_literals()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_circular_reference_error()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_self_circular_reference_error()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_variable_constant_conflict()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_result_reference_error()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_unknown_identifier_error()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_list_constants()) {
         return EXIT_FAILURE;
     }
-
     if (!expect_console_mode_list_variables_and_functions()) {
         return EXIT_FAILURE;
     }

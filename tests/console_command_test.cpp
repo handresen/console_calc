@@ -27,6 +27,8 @@ bool expect_command_classification() {
                ConsoleCommandKind::display_binary &&
            console_calc::classify_console_command("+").kind ==
                ConsoleCommandKind::stack_operator &&
+           console_calc::classify_console_command("stack_depth(8)").kind ==
+               ConsoleCommandKind::expression &&
            console_calc::classify_console_command("x:1").kind ==
                ConsoleCommandKind::assignment &&
            console_calc::classify_console_command("sin(pi)").kind ==

@@ -132,6 +132,9 @@ pow(e, 1)
 - `max(list)`        maximum list element
 - `first(n, list)`   first `n` list elements
 - `drop(n, list)`    drop first `n` list elements
+- `list_div(a, b)`   divide matching list elements
+- `list_mul(a, b)`   multiply matching list elements
+- `reduce(list, op)` reduce a list with a binary operator
 - `map(list, func)`  map unary scalar builtin over list
 
 ### List Generation Functions
@@ -140,11 +143,16 @@ pow(e, 1)
 - `geom(start, count[, ratio])` generate a geometric series
 - `repeat(value, count)` repeat a value `count` times
 - `linspace(start, stop, count)` generate evenly spaced values over an interval
+- `powers(base, count[, start_exp])` generate successive powers of a base
 
 Function notes:
 - `product({})` is `1`
 - `avg`, `min`, and `max` require a non-empty list
 - `first` and `drop` require `n` to be a non-negative integer
+- `list_div` requires both inputs to be lists of equal length
+- `list_mul` requires both inputs to be lists of equal length
+- `reduce` requires a non-empty list
+- `reduce` uses existing binary operators such as `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - `map` only accepts unary scalar builtin functions such as `sin`, `cos`, `sind`, `tand`
 - `map({1, 2}, sum)` and `map({1, 2}, pow)` are invalid
 - `range` requires `count` to be a non-negative integer
@@ -156,6 +164,7 @@ Function notes:
 - `linspace` requires `count` to be a non-negative integer
 - `linspace(start, stop, 0)` returns `{}`
 - `linspace(start, stop, 1)` returns `{start}`
+- `powers(base, count)` starts at exponent `0`
 
 Examples:
 
@@ -164,6 +173,9 @@ sum({1, 2, 3})                => 6
 avg({2, 4, 6})                => 4
 first(2, {10, 20, 30})        => {10, 20}
 drop(1, {10, 20, 30})         => {20, 30}
+list_div({8, 9}, {2, 3})      => {4, 3}
+list_mul({2, 3}, {4, 5})      => {8, 15}
+reduce({2, 3, 4}, *)          => 24
 map({0, 90}, sind)            => {0, 1}
 sum(map({1, 2, 3}, sin))      => 1.89189...
 range(10, 4)                  => {10, 11, 12, 13}
@@ -171,6 +183,29 @@ range(2, 4, 3)                => {2, 5, 8, 11}
 geom(2, 4)                    => {2, 4, 8, 16}
 repeat(3, 4)                  => {3, 3, 3, 3}
 linspace(0, 1, 5)             => {0, 0.25, 0.5, 0.75, 1}
+powers(-1, 4)                 => {1, -1, 1, -1}
+```
+
+## Pi Example
+
+You can approximate pi in console mode with the Leibniz series:
+
+```text
+0> n:10000
+0> denom:range(1, n, 2)
+0> alt:powers(-1, n)
+0> series:list_div(alt, denom)
+0> ppi:sum(series) * 4
+0> ppi
+3.14149
+```
+
+Because console definitions are late-bound, changing `n` recomputes the whole chain:
+
+```text
+0> n:100000
+0> ppi
+3.14158
 ```
 
 ## Console Mode
@@ -250,6 +285,13 @@ If the top of stack is a list, `r` expands to that full list value:
 {1, 2, 3}
 1> sum(r)
 6
+```
+
+Long list results are truncated in console output after the first 10 entries:
+
+```text
+0> range(1, 12)
+{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, <hiding 2 entries>}
 ```
 
 ### User Definitions

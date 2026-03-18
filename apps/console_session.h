@@ -34,10 +34,12 @@ private:
     void print_functions() const;
     void print_result(const Value& value);
     void execute_stack_command(ConsoleCommandKind command);
+    [[nodiscard]] bool try_handle_hidden_command(std::string_view line);
     void assign_definition(std::string_view name, std::string_view expression,
                            const std::optional<Value>& result_reference);
     void push_result(Value result);
     void set_display_mode(IntegerDisplayMode mode);
+    void set_stack_depth(std::size_t depth);
     [[nodiscard]] Value apply_stack_operator(char op);
     std::optional<Value> top_result() const;
 
@@ -47,6 +49,7 @@ private:
     std::ostream& output_;
     std::ostream& error_;
     std::vector<Value> result_stack_;
+    std::size_t max_stack_depth_ = 4;
     DefinitionTable definitions_;
     IntegerDisplayMode display_mode_ = IntegerDisplayMode::decimal;
     ConsoleHistory history_;

@@ -209,6 +209,9 @@ private:
             if (current_.identifier_text == "map") {
                 return parse_map_call();
             }
+            if (current_.identifier_text == "reduce") {
+                return parse_reduce_call();
+            }
             return parse_function_call();
         }
 
@@ -264,11 +267,11 @@ private:
             throw ParseError("expected ')'");
         }
 
-        const std::size_t expected_arity = builtin_function_arity(*function);
-        if (arguments.size() != expected_arity) {
-            throw ParseError("function '" + std::string(builtin_function_name(*function)) + "' expects " +
-                             std::to_string(expected_arity) +
-                             (expected_arity == 1 ? " argument" : " arguments"));
+        if (!builtin_function_accepts_arity(*function, arguments.size())) {
+            const std::string arity_label = builtin_function_arity_label(*function);
+            throw ParseError("function '" + std::string(builtin_function_name(*function)) +
+                             "' expects " + arity_label +
+                             ((arity_label == "1") ? " argument" : " arguments"));
         }
 
         advance();
@@ -315,6 +318,45 @@ private:
             MapCall{
                 .list_argument = std::move(list_argument),
                 .mapped_function = *function,
+            }};
+    }
+
+    [[nodiscard]] Expression parse_reduce_call() {
+        advance();
+        if (current_.kind != TokenKind::left_paren) {
+            throw ParseError("expected '(' after function name");
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("expected expression after '('");
+        }
+
+        auto list_argument = make_expression(parse_bitwise_or_expression());
+        if (current_.kind != TokenKind::comma) {
+            throw ParseError("expected ',' after first argument");
+        }
+
+        advance();
+        if (current_.kind != TokenKind::plus && current_.kind != TokenKind::minus &&
+            current_.kind != TokenKind::multiply && current_.kind != TokenKind::divide &&
+            current_.kind != TokenKind::modulo && current_.kind != TokenKind::power &&
+            current_.kind != TokenKind::bitwise_and &&
+            current_.kind != TokenKind::bitwise_or) {
+            throw ParseError("expected binary operator after ','");
+        }
+
+        const BinaryOperator reduction_operator = to_binary_operator(current_.kind);
+        advance();
+        if (current_.kind != TokenKind::right_paren) {
+            throw ParseError("expected ')'");
+        }
+
+        advance();
+        return Expression{
+            ReduceCall{
+                .list_argument = std::move(list_argument),
+                .reduction_operator = reduction_operator,
             }};
     }
 
