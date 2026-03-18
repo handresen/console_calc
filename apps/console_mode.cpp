@@ -39,6 +39,11 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
     return std::string(text.substr(begin, end - begin));
 }
 
+struct VariableAssignment {
+    std::string name;
+    std::string expression;
+};
+
 [[nodiscard]] bool is_stack_operator(std::string_view text) {
     return text.size() == 1 &&
            (text[0] == '+' || text[0] == '-' || text[0] == '*' || text[0] == '/' ||
@@ -81,6 +86,25 @@ enum class StackCommand {
     std::ostringstream stream;
     stream << std::setprecision(std::numeric_limits<double>::max_digits10) << value;
     return stream.str();
+}
+
+[[nodiscard]] std::optional<VariableAssignment> parse_variable_assignment(
+    std::string_view text) {
+    const std::size_t separator = text.find(':');
+    if (separator == std::string_view::npos) {
+        return std::nullopt;
+    }
+
+    const std::string name = trim(text.substr(0, separator));
+    const std::string expression = trim(text.substr(separator + 1));
+    if (!is_identifier(name)) {
+        return std::nullopt;
+    }
+    if (expression.empty()) {
+        throw std::invalid_argument("expected expression after ':'");
+    }
+
+    return VariableAssignment{name, expression};
 }
 
 void print_stack(const std::vector<double>& result_stack, std::ostream& output) {
@@ -171,6 +195,7 @@ void execute_stack_command(StackCommand command, const ConstantTable& constants,
 int run_console_mode(const ExpressionParser& parser, const ConstantTable& constants,
                      std::istream& input, std::ostream& output, std::ostream& error) {
     std::vector<double> result_stack;
+    VariableTable variables;
     std::string line;
     while (true) {
         print_prompt(result_stack.size(), output);
@@ -202,8 +227,18 @@ int run_console_mode(const ExpressionParser& parser, const ConstantTable& consta
 
             const std::optional<double> result_reference =
                 result_stack.empty() ? std::nullopt : std::optional<double>{result_stack.back()};
-            const double result =
-                parser.evaluate(expand_expression_identifiers(trimmed, constants, result_reference));
+            if (const auto assignment = parse_variable_assignment(trimmed)) {
+                if (constants.contains(assignment->name)) {
+                    throw std::invalid_argument("cannot redefine constant: " + assignment->name);
+                }
+                const double value = parser.evaluate(expand_expression_identifiers(
+                    assignment->expression, constants, variables, result_reference));
+                variables[assignment->name] = value;
+                continue;
+            }
+
+            const double result = parser.evaluate(
+                expand_expression_identifiers(trimmed, constants, variables, result_reference));
             if (result_stack.size() >= k_max_stack_depth) {
                 throw std::invalid_argument("stack is full");
             }

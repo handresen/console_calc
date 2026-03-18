@@ -144,6 +144,34 @@ bool expect_console_mode_result_reference() {
     return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
 
+bool expect_console_mode_variables() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("x:7.0\nx*2\nx:pi\nx+r\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) +
+        prompt(0) + "14\n" +
+        prompt(1) +
+        prompt(1) + "17.1416\n" +
+        prompt(2);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+}
+
+bool expect_console_mode_variable_constant_conflict() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("pi:7\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output = prompt(0) + prompt(0);
+    return exit_code == 0 && output.str() == expected_output &&
+           error.str() == "error: cannot redefine constant: pi\n";
+}
+
 bool expect_console_mode_result_reference_error() {
     const std::vector<std::string_view> args;
     std::istringstream input("r*2\nq\n");
@@ -216,6 +244,14 @@ int main() {
     }
 
     if (!expect_console_mode_result_reference()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_variables()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_variable_constant_conflict()) {
         return EXIT_FAILURE;
     }
 

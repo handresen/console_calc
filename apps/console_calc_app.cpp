@@ -3,9 +3,12 @@
 #include <exception>
 #include <istream>
 #include <ostream>
+#include <optional>
 #include <string>
 
+#include "compile_time_constants.h"
 #include "console_mode.h"
+#include "expression_environment.h"
 #include "console_calc/expression_parser.h"
 
 namespace console_calc {
@@ -26,9 +29,12 @@ namespace {
 }
 
 int evaluate_expression(const ExpressionParser& parser, std::string_view expression,
-                        std::ostream& output, std::ostream& error) {
+                        const ConstantTable& constants, std::ostream& output,
+                        std::ostream& error) {
     try {
-        output << parser.evaluate(std::string(expression)) << '\n';
+        output << parser.evaluate(
+            expand_expression_identifiers(expression, constants, VariableTable{}, std::nullopt))
+               << '\n';
         return 0;
     } catch (const std::exception& ex) {
         error << "error: " << ex.what() << '\n';
@@ -41,12 +47,13 @@ int evaluate_expression(const ExpressionParser& parser, std::string_view express
 int run_console_calc(std::span<const std::string_view> args, std::istream& input,
                      std::ostream& output, std::ostream& error) {
     const ExpressionParser parser;
+    const ConstantTable constants = builtin_constant_table();
 
     if (args.empty()) {
-        return run_console_mode(parser, input, output, error);
+        return run_console_mode(parser, constants, input, output, error);
     }
 
-    return evaluate_expression(parser, join_arguments(args), output, error);
+    return evaluate_expression(parser, join_arguments(args), constants, output, error);
 }
 
 }  // namespace console_calc
