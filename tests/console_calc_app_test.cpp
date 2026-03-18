@@ -30,23 +30,26 @@ bool expect_argument_mode_failure() {
 
 bool expect_console_mode_success() {
     const std::vector<std::string_view> args;
-    std::istringstream input("1+1\n(2 + 3) * 4\nq\n");
+    std::istringstream input("1+1\n(2 + 3) * 4\ns\n+\ns\nq\n");
     std::ostringstream output;
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 0 && output.str() == "0:2\n1:20\n2:" && error.str().empty();
+    return exit_code == 0 &&
+           output.str() == "0:2\n1:20\n2:0:2\n1:20\n2:22\n1:0:22\n1:" &&
+           error.str().empty();
 }
 
 bool expect_console_mode_recovery_after_error() {
     const std::vector<std::string_view> args;
-    std::istringstream input("1+\n  \n1+1\nQ\n");
+    std::istringstream input("+\n1+\n  \n1+1\nQ\n");
     std::ostringstream output;
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 0 && output.str() == "0:1:1:2\n1:" &&
-           error.str() == "error: expected number after operator\n";
+    return exit_code == 0 && output.str() == "0:0:0:0:2\n1:" &&
+           error.str() ==
+               "error: stack requires at least two values\nerror: expected number after operator\n";
 }
 
 }  // namespace
