@@ -30,23 +30,24 @@ bool expect_command_classification() {
 bool expect_builtin_function_listing() {
     return console_calc::format_builtin_function_listing(console_calc::builtin_functions()) ==
            "Scalar functions\n"
-           "cos/1\n"
-           "cosd/1\n"
-           "pow/2\n"
-           "sin/1\n"
-           "sind/1\n"
-           "tan/1\n"
-           "tand/1\n"
+           "  cos/1      cosine in radians\n"
+           "  cosd/1     cosine in degrees\n"
+           "  pow/2      power\n"
+           "  sin/1      sine in radians\n"
+           "  sind/1     sine in degrees\n"
+           "  tan/1      tangent in radians\n"
+           "  tand/1     tangent in degrees\n"
+           "\n"
            "List functions\n"
-           "avg/1\n"
-            "drop/2\n"
-            "first/2\n"
-            "len/1\n"
-            "map/2\n"
-            "max/1\n"
-            "min/1\n"
-            "product/1\n"
-           "sum/1\n";
+           "  avg/1      average of list elements\n"
+           "  drop/2     drop first n list elements\n"
+           "  first/2    first n list elements\n"
+           "  len/1      list length\n"
+           "  map/2      map unary scalar builtin over list\n"
+           "  max/1      maximum list element\n"
+           "  min/1      minimum list element\n"
+           "  product/1  product of list elements\n"
+           "  sum/1      sum list elements\n";
 }
 
 bool expect_constant_and_definition_listing() {
@@ -82,6 +83,41 @@ bool expect_builtin_function_metadata() {
            map_info.summary == "map unary scalar builtin over list" && !map_info.mappable;
 }
 
+bool expect_builtin_function_helpers() {
+    return console_calc::is_scalar_function(console_calc::Function::sin) &&
+           !console_calc::is_scalar_function(console_calc::Function::sum) &&
+           console_calc::is_list_function(console_calc::Function::sum) &&
+           !console_calc::is_list_function(console_calc::Function::pow) &&
+           console_calc::is_unary_scalar_function(console_calc::Function::sin) &&
+           !console_calc::is_unary_scalar_function(console_calc::Function::pow) &&
+           console_calc::is_mappable_unary_scalar_function(console_calc::Function::sin) &&
+           !console_calc::is_mappable_unary_scalar_function(console_calc::Function::pow) &&
+           !console_calc::is_mappable_unary_scalar_function(console_calc::Function::sum);
+}
+
+bool expect_expression_identifier_expansion() {
+    const console_calc::ConstantTable constants{
+        {"pi", 3.14159265358979323846},
+    };
+    const console_calc::DefinitionTable definitions{
+        {"x", {"pi + 1"}},
+        {"vals", {"{1, 2, 3}"}},
+    };
+
+    return console_calc::expand_expression_identifiers(
+               "sin(x)", constants, definitions, std::nullopt) ==
+               "sin((3.1415926535897931 + 1))" &&
+           console_calc::expand_expression_identifiers(
+               "sum(vals)", constants, definitions, std::nullopt) ==
+               "sum({1, 2, 3})" &&
+           console_calc::expand_expression_identifiers(
+               "map(vals, sin)", constants, definitions, std::nullopt) ==
+               "map({1, 2, 3}, sin)" &&
+           console_calc::expand_expression_identifiers(
+               "map({1, 2}, sind)", constants, definitions, std::nullopt) ==
+               "map({1, 2}, sind)";
+}
+
 }  // namespace
 
 int main() {
@@ -98,6 +134,14 @@ int main() {
     }
 
     if (!expect_builtin_function_metadata()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_builtin_function_helpers()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_expression_identifier_expansion()) {
         return EXIT_FAILURE;
     }
 

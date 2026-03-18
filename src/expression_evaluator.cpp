@@ -235,9 +235,7 @@ Value evaluate_expression(const Expression& expression) {
                 }
                 return evaluate_builtin_function(node.function, arguments);
             } else if constexpr (std::is_same_v<Node, MapCall>) {
-                const BuiltinFunctionInfo& mapped_info = builtin_function_info(node.mapped_function);
-                if (!mapped_info.mappable || mapped_info.arity != 1 ||
-                    mapped_info.category != BuiltinFunctionCategory::scalar) {
+                if (!is_mappable_unary_scalar_function(node.mapped_function)) {
                     throw EvaluationError("map() requires a unary scalar builtin function");
                 }
 

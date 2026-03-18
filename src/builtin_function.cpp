@@ -64,8 +64,22 @@ std::span<const BuiltinFunctionInfo> builtin_functions() {
     return k_builtin_functions;
 }
 
+bool is_scalar_function(Function function) {
+    return builtin_function_info(function).category == BuiltinFunctionCategory::scalar;
+}
+
 bool is_list_function(Function function) {
     return builtin_function_info(function).category == BuiltinFunctionCategory::list;
+}
+
+bool is_unary_scalar_function(Function function) {
+    const auto& info = builtin_function_info(function);
+    return info.category == BuiltinFunctionCategory::scalar && info.arity == 1;
+}
+
+bool is_mappable_unary_scalar_function(Function function) {
+    const auto& info = builtin_function_info(function);
+    return info.category == BuiltinFunctionCategory::scalar && info.arity == 1 && info.mappable;
 }
 
 }  // namespace console_calc
