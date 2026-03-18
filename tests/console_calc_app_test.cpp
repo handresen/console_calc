@@ -35,7 +35,7 @@ bool expect_console_mode_success() {
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 0 && output.str() == "2\n20\n" && error.str().empty();
+    return exit_code == 0 && output.str() == "0:2\n1:20\n2:" && error.str().empty();
 }
 
 bool expect_console_mode_recovery_after_error() {
@@ -45,7 +45,7 @@ bool expect_console_mode_recovery_after_error() {
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 0 && output.str() == "2\n" &&
+    return exit_code == 0 && output.str() == "0:1:1:2\n1:" &&
            error.str() == "error: expected number after operator\n";
 }
 

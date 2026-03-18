@@ -6,6 +6,7 @@
 #include <ostream>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "console_calc/expression_parser.h"
 
@@ -31,8 +32,16 @@ namespace {
 
 int run_console_mode(const ExpressionParser& parser, std::istream& input, std::ostream& output,
                      std::ostream& error) {
+    std::vector<double> result_stack;
     std::string line;
-    while (std::getline(input, line)) {
+    while (true) {
+        output << result_stack.size() << ':';
+        output.flush();
+
+        if (!std::getline(input, line)) {
+            return 0;
+        }
+
         const std::string trimmed = trim(line);
         if (trimmed.empty()) {
             continue;
@@ -43,13 +52,13 @@ int run_console_mode(const ExpressionParser& parser, std::istream& input, std::o
         }
 
         try {
-            output << parser.evaluate(trimmed) << '\n';
+            const double result = parser.evaluate(trimmed);
+            result_stack.push_back(result);
+            output << result << '\n';
         } catch (const std::exception& ex) {
             error << "error: " << ex.what() << '\n';
         }
     }
-
-    return 0;
 }
 
 }  // namespace console_calc
