@@ -30,7 +30,5 @@ public:
 };
 
 [[nodiscard]] std::unique_ptr<CurrencyRateProvider> make_default_currency_rate_provider();
-void apply_currency_rate_definitions(DefinitionTable& definitions,
-                                     const CurrencyRateTable& rates);
 
 }  // namespace console_calc

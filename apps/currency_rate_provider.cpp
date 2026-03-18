@@ -2,14 +2,11 @@
 
 #include <curl/curl.h>
 
-#include <cctype>
 #include <memory>
-#include <regex>
 #include <string>
 #include <utility>
 
-#include "currency_catalog.h"
-#include "console_calc/value_format.h"
+#include "currency_rate_parser.h"
 
 namespace console_calc {
 
@@ -70,30 +67,6 @@ size_t append_response(char* data, size_t size, size_t count, void* user_data) {
     return url;
 }
 
-[[nodiscard]] std::optional<double> parse_rate(std::string_view body, std::string_view currency) {
-    const std::regex pattern(
-        "\"" + std::string(currency) + "\"\\s*:\\s*(-?[0-9]+(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?)");
-    std::cmatch match;
-    if (!std::regex_search(body.begin(), body.end(), match, pattern)) {
-        return std::nullopt;
-    }
-
-    try {
-        return std::stod(match[1].str());
-    } catch (...) {
-        return std::nullopt;
-    }
-}
-
-[[nodiscard]] std::string uppercase_code(std::string_view code) {
-    std::string upper;
-    upper.reserve(code.size());
-    for (const char ch : code) {
-        upper.push_back(static_cast<char>(std::toupper(static_cast<unsigned char>(ch))));
-    }
-    return upper;
-}
-
 class FrankfurterCurrencyRateProvider final : public CurrencyRateProvider {
 public:
     CurrencyFetchResult fetch_nok_rates(std::span<const std::string_view> currencies,
@@ -130,17 +103,7 @@ public:
             return {.error = "currency request returned HTTP " + std::to_string(response_code)};
         }
 
-        CurrencyRateTable rates;
-        for (const std::string_view currency : currencies) {
-            const std::string upper = uppercase_code(currency);
-            const auto parsed_rate = parse_rate(response, upper);
-            if (!parsed_rate.has_value()) {
-                return {.error = "currency response did not include " + upper};
-            }
-            rates.emplace(std::string(currency), *parsed_rate);
-        }
-
-        return {.rates = std::move(rates)};
+        return parse_nok_currency_rates_response(response, currencies);
     }
 };
 
@@ -148,21 +111,6 @@ public:
 
 std::unique_ptr<CurrencyRateProvider> make_default_currency_rate_provider() {
     return std::make_unique<FrankfurterCurrencyRateProvider>();
-}
-
-void apply_currency_rate_definitions(DefinitionTable& definitions,
-                                     const CurrencyRateTable& rates) {
-    for (const auto& entry : k_console_currency_catalog) {
-        const auto found = rates.find(std::string(entry.lower_code));
-        if (found == rates.end()) {
-            continue;
-        }
-
-        const std::string direct_name = "nok2" + std::string(entry.lower_code);
-        const std::string inverse_name = std::string(entry.lower_code) + "2nok";
-        definitions[direct_name] = UserDefinition{format_scalar(found->second)};
-        definitions[inverse_name] = UserDefinition{format_scalar(1.0 / found->second)};
-    }
 }
 
 }  // namespace console_calc

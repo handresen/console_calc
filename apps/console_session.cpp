@@ -15,6 +15,7 @@
 #include "console_calc/builtin_function.h"
 #include "console_command_executor.h"
 #include "currency_catalog.h"
+#include "currency_definition_materializer.h"
 #include "console_calc/expression_parser.h"
 #include "console_calc/scalar_value.h"
 #include "console_calc/value_format.h"
