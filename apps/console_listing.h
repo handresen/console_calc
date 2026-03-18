@@ -13,6 +13,7 @@ namespace console_calc {
 [[nodiscard]] std::string format_stack_listing(std::span<const Value> values);
 [[nodiscard]] std::string format_stack_listing(std::span<const Value> values,
                                                IntegerDisplayMode mode);
+[[nodiscard]] std::string format_console_value(const Value& value, IntegerDisplayMode mode);
 [[nodiscard]] std::string format_definition_listing(const DefinitionTable& definitions);
 [[nodiscard]] std::string format_constant_listing(const ConstantTable& constants);
 [[nodiscard]] std::string format_builtin_function_listing(

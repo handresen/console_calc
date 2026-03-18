@@ -134,11 +134,15 @@ namespace {
     case Function::max:
     case Function::first:
     case Function::drop:
+    case Function::list_div:
+    case Function::list_mul:
+    case Function::reduce:
     case Function::map:
     case Function::range:
     case Function::geom:
     case Function::repeat:
     case Function::linspace:
+    case Function::powers:
         break;
     }
 
@@ -233,6 +237,34 @@ namespace {
         const std::size_t skip = std::min(count, values.size());
         return ListValue(values.begin() + static_cast<std::ptrdiff_t>(skip), values.end());
     }
+    case Function::list_div: {
+        const ListValue lhs = require_list(arguments[0]);
+        const ListValue rhs = require_list(arguments[1]);
+        if (lhs.size() != rhs.size()) {
+            throw EvaluationError("list_div() requires lists of equal length");
+        }
+
+        ListValue values;
+        values.reserve(lhs.size());
+        for (std::size_t index = 0; index < lhs.size(); ++index) {
+            values.push_back(divide_scalars(lhs[index], rhs[index]));
+        }
+        return values;
+    }
+    case Function::list_mul: {
+        const ListValue lhs = require_list(arguments[0]);
+        const ListValue rhs = require_list(arguments[1]);
+        if (lhs.size() != rhs.size()) {
+            throw EvaluationError("list_mul() requires lists of equal length");
+        }
+
+        ListValue values;
+        values.reserve(lhs.size());
+        for (std::size_t index = 0; index < lhs.size(); ++index) {
+            values.push_back(multiply_scalars(lhs[index], rhs[index]));
+        }
+        return values;
+    }
     case Function::map:
         break;
     case Function::range: {
@@ -302,6 +334,23 @@ namespace {
         }
         return values;
     }
+    case Function::powers: {
+        const ScalarValue base = require_scalar_or_singleton_list_value(arguments[0]);
+        const std::size_t count =
+            require_list_index(require_scalar_or_singleton_list_value(arguments[1]));
+        const ScalarValue start_exponent =
+            arguments.size() == 3 ? require_scalar_or_singleton_list_value(arguments[2])
+                                  : ScalarValue{std::int64_t{0}};
+
+        ListValue values;
+        values.reserve(count);
+        for (std::size_t index = 0; index < count; ++index) {
+            const ScalarValue exponent =
+                add_scalars(start_exponent, static_cast<std::int64_t>(index));
+            values.push_back(power_scalars(base, exponent));
+        }
+        return values;
+    }
     }
 
     throw EvaluationError("unknown function");
@@ -347,6 +396,18 @@ Value evaluate_expression(const Expression& expression) {
                         evaluate_builtin_function(node.mapped_function, std::span{&scalar_value, 1})));
                 }
                 return mapped_values;
+            } else if constexpr (std::is_same_v<Node, ReduceCall>) {
+                const ListValue input_values = require_list(evaluate_expression(*node.list_argument));
+                if (input_values.empty()) {
+                    throw EvaluationError("reduce() requires a non-empty list");
+                }
+
+                ScalarValue reduced = input_values.front();
+                for (std::size_t index = 1; index < input_values.size(); ++index) {
+                    reduced = apply_binary_operator(node.reduction_operator, reduced,
+                                                    input_values[index]);
+                }
+                return to_value(reduced);
             } else {
                 const ScalarValue lhs =
                     require_scalar_or_singleton_list_value(evaluate_expression(*node.left));

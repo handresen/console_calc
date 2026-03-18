@@ -154,6 +154,42 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
         return false;
     }
 
+    const console_calc::Value generated_powers = parser.evaluate_value("powers(-1, 4)");
+    const auto* power_values = std::get_if<console_calc::ListValue>(&generated_powers);
+    if (power_values == nullptr || power_values->size() != 4 ||
+        !almost_equal(console_calc::scalar_to_double((*power_values)[0]), 1.0) ||
+        !almost_equal(console_calc::scalar_to_double((*power_values)[1]), -1.0) ||
+        !almost_equal(console_calc::scalar_to_double((*power_values)[2]), 1.0) ||
+        !almost_equal(console_calc::scalar_to_double((*power_values)[3]), -1.0)) {
+        return false;
+    }
+
+    const console_calc::Value multiplied_lists =
+        parser.evaluate_value("list_mul({2, 3, 4}, {5, 6, 7})");
+    const auto* multiplied_values = std::get_if<console_calc::ListValue>(&multiplied_lists);
+    if (multiplied_values == nullptr || multiplied_values->size() != 3 ||
+        !almost_equal(console_calc::scalar_to_double((*multiplied_values)[0]), 10.0) ||
+        !almost_equal(console_calc::scalar_to_double((*multiplied_values)[1]), 18.0) ||
+        !almost_equal(console_calc::scalar_to_double((*multiplied_values)[2]), 28.0)) {
+        return false;
+    }
+
+    const console_calc::Value divided_lists =
+        parser.evaluate_value("list_div({8, 9, 10}, {2, 3, 5})");
+    const auto* divided_values = std::get_if<console_calc::ListValue>(&divided_lists);
+    if (divided_values == nullptr || divided_values->size() != 3 ||
+        !almost_equal(console_calc::scalar_to_double((*divided_values)[0]), 4.0) ||
+        !almost_equal(console_calc::scalar_to_double((*divided_values)[1]), 3.0) ||
+        !almost_equal(console_calc::scalar_to_double((*divided_values)[2]), 2.0)) {
+        return false;
+    }
+
+    const console_calc::Value reduced_list = parser.evaluate_value("reduce({2, 3, 4}, *)");
+    if (!std::holds_alternative<std::int64_t>(reduced_list) ||
+        std::get<std::int64_t>(reduced_list) != 24) {
+        return false;
+    }
+
     try {
         (void)parser.evaluate("sin({1, 2})");
         return false;
@@ -424,6 +460,30 @@ bool expect_map_ast_shape(console_calc::ExpressionParser& parser) {
            almost_equal(second->value, 3.0);
 }
 
+bool expect_reduce_ast_shape(console_calc::ExpressionParser& parser) {
+    using console_calc::BinaryOperator;
+    using console_calc::Expression;
+    using console_calc::ListLiteral;
+    using console_calc::NumberLiteral;
+    using console_calc::ReduceCall;
+
+    const Expression ast = parser.parse("reduce({2, 3}, *)");
+    const auto* root = std::get_if<ReduceCall>(&ast.node);
+    if (root == nullptr || root->reduction_operator != BinaryOperator::multiply) {
+        return false;
+    }
+
+    const auto* list = std::get_if<ListLiteral>(&root->list_argument->node);
+    if (list == nullptr || list->elements.size() != 2) {
+        return false;
+    }
+
+    const auto* first = std::get_if<NumberLiteral>(&list->elements[0]->node);
+    const auto* second = std::get_if<NumberLiteral>(&list->elements[1]->node);
+    return first != nullptr && second != nullptr && almost_equal(first->value, 2.0) &&
+           almost_equal(second->value, 3.0);
+}
+
 bool expect_range_ast_shape(console_calc::ExpressionParser& parser) {
     using console_calc::Expression;
     using console_calc::Function;
@@ -465,8 +525,29 @@ bool expect_generator_ast_shapes(console_calc::ExpressionParser& parser) {
 
     const Expression linspace_ast = parser.parse("linspace(1, 4, 4)");
     const auto* linspace_call = std::get_if<FunctionCall>(&linspace_ast.node);
-    return linspace_call != nullptr && linspace_call->function == Function::linspace &&
-           linspace_call->arguments.size() == 3;
+    if (linspace_call == nullptr || linspace_call->function != Function::linspace ||
+        linspace_call->arguments.size() != 3) {
+        return false;
+    }
+
+    const Expression powers_ast = parser.parse("powers(-1, 4)");
+    const auto* powers_call = std::get_if<FunctionCall>(&powers_ast.node);
+    if (powers_call == nullptr || powers_call->function != Function::powers ||
+        powers_call->arguments.size() != 2) {
+        return false;
+    }
+
+    const Expression list_mul_ast = parser.parse("list_mul({1, 2}, {3, 4})");
+    const auto* list_mul_call = std::get_if<FunctionCall>(&list_mul_ast.node);
+    if (list_mul_call == nullptr || list_mul_call->function != Function::list_mul ||
+        list_mul_call->arguments.size() != 2) {
+        return false;
+    }
+
+    const Expression list_div_ast = parser.parse("list_div({8, 9}, {2, 3})");
+    const auto* list_div_call = std::get_if<FunctionCall>(&list_div_ast.node);
+    return list_div_call != nullptr && list_div_call->function == Function::list_div &&
+           list_div_call->arguments.size() == 2;
 }
 
 bool expect_integer_semantics(console_calc::ExpressionParser& parser) {
@@ -556,6 +637,10 @@ int main() {
     }
 
     if (!expect_map_ast_shape(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_reduce_ast_shape(parser)) {
         return EXIT_FAILURE;
     }
 

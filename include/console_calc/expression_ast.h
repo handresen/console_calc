@@ -45,11 +45,15 @@ enum class Function {
     max,
     first,
     drop,
+    list_div,
+    list_mul,
+    reduce,
     map,
     range,
     geom,
     repeat,
     linspace,
+    powers,
 };
 
 struct BinaryExpression {
@@ -72,9 +76,14 @@ struct MapCall {
     Function mapped_function;
 };
 
+struct ReduceCall {
+    std::unique_ptr<Expression> list_argument;
+    BinaryOperator reduction_operator;
+};
+
 struct Expression {
     std::variant<NumberLiteral, UnaryExpression, BinaryExpression, ListLiteral, FunctionCall,
-                 MapCall>
+                 MapCall, ReduceCall>
         node;
 };
 

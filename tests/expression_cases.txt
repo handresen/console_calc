@@ -63,6 +63,14 @@
 "sum(map({0, 1.5707963267948966}, sin))", 1.0
 "sum(map({0, 90}, sind))", 1.0
 "sum(map({2, 3, 4}, cos))", -2.0597829540111997
+"sum(list_div({8, 9, 10}, {2, 3, 5}))", 9.0
+"sum(list_div(powers(-1, 4), range(1, 4, 2)))", 0.72380952380952379
+"reduce({2, 3, 4}, +)", 9.0
+"reduce({2, 3, 4}, *)", 24.0
+"reduce({8, 2, 2}, /)", 2.0
+"reduce({1, 2, 3, 4}, -)", -8.0
+"sum(list_mul({2, 3, 4}, {5, 6, 7}))", 56.0
+"sum(list_mul(range(1, 4), repeat(2, 4)))", 20.0
 "sum(range(1, 4))", 10.0
 "sum(range(2, 4, 3))", 26.0
 "sum(range(1.5, 3, 0.5))", 6.0
@@ -72,6 +80,9 @@
 "sum(linspace(1, 4, 4))", 10.0
 "sum(linspace(2, 5, 1))", 2.0
 "sum(linspace(2, 5, 0))", 0.0
+"sum(powers(2, 4))", 15.0
+"sum(powers(-1, 4))", 0.0
+"sum(powers(2, 4, 1))", 30.0
 "sum({1, 2, 3})", 6.0
 "sum({1, 2, sin(0)})", 3.0
 "sum({})", 0.0
@@ -118,6 +129,16 @@
 "drop(1.5, {1, 2})", INVALID
 "first(1, 2)", INVALID
 "drop(1, 2)", INVALID
+"list_div({1, 2}, {3})", INVALID
+"list_div(1, {2})", INVALID
+"list_div({1}, 2)", INVALID
+"list_mul({1, 2}, {3})", INVALID
+"list_mul(1, {2})", INVALID
+"list_mul({1}, 2)", INVALID
+"reduce({}, +)", INVALID
+"reduce(1, +)", INVALID
+"reduce({1, 2}, sin)", INVALID
+"reduce({1, 2}, +, 3)", INVALID
 "first(2, {1, 2, 3}) + 1", INVALID
 "map({1, 2}, sum)", INVALID
 "map({1, 2}, pow)", INVALID
@@ -132,6 +153,10 @@
 "geom(1, 2, 3, 4)", INVALID
 "geom(1, -1)", INVALID
 "geom(1, 1.5)", INVALID
+"powers(2)", INVALID
+"powers(2, 3, 4, 5)", INVALID
+"powers(2, -1)", INVALID
+"powers(2, 1.5)", INVALID
 "repeat(1)", INVALID
 "repeat(1, -1)", INVALID
 "repeat(1, 1.5)", INVALID

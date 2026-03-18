@@ -11,6 +11,8 @@ namespace console_calc {
 
 namespace {
 
+constexpr std::size_t k_max_console_list_entries = 10;
+
 std::string category_heading(BuiltinFunctionCategory category) {
     switch (category) {
     case BuiltinFunctionCategory::scalar:
@@ -22,6 +24,29 @@ std::string category_heading(BuiltinFunctionCategory category) {
     }
 
     return "Functions";
+}
+
+std::string format_console_list(const ListValue& values, IntegerDisplayMode mode) {
+    std::string output = "{";
+    const std::size_t shown = std::min(values.size(), k_max_console_list_entries);
+    for (std::size_t index = 0; index < shown; ++index) {
+        if (index != 0) {
+            output += ", ";
+        }
+        output += format_scalar(values[index], mode);
+    }
+
+    if (values.size() > k_max_console_list_entries) {
+        if (shown != 0) {
+            output += ", ";
+        }
+        output += "<hiding ";
+        output += std::to_string(values.size() - k_max_console_list_entries);
+        output += " entries>";
+    }
+
+    output += '}';
+    return output;
 }
 
 template <typename Table, typename Formatter>
@@ -54,11 +79,19 @@ std::string format_stack_listing(std::span<const Value> values, IntegerDisplayMo
     for (std::size_t index = 0; index < values.size(); ++index) {
         output += std::to_string(index);
         output += ':';
-        output += format_value(values[index], mode);
+        output += format_console_value(values[index], mode);
         output += '\n';
     }
 
     return output;
+}
+
+std::string format_console_value(const Value& value, IntegerDisplayMode mode) {
+    if (const auto* list = std::get_if<ListValue>(&value)) {
+        return format_console_list(*list, mode);
+    }
+
+    return format_value(value, mode);
 }
 
 std::string format_definition_listing(const DefinitionTable& definitions) {

@@ -156,7 +156,7 @@ void ConsoleSession::print_result(const Value& value) {
         return;
     }
 
-    output_ << format_value(value, display_mode_) << '\n';
+    output_ << format_console_value(value, display_mode_) << '\n';
 }
 
 void ConsoleSession::execute_stack_command(ConsoleCommandKind command) {

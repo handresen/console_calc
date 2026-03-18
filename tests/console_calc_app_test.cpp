@@ -326,6 +326,33 @@ bool expect_console_mode_list_result_reference() {
     return exit_code == 0 && output.str() == expected_output && error.str().empty();
 }
 
+bool expect_console_mode_long_list_result_output() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("range(1, 12)\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) + "{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, <hiding 2 entries>}\n" +
+        prompt(1);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+}
+
+bool expect_console_mode_long_list_stack_output() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("range(1, 12)\ns\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) + "{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, <hiding 2 entries>}\n" +
+        prompt(1) + "0:{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, <hiding 2 entries>}\n" +
+        prompt(1);
+    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+}
+
 bool expect_console_mode_map_builtin_identifier() {
     const std::vector<std::string_view> args;
     std::istringstream input("l:{1,2,3}\nmap(l,sin)\nsum(map({1,2,3},sin))\nq\n");
@@ -488,15 +515,19 @@ bool expect_console_mode_list_variables_and_functions() {
         "  drop/2      drop first n list elements\n"
         "  first/2     first n list elements\n"
         "  len/1       list length\n"
+        "  list_div/2  divide matching list elements\n"
+        "  list_mul/2  multiply matching list elements\n"
         "  map/2       map unary scalar builtin over list\n"
         "  max/1       maximum list element\n"
         "  min/1       minimum list element\n"
         "  product/1   product of list elements\n"
+        "  reduce/2    reduce list with binary operator\n"
         "  sum/1       sum list elements\n"
         "\n"
         "List generation functions\n"
         "  geom/2-3    generate geometric series from start\n"
         "  linspace/3  generate evenly spaced values over interval\n"
+        "  powers/2-3  generate successive integer powers\n"
         "  range/2-3   generate linear series from start\n"
         "  repeat/2    repeat value count times\n" +
         prompt(0);
@@ -583,6 +614,14 @@ int main() {
     }
 
     if (!expect_console_mode_list_result_reference()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_long_list_result_output()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_console_mode_long_list_stack_output()) {
         return EXIT_FAILURE;
     }
 

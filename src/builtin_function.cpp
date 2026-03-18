@@ -8,7 +8,7 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<BuiltinFunctionInfo, 20> k_builtin_functions = {{
+constexpr std::array<BuiltinFunctionInfo, 24> k_builtin_functions = {{
     {Function::sin, "sin", 1, 1, BuiltinFunctionCategory::scalar, true, "sine in radians"},
     {Function::cos, "cos", 1, 1, BuiltinFunctionCategory::scalar, true, "cosine in radians"},
     {Function::tan, "tan", 1, 1, BuiltinFunctionCategory::scalar, true, "tangent in radians"},
@@ -24,6 +24,12 @@ constexpr std::array<BuiltinFunctionInfo, 20> k_builtin_functions = {{
     {Function::max, "max", 1, 1, BuiltinFunctionCategory::list, false, "maximum list element"},
     {Function::first, "first", 2, 2, BuiltinFunctionCategory::list, false, "first n list elements"},
     {Function::drop, "drop", 2, 2, BuiltinFunctionCategory::list, false, "drop first n list elements"},
+    {Function::list_div, "list_div", 2, 2, BuiltinFunctionCategory::list, false,
+     "divide matching list elements"},
+    {Function::list_mul, "list_mul", 2, 2, BuiltinFunctionCategory::list, false,
+     "multiply matching list elements"},
+    {Function::reduce, "reduce", 2, 2, BuiltinFunctionCategory::list, false,
+     "reduce list with binary operator"},
     {Function::map, "map", 2, 2, BuiltinFunctionCategory::list, false, "map unary scalar builtin over list"},
     {Function::range, "range", 2, 3, BuiltinFunctionCategory::list_generation, false,
      "generate linear series from start"},
@@ -33,6 +39,8 @@ constexpr std::array<BuiltinFunctionInfo, 20> k_builtin_functions = {{
      "repeat value count times"},
     {Function::linspace, "linspace", 3, 3, BuiltinFunctionCategory::list_generation, false,
      "generate evenly spaced values over interval"},
+    {Function::powers, "powers", 2, 3, BuiltinFunctionCategory::list_generation, false,
+     "generate successive integer powers"},
 }};
 
 }  // namespace

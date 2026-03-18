@@ -49,15 +49,19 @@ bool expect_builtin_function_listing() {
            "  drop/2      drop first n list elements\n"
            "  first/2     first n list elements\n"
            "  len/1       list length\n"
+           "  list_div/2  divide matching list elements\n"
+           "  list_mul/2  multiply matching list elements\n"
            "  map/2       map unary scalar builtin over list\n"
            "  max/1       maximum list element\n"
            "  min/1       minimum list element\n"
            "  product/1   product of list elements\n"
+           "  reduce/2    reduce list with binary operator\n"
            "  sum/1       sum list elements\n"
            "\n"
            "List generation functions\n"
            "  geom/2-3    generate geometric series from start\n"
            "  linspace/3  generate evenly spaced values over interval\n"
+           "  powers/2-3  generate successive integer powers\n"
            "  range/2-3   generate linear series from start\n"
            "  repeat/2    repeat value count times\n";
 }
@@ -86,14 +90,30 @@ bool expect_constant_and_definition_listing() {
 
 bool expect_builtin_function_metadata() {
     const auto sum_info = console_calc::builtin_function_info(console_calc::Function::sum);
+    const auto list_div_info = console_calc::builtin_function_info(console_calc::Function::list_div);
+    const auto list_mul_info = console_calc::builtin_function_info(console_calc::Function::list_mul);
+    const auto reduce_info = console_calc::builtin_function_info(console_calc::Function::reduce);
     const auto map_info = console_calc::builtin_function_info(console_calc::Function::map);
     const auto range_info = console_calc::builtin_function_info(console_calc::Function::range);
     const auto geom_info = console_calc::builtin_function_info(console_calc::Function::geom);
     const auto repeat_info = console_calc::builtin_function_info(console_calc::Function::repeat);
     const auto linspace_info = console_calc::builtin_function_info(console_calc::Function::linspace);
+    const auto powers_info = console_calc::builtin_function_info(console_calc::Function::powers);
     return sum_info.name == "sum" && sum_info.min_arity == 1 && sum_info.max_arity == 1 &&
            sum_info.category == console_calc::BuiltinFunctionCategory::list &&
            sum_info.summary == "sum list elements" && !sum_info.mappable &&
+           list_div_info.name == "list_div" && list_div_info.min_arity == 2 &&
+           list_div_info.max_arity == 2 &&
+           list_div_info.category == console_calc::BuiltinFunctionCategory::list &&
+           list_div_info.summary == "divide matching list elements" &&
+           list_mul_info.name == "list_mul" && list_mul_info.min_arity == 2 &&
+           list_mul_info.max_arity == 2 &&
+           list_mul_info.category == console_calc::BuiltinFunctionCategory::list &&
+           list_mul_info.summary == "multiply matching list elements" &&
+           reduce_info.name == "reduce" && reduce_info.min_arity == 2 &&
+           reduce_info.max_arity == 2 &&
+           reduce_info.category == console_calc::BuiltinFunctionCategory::list &&
+           reduce_info.summary == "reduce list with binary operator" &&
            map_info.name == "map" && map_info.min_arity == 2 && map_info.max_arity == 2 &&
            map_info.category == console_calc::BuiltinFunctionCategory::list &&
            map_info.summary == "map unary scalar builtin over list" && !map_info.mappable &&
@@ -106,7 +126,9 @@ bool expect_builtin_function_metadata() {
            repeat_info.min_arity == 2 && repeat_info.max_arity == 2 &&
            repeat_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
            linspace_info.min_arity == 3 && linspace_info.max_arity == 3 &&
-           linspace_info.category == console_calc::BuiltinFunctionCategory::list_generation;
+           linspace_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
+           powers_info.min_arity == 2 && powers_info.max_arity == 3 &&
+           powers_info.category == console_calc::BuiltinFunctionCategory::list_generation;
 }
 
 bool expect_builtin_function_helpers() {
