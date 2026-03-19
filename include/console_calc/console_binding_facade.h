@@ -6,12 +6,12 @@
 #include <string_view>
 #include <vector>
 
-#include "expression_environment.h"
+#include "console_calc/currency_rate_provider.h"
+#include "console_calc/session_environment.h"
 #include "console_calc/value_format.h"
 
 namespace console_calc {
 
-class CurrencyRateProvider;
 class ExpressionParser;
 
 struct BindingStackEntry {

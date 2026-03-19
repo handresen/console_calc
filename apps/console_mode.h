@@ -2,13 +2,12 @@
 
 #include <chrono>
 #include <iosfwd>
-#include <string>
-#include <unordered_map>
+
+#include "console_calc/currency_rate_provider.h"
+#include "console_calc/session_environment.h"
 
 namespace console_calc {
 
-using ConstantTable = std::unordered_map<std::string, double>;
-class CurrencyRateProvider;
 class ExpressionParser;
 
 int run_console_mode(const ExpressionParser& parser, const ConstantTable& constants,

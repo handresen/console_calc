@@ -3,21 +3,13 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
+#include "console_calc/session_environment.h"
 #include "console_calc/value.h"
 
 namespace console_calc {
 
 class ExpressionParser;
-
-using ConstantTable = std::unordered_map<std::string, double>;
-
-struct UserDefinition {
-    std::string expression;
-};
-
-using DefinitionTable = std::unordered_map<std::string, UserDefinition>;
 
 [[nodiscard]] bool is_identifier(std::string_view text);
 [[nodiscard]] bool is_braced_list_literal(std::string_view text);
