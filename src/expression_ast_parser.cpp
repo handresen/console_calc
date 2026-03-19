@@ -214,6 +214,9 @@ private:
             if (current_.identifier_text == "map") {
                 return parse_map_call();
             }
+            if (current_.identifier_text == "guard") {
+                return parse_guard_call();
+            }
             if (current_.identifier_text == "reduce") {
                 return parse_reduce_call();
             }
@@ -334,6 +337,41 @@ private:
             MapCall{
                 .list_argument = std::move(list_argument),
                 .mapped_expression = std::move(mapped_expression),
+            }};
+    }
+
+    [[nodiscard]] Expression parse_guard_call() {
+        const auto guard_signature = std::string(builtin_function_signature(Function::guard));
+        advance();
+        if (current_.kind != TokenKind::left_paren) {
+            throw ParseError("expected '(' after function name");
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("function 'guard' expects " + guard_signature);
+        }
+
+        auto guarded_expression = make_expression(parse_bitwise_or_expression());
+        if (current_.kind != TokenKind::comma) {
+            throw ParseError("function 'guard' expects " + guard_signature);
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("function 'guard' expects " + guard_signature);
+        }
+
+        auto fallback_expression = make_expression(parse_bitwise_or_expression());
+        if (current_.kind != TokenKind::right_paren) {
+            throw ParseError("function 'guard' expects " + guard_signature);
+        }
+
+        advance();
+        return Expression{
+            GuardCall{
+                .guarded_expression = std::move(guarded_expression),
+                .fallback_expression = std::move(fallback_expression),
             }};
     }
 

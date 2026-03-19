@@ -11,7 +11,7 @@ Current scope:
 - binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - parentheses for grouping
 - list literals with `{ ... }`
-- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`, `list_div`, `list_mul`, `reduce`, `map`, `range`, `geom`, `repeat`, `linspace`, `powers`
+- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`, `list_div`, `list_mul`, `guard`, `reduce`, `map`, `range`, `geom`, `repeat`, `linspace`, `powers`
 - optional whitespace between tokens
 
 Explicitly out of scope for this first version:
@@ -44,9 +44,10 @@ sum        = term , { ( "+" | "-" ) , term } ;
 term       = unary , { ( "*" | "/" | "%" ) , unary } ;
 unary      = [ "-" ] , power ;
 power      = primary , [ "^" , unary ] ;
-primary    = number | function_call | map_call | list | "(" , expression , ")" ;
+primary    = number | function_call | map_call | guard_call | list | "(" , expression , ")" ;
 function_call = identifier , "(" , expression , { "," , expression } , ")" ;
 map_call   = "map" , "(" , expression , "," , ( identifier | expression ) , ")" ;
+guard_call = "guard" , "(" , expression , "," , expression , ")" ;
 list       = "{" , expression , { "," , expression } , "}" ;
 number     = mantissa , [ exponent ] ;
 mantissa   = digits , [ "." , [ digits ] ]
@@ -87,6 +88,7 @@ Builtin functions:
 - `drop(n, list)` returns the list without its first `n` items
 - `list_div(list_a, list_b)` divides list elements pairwise and requires equal list lengths
 - `list_mul(list_a, list_b)` multiplies list elements pairwise and requires equal list lengths
+- `guard(expr, fallback)` returns `expr` when it evaluates successfully, otherwise evaluates and returns `fallback`
 - `reduce(list, op)` reduces a non-empty list left-to-right using a binary operator such as `+` or `*`
 - `map(list, func)` applies a unary scalar builtin function to each list item and returns a list of the same length
 - `map(list, expr)` evaluates `expr` once per list item with `_` bound to the current element
@@ -124,6 +126,8 @@ Examples:
 - `sum(map({0, 90}, sind))` => `1`
 - `sum(map({1, 2, 3}, _ + 1))` => `9`
 - `sum(map({1, 2, 3}, sin(_) + _))` => `7.8918884196934453`
+- `guard(1 / 0, 0)` => `0`
+- `sum(map(range(-2, 5), guard(1 / _, 0)))` => `0`
 - `sum(list_div(powers(-1, 4), range(1, 4, 2)))` => `0.72380952380952379`
 - `sum(list_mul({2, 3, 4}, {5, 6, 7}))` => `56`
 - `reduce({2, 3, 4}, *)` => `24`
@@ -166,6 +170,7 @@ Examples:
 - `map({0, 90}, sind)`
 - `map({1, 2, 3}, _ + 1)`
 - `map({1, 2, 3}, sin(_) + _)`
+- `guard(1 / 0, 0)`
 - `range(10, 4)`
 - `range(1.5, 3, 0.5)`
 - `geom(2, 4)`
@@ -199,6 +204,7 @@ Examples:
 - `map({1, 2}, sum)`
 - `map({1, 2}, pow)`
 - `map({1, 2}, _ + foo)`
+- `guard(1 / 0)`
 - `_`
 - `range(1)`
 - `range(1, 2, 3, 4)`

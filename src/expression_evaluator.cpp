@@ -145,6 +145,7 @@ namespace {
     case Function::list_sub:
     case Function::list_div:
     case Function::list_mul:
+    case Function::guard:
     case Function::reduce:
     case Function::map:
     case Function::range:
@@ -213,6 +214,7 @@ template <typename Operation>
     case Function::list_sub:
     case Function::list_div:
     case Function::list_mul:
+    case Function::guard:
     case Function::reduce:
     case Function::map:
     case Function::range:
@@ -310,6 +312,7 @@ template <typename Operation>
         return evaluate_pairwise_list_builtin(arguments, "list_div", divide_scalars);
     case Function::list_mul:
         return evaluate_pairwise_list_builtin(arguments, "list_mul", multiply_scalars);
+    case Function::guard:
     case Function::map:
     case Function::reduce:
         break;
@@ -440,6 +443,7 @@ template <typename Operation>
     case Function::list_sub:
     case Function::list_div:
     case Function::list_mul:
+    case Function::guard:
     case Function::reduce:
     case Function::map:
         break;
@@ -520,6 +524,14 @@ Value evaluate_expression_with_placeholder(const Expression& expression,
                     }
                 }
                 return mapped_values;
+            } else if constexpr (std::is_same_v<Node, GuardCall>) {
+                try {
+                    return evaluate_expression_with_placeholder(*node.guarded_expression,
+                                                                placeholder_value);
+                } catch (const std::invalid_argument&) {
+                    return evaluate_expression_with_placeholder(*node.fallback_expression,
+                                                                placeholder_value);
+                }
             } else if constexpr (std::is_same_v<Node, ReduceCall>) {
                 const ListValue input_values =
                     require_list(evaluate_expression_with_placeholder(*node.list_argument,

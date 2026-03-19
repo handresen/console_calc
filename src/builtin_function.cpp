@@ -8,7 +8,7 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<BuiltinFunctionInfo, 28> k_builtin_functions = {{
+constexpr std::array<BuiltinFunctionInfo, 29> k_builtin_functions = {{
     {Function::abs, "abs", 1, 1, BuiltinFunctionCategory::scalar, true, "abs(x)", "absolute value"},
     {Function::sin, "sin", 1, 1, BuiltinFunctionCategory::scalar, true, "sin(x)", "sine in radians"},
     {Function::cos, "cos", 1, 1, BuiltinFunctionCategory::scalar, true, "cos(x)", "cosine in radians"},
@@ -34,6 +34,8 @@ constexpr std::array<BuiltinFunctionInfo, 28> k_builtin_functions = {{
      "list_div(a, b)", "divide matching list elements"},
     {Function::list_mul, "list_mul", 2, 2, BuiltinFunctionCategory::list, false,
      "list_mul(a, b)", "multiply matching list elements"},
+    {Function::guard, "guard", 2, 2, BuiltinFunctionCategory::scalar, false,
+     "guard(expr, fallback)", "use fallback when expr evaluation fails"},
     {Function::reduce, "reduce", 2, 2, BuiltinFunctionCategory::list, false,
      "reduce(list, op)", "reduce list with binary operator"},
     {Function::map, "map", 2, 2, BuiltinFunctionCategory::list, false, "map(list, func_or_expr)", "map unary scalar builtin over list"},

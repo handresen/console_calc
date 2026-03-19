@@ -41,6 +41,7 @@ bool expect_builtin_function_listing() {
            "  abs(x)                            absolute value\n"
            "  cos(x)                            cosine in radians\n"
            "  cosd(x)                           cosine in degrees\n"
+           "  guard(expr, fallback)             use fallback when expr evaluation fails\n"
            "  pow(x, y)                         power\n"
            "  sin(x)                            sine in radians\n"
            "  sind(x)                           sine in degrees\n"
@@ -139,6 +140,7 @@ bool expect_builtin_function_metadata() {
     const auto list_div_info = console_calc::builtin_function_info(console_calc::Function::list_div);
     const auto list_mul_info = console_calc::builtin_function_info(console_calc::Function::list_mul);
     const auto list_sub_info = console_calc::builtin_function_info(console_calc::Function::list_sub);
+    const auto guard_info = console_calc::builtin_function_info(console_calc::Function::guard);
     const auto reduce_info = console_calc::builtin_function_info(console_calc::Function::reduce);
     const auto map_info = console_calc::builtin_function_info(console_calc::Function::map);
     const auto range_info = console_calc::builtin_function_info(console_calc::Function::range);
@@ -171,6 +173,11 @@ bool expect_builtin_function_metadata() {
            list_sub_info.max_arity == 2 &&
            list_sub_info.category == console_calc::BuiltinFunctionCategory::list &&
            list_sub_info.summary == "subtract matching list elements" &&
+           guard_info.name == "guard" && guard_info.min_arity == 2 &&
+           guard_info.max_arity == 2 &&
+           guard_info.category == console_calc::BuiltinFunctionCategory::scalar &&
+           guard_info.signature == "guard(expr, fallback)" &&
+           guard_info.summary == "use fallback when expr evaluation fails" &&
            reduce_info.name == "reduce" && reduce_info.min_arity == 2 &&
            reduce_info.max_arity == 2 &&
            reduce_info.category == console_calc::BuiltinFunctionCategory::list &&
@@ -195,6 +202,7 @@ bool expect_builtin_function_metadata() {
 bool expect_builtin_function_helpers() {
     return console_calc::is_scalar_function(console_calc::Function::sin) &&
            console_calc::is_scalar_function(console_calc::Function::abs) &&
+           console_calc::is_scalar_function(console_calc::Function::guard) &&
            !console_calc::is_scalar_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::list_add) &&

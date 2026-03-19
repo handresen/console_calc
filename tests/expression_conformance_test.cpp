@@ -519,6 +519,28 @@ bool expect_map_expression_ast_shape(console_calc::ExpressionParser& parser) {
            std::holds_alternative<NumberLiteral>(mapped->right->node);
 }
 
+bool expect_guard_ast_shape(console_calc::ExpressionParser& parser) {
+    using console_calc::BinaryExpression;
+    using console_calc::BinaryOperator;
+    using console_calc::Expression;
+    using console_calc::GuardCall;
+    using console_calc::NumberLiteral;
+
+    const Expression ast = parser.parse("guard(1 / 0, 5)");
+    const auto* root = std::get_if<GuardCall>(&ast.node);
+    if (root == nullptr) {
+        return false;
+    }
+
+    const auto* guarded = std::get_if<BinaryExpression>(&root->guarded_expression->node);
+    if (guarded == nullptr || guarded->op != BinaryOperator::divide) {
+        return false;
+    }
+
+    const auto* fallback = std::get_if<NumberLiteral>(&root->fallback_expression->node);
+    return fallback != nullptr && almost_equal(fallback->value, 5.0);
+}
+
 bool expect_reduce_ast_shape(console_calc::ExpressionParser& parser) {
     using console_calc::BinaryOperator;
     using console_calc::Expression;
@@ -687,6 +709,17 @@ bool expect_function_signature_errors(console_calc::ExpressionParser& parser) {
         return false;
     }
 
+    try {
+        (void)parser.parse("guard(1 / 0)");
+        return false;
+    } catch (const std::invalid_argument& error) {
+        if (std::string(error.what()) != "function 'guard' expects guard(expr, fallback)") {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+
     return true;
 }
 
@@ -740,6 +773,10 @@ int main() {
     }
 
     if (!expect_map_expression_ast_shape(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_guard_ast_shape(parser)) {
         return EXIT_FAILURE;
     }
 

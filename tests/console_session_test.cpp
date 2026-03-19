@@ -447,6 +447,7 @@ bool expect_console_mode_list_variables_and_functions() {
         "  abs(x)                            absolute value\n"
         "  cos(x)                            cosine in radians\n"
         "  cosd(x)                           cosine in degrees\n"
+        "  guard(expr, fallback)             use fallback when expr evaluation fails\n"
         "  pow(x, y)                         power\n"
         "  sin(x)                            sine in radians\n"
         "  sind(x)                           sine in degrees\n"

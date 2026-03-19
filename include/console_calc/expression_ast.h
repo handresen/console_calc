@@ -54,6 +54,7 @@ enum class Function {
     list_sub,
     list_div,
     list_mul,
+    guard,
     reduce,
     map,
     range,
@@ -84,6 +85,11 @@ struct MapCall {
     std::unique_ptr<Expression> mapped_expression;
 };
 
+struct GuardCall {
+    std::unique_ptr<Expression> guarded_expression;
+    std::unique_ptr<Expression> fallback_expression;
+};
+
 struct ReduceCall {
     std::unique_ptr<Expression> list_argument;
     BinaryOperator reduction_operator;
@@ -91,7 +97,7 @@ struct ReduceCall {
 
 struct Expression {
     std::variant<NumberLiteral, PlaceholderExpression, UnaryExpression, BinaryExpression,
-                 ListLiteral, FunctionCall, MapCall, ReduceCall>
+                 ListLiteral, FunctionCall, MapCall, GuardCall, ReduceCall>
         node;
 };
 

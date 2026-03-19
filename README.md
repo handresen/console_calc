@@ -137,6 +137,7 @@ pow(e, 1)
 - `cosd(x)`     cosine in degrees
 - `tand(x)`     tangent in degrees
 - `pow(x, y)`   power
+- `guard(expr, fallback)` evaluate `fallback` only if `expr` fails
 
 ### List Functions
 
@@ -148,6 +149,7 @@ pow(e, 1)
 - `max(list)`        maximum list element
 - `first(n, list)`   first `n` list elements
 - `drop(n, list)`    drop first `n` list elements
+- `guard(expr, fallback)` return fallback when expression evaluation fails
 - `list_div(a, b)`   divide matching list elements
 - `list_mul(a, b)`   multiply matching list elements
 - `reduce(list, op)` reduce a list with a binary operator
@@ -173,6 +175,7 @@ Function notes:
 - `map` accepts either a unary scalar builtin such as `sin`, `cos`, `sind`, `tand`, or an inline expression using `_`
 - `map({1, 2}, sum)` and `map({1, 2}, pow)` are invalid
 - `_` is only valid inside `map(..., expr)`
+- `guard` evaluates its fallback lazily and can be used inside `map`
 - `range` requires `count` to be a non-negative integer
 - `range(start, count)` uses a default step of `1`
 - `range` preserves integer list elements when `start` and `step` are integers
@@ -197,6 +200,8 @@ reduce({2, 3, 4}, *)          => 24
 map({0, 90}, sind)            => {0, 1}
 map({1, 2, 3}, _ + 1)         => {2, 3, 4}
 map({1, 2, 3}, sin(_) + _)    => {1.84147..., 2.90929..., 3.14112...}
+guard(1 / 0, 0)               => 0
+map(range(-2, 5), guard(1 / _, 0))
 sum(map({1, 2, 3}, sin))      => 1.89189...
 range(10, 4)                  => {10, 11, 12, 13}
 range(2, 4, 3)                => {2, 5, 8, 11}
