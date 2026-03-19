@@ -16,11 +16,29 @@ namespace console_calc {
 
 class ExpressionParser;
 
+struct ConsoleSessionState {
+    std::vector<Value> stack;
+    std::size_t max_stack_depth = 100;
+    DefinitionTable definitions;
+    IntegerDisplayMode display_mode = IntegerDisplayMode::decimal;
+};
+
+enum class ConsoleOutputEventKind {
+    value,
+    text,
+    error,
+};
+
+struct ConsoleOutputEvent {
+    ConsoleOutputEventKind kind = ConsoleOutputEventKind::text;
+    std::optional<Value> value;
+    std::string text;
+};
+
 struct ConsoleEngineCommandResult {
     bool should_exit = false;
-    std::vector<Value> emitted_values;
-    std::vector<std::string> output_lines;
-    std::vector<std::string> error_lines;
+    std::vector<ConsoleOutputEvent> events;
+    ConsoleSessionState state;
 };
 
 class ConsoleSessionEngine {
@@ -33,6 +51,7 @@ public:
 
     void initialize();
     [[nodiscard]] ConsoleEngineCommandResult submit(std::string_view line);
+    [[nodiscard]] ConsoleSessionState state() const;
 
     [[nodiscard]] std::size_t stack_depth() const;
     [[nodiscard]] IntegerDisplayMode display_mode() const;
@@ -41,20 +60,18 @@ public:
     [[nodiscard]] const ConstantTable& constants() const;
 
 private:
-    [[nodiscard]] bool try_handle_hidden_command(std::string_view line,
-                                                 ConsoleEngineCommandResult& result);
     void assign_definition(std::string_view name, std::string_view expression,
                            const std::optional<Value>& result_reference);
     void refresh_currency_rates(bool report_errors, ConsoleEngineCommandResult& result);
     void push_result(Value result);
-    void set_stack_depth(std::size_t depth);
     [[nodiscard]] Value apply_stack_operator(char op);
     std::optional<Value> top_result() const;
+    [[nodiscard]] ConsoleEngineCommandResult make_result(bool should_exit = false) const;
 
     const ExpressionParser& parser_;
     const ConstantTable& constants_;
     std::vector<Value> result_stack_;
-    std::size_t max_stack_depth_ = 4;
+    std::size_t max_stack_depth_ = 100;
     DefinitionTable definitions_;
     IntegerDisplayMode display_mode_ = IntegerDisplayMode::decimal;
     CurrencyRateProvider* currency_rate_provider_ = nullptr;

@@ -71,20 +71,24 @@ int ConsoleSession::run() {
 
 int ConsoleSession::handle_line(std::string_view line) {
     const ConsoleEngineCommandResult result = engine_.submit(line);
-    for (const auto& value : result.emitted_values) {
-        print_result(output_, value, engine_.display_mode());
-    }
-    for (const auto& output_line : result.output_lines) {
-        if (output_line.empty()) {
+    for (const auto& event : result.events) {
+        if (event.kind == ConsoleOutputEventKind::value) {
+            print_result(output_, *event.value, result.state.display_mode);
             continue;
         }
-        output_ << output_line;
-        if (!output_line.ends_with('\n')) {
-            output_ << '\n';
+
+        if (event.kind == ConsoleOutputEventKind::text) {
+            if (event.text.empty()) {
+                continue;
+            }
+            output_ << event.text;
+            if (!event.text.ends_with('\n')) {
+                output_ << '\n';
+            }
+            continue;
         }
-    }
-    for (const auto& error_line : result.error_lines) {
-        error_ << "error: " << error_line << '\n';
+
+        error_ << "error: " << event.text << '\n';
     }
 
     return result.should_exit ? 0 : -1;

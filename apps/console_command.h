@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <cstddef>
 #include <string_view>
 
 namespace console_calc {

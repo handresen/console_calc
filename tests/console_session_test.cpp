@@ -79,8 +79,8 @@ bool expect_console_mode_stack_limit() {
         prompt(2) + "3\n" +
         prompt(3) + "4\n" +
         prompt(4) + "5\n" +
-        prompt(4) + "6\n" +
-        prompt(4);
+        prompt(5) + "6\n" +
+        prompt(6);
     return expect_console_transcript("console mode stack limit", exit_code, 0, output.str(),
                                      expected_output, error.str(), "");
 }
@@ -98,38 +98,14 @@ bool expect_console_mode_stack_commands() {
         prompt(2) + "3\n" +
         prompt(3) + "4\n" +
         prompt(4) +
-        prompt(4) + "0:2\n1:3\n2:4\n3:4\n" +
+        prompt(5) + "0:1\n1:2\n2:3\n3:4\n4:4\n" +
+        prompt(5) +
+        prompt(4) + "0:1\n1:2\n2:3\n3:4\n" +
         prompt(4) +
-        prompt(3) + "0:2\n1:3\n2:4\n" +
-        prompt(3) +
         prompt(0) +
         prompt(0);
     return expect_console_transcript("console mode stack commands", exit_code, 0, output.str(),
                                      expected_output, error.str(), "");
-}
-
-bool expect_console_mode_dynamic_stack_depth() {
-    const std::vector<std::string_view> args;
-    std::istringstream input("1\n2\n3\n4\n5\nstack_depth(6)\n6\n7\ns\nstack_depth(3)\ns\nq\n");
-    std::ostringstream output;
-    std::ostringstream error;
-
-    const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    const std::string expected_output =
-        prompt(0) + "1\n" +
-        prompt(1) + "2\n" +
-        prompt(2) + "3\n" +
-        prompt(3) + "4\n" +
-        prompt(4) + "5\n" +
-        prompt(4) +
-        prompt(4) + "6\n" +
-        prompt(5) + "7\n" +
-        prompt(6) + "0:2\n1:3\n2:4\n3:5\n4:6\n5:7\n" +
-        prompt(6) +
-        prompt(3) + "0:5\n1:6\n2:7\n" +
-        prompt(3);
-    return expect_console_transcript("console mode dynamic stack depth", exit_code, 0,
-                                     output.str(), expected_output, error.str(), "");
 }
 
 bool expect_console_mode_stack_command_errors() {
@@ -605,9 +581,6 @@ int main() {
         return EXIT_FAILURE;
     }
     if (!expect_console_mode_stack_commands()) {
-        return EXIT_FAILURE;
-    }
-    if (!expect_console_mode_dynamic_stack_depth()) {
         return EXIT_FAILURE;
     }
     if (!expect_console_mode_stack_command_errors()) {

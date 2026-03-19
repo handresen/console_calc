@@ -68,11 +68,6 @@ ConsoleEngineCommandResult ConsoleSessionEngine::submit(std::string_view line) {
     }
 
     try {
-        if (try_handle_hidden_command(trimmed, result)) {
-            result.state = state();
-            return result;
-        }
-
         const ConsoleCommand command = classify_console_command(trimmed);
         if (command.kind == ConsoleCommandKind::quit) {
             result = make_result(true);
@@ -174,39 +169,6 @@ ConsoleEngineCommandResult ConsoleSessionEngine::make_result(bool should_exit) c
     };
 }
 
-bool ConsoleSessionEngine::try_handle_hidden_command(std::string_view line,
-                                                     ConsoleEngineCommandResult&) {
-    constexpr std::string_view k_stack_depth_prefix = "stack_depth(";
-    if (!line.starts_with(k_stack_depth_prefix) || !line.ends_with(')')) {
-        return false;
-    }
-
-    const std::string depth_text =
-        trim(line.substr(k_stack_depth_prefix.size(),
-                         line.size() - k_stack_depth_prefix.size() - 1));
-    if (depth_text.empty()) {
-        throw std::invalid_argument("stack_depth() requires a positive integer");
-    }
-
-    std::size_t parsed_depth = 0;
-    try {
-        std::size_t consumed = 0;
-        parsed_depth = std::stoull(depth_text, &consumed);
-        if (consumed != depth_text.size()) {
-            throw std::invalid_argument("invalid");
-        }
-    } catch (const std::exception&) {
-        throw std::invalid_argument("stack_depth() requires a positive integer");
-    }
-
-    if (parsed_depth == 0) {
-        throw std::invalid_argument("stack_depth() requires a positive integer");
-    }
-
-    set_stack_depth(parsed_depth);
-    return true;
-}
-
 void ConsoleSessionEngine::assign_definition(std::string_view name, std::string_view expression,
                                              const std::optional<Value>& result_reference) {
     const std::string normalized_expression = normalize_assignment_expression(expression);
@@ -251,14 +213,6 @@ void ConsoleSessionEngine::push_result(Value result) {
 
     result_stack_.push_back(std::move(result));
 }
-
-void ConsoleSessionEngine::set_stack_depth(std::size_t depth) {
-    max_stack_depth_ = depth;
-    while (result_stack_.size() > max_stack_depth_) {
-        result_stack_.erase(result_stack_.begin());
-    }
-}
-
 Value ConsoleSessionEngine::apply_stack_operator(char op) {
     if (result_stack_.size() < 2) {
         throw std::invalid_argument("stack requires at least two values");

@@ -55,7 +55,7 @@ bool expect_engine_basic_flow() {
         !expect_single_value_event("engine basic flow expression", expression_result) ||
         !std::holds_alternative<std::int64_t>(*expression_result.events[0].value) ||
         std::get<std::int64_t>(*expression_result.events[0].value) != 2 ||
-        expression_result.state.stack.size() != 1 || expression_result.state.max_stack_depth != 4 ||
+        expression_result.state.stack.size() != 1 || expression_result.state.max_stack_depth != 100 ||
         engine.stack_depth() != 1) {
         return false;
     }
@@ -106,7 +106,7 @@ bool expect_engine_display_mode_and_stack_state() {
            dec_result.state.display_mode == console_calc::IntegerDisplayMode::decimal;
 }
 
-bool expect_engine_stack_commands_and_depth_changes() {
+bool expect_engine_stack_commands() {
     console_calc::ExpressionParser parser;
     const console_calc::ConstantTable constants = default_constants();
     console_calc::ConsoleSessionEngine engine(parser, constants);
@@ -136,21 +136,9 @@ bool expect_engine_stack_commands_and_depth_changes() {
         return false;
     }
 
-    (void)engine.submit("3");
-    (void)engine.submit("4");
-    (void)engine.submit("5");
-
-    const auto depth_result = engine.submit("stack_depth(3)");
-    if (depth_result.state.max_stack_depth != 3 || depth_result.state.stack.size() != 3 ||
-        !std::holds_alternative<std::int64_t>(depth_result.state.stack[0]) ||
-        std::get<std::int64_t>(depth_result.state.stack[0]) != 3 ||
-        !std::holds_alternative<std::int64_t>(depth_result.state.stack[2]) ||
-        std::get<std::int64_t>(depth_result.state.stack[2]) != 5) {
-        return false;
-    }
-
     const auto clear_result = engine.submit("clear");
-    return clear_result.events.empty() && clear_result.state.stack.empty();
+    return clear_result.events.empty() && clear_result.state.stack.empty() &&
+           clear_result.state.max_stack_depth == 100;
 }
 
 bool expect_engine_listing_text_events() {
@@ -327,7 +315,7 @@ int main() {
     if (!expect_engine_display_mode_and_stack_state()) {
         return EXIT_FAILURE;
     }
-    if (!expect_engine_stack_commands_and_depth_changes()) {
+    if (!expect_engine_stack_commands()) {
         return EXIT_FAILURE;
     }
     if (!expect_engine_listing_text_events()) {

@@ -94,6 +94,43 @@ bool expect_constant_and_definition_listing() {
                "x:pi+1\n";
 }
 
+bool expect_structured_listing_views() {
+    const console_calc::ConstantTable constants{
+        {"tau", 6.2831853071795862},
+        {"e", 2.7182818284590451},
+        {"pi", 3.1415926535897931},
+    };
+    const console_calc::DefinitionTable definitions{
+        {"sx", {"sin(x)"}},
+        {"vals", {"{1, 2, 3}"}},
+        {"x", {"pi+1"}},
+    };
+    const std::vector<console_calc::Value> stack{
+        std::int64_t{2},
+        console_calc::ListValue{console_calc::ScalarValue{1}, console_calc::ScalarValue{2}},
+    };
+
+    const auto stack_views = console_calc::stack_entry_views(stack);
+    const auto definition_list = console_calc::definition_views(definitions);
+    const auto constant_list = console_calc::constant_views(constants);
+    const auto function_list =
+        console_calc::builtin_function_views(console_calc::builtin_functions());
+
+    return stack_views.size() == 2 && stack_views[0].level == 0 &&
+           std::holds_alternative<std::int64_t>(stack_views[0].value) &&
+           std::get<std::int64_t>(stack_views[0].value) == 2 && stack_views[1].level == 1 &&
+           std::holds_alternative<console_calc::ListValue>(stack_views[1].value) &&
+           definition_list.size() == 3 && definition_list[0].name == "sx" &&
+           definition_list[0].expression == "sin(x)" && definition_list[2].name == "x" &&
+           constant_list.size() == 3 && constant_list[0].name == "e" &&
+           std::holds_alternative<double>(constant_list[0].value) &&
+           std::get<double>(constant_list[0].value) == 2.7182818284590451 &&
+           !function_list.empty() && function_list.front().name == "abs" &&
+           function_list.front().arity_label == "1" &&
+           function_list.front().category == console_calc::BuiltinFunctionCategory::scalar &&
+           function_list.front().summary == "absolute value";
+}
+
 bool expect_builtin_function_metadata() {
     const auto sum_info = console_calc::builtin_function_info(console_calc::Function::sum);
     const auto abs_info = console_calc::builtin_function_info(console_calc::Function::abs);
@@ -215,6 +252,10 @@ int main() {
     }
 
     if (!expect_constant_and_definition_listing()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_structured_listing_views()) {
         return EXIT_FAILURE;
     }
 

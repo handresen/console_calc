@@ -197,7 +197,7 @@ Prompt format:
 <stack depth>>
 ```
 
-The prompt is shown in green. Stack depth is capped at `9`.
+The prompt is shown in green. The stack currently keeps up to `100` values by default.
 
 Each successful expression pushes its result onto the stack.
 
