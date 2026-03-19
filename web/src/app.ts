@@ -1,4 +1,4 @@
-import { createBridgePlaceholder } from "./bridge/console-wasm";
+import { ConsoleWasmBridge, type BindingCommandResult } from "./bridge/console-wasm";
 import { createPanesView } from "./ui/panes-view";
 import { createPromptView } from "./ui/prompt-view";
 import { createTranscriptView } from "./ui/transcript-view";
@@ -15,13 +15,94 @@ export function createApp(root: HTMLElement): void {
   const sideColumn = document.createElement("aside");
   sideColumn.className = "side-column";
 
-  consoleColumn.append(
-    createBridgePlaceholder(),
-    createTranscriptView(),
-    createPromptView(),
-  );
-  sideColumn.append(createPanesView());
+  const bridgeBanner = document.createElement("div");
+  bridgeBanner.className = "bridge-banner";
+  bridgeBanner.textContent = "Loading WebAssembly bridge...";
+
+  const transcript = createTranscriptView();
+  const panes = createPanesView();
+  const bridge = new ConsoleWasmBridge();
+
+  const renderResult = (result: BindingCommandResult): void => {
+    for (const event of result.events) {
+      switch (event.kind) {
+        case "value":
+          transcript.appendMessage(event.text, "value");
+          break;
+        case "error":
+          transcript.appendMessage(`error: ${event.text}`, "error");
+          break;
+        case "text":
+          transcript.appendMessage(event.text, "text");
+          break;
+        case "stack_listing":
+          for (const entry of event.stack) {
+            transcript.appendMessage(`${entry.level}:${entry.display}`, "listing");
+          }
+          break;
+        case "definition_listing":
+          for (const entry of event.definitions) {
+            transcript.appendMessage(`${entry.name}:${entry.expression}`, "listing");
+          }
+          break;
+        case "constant_listing":
+          for (const entry of event.constants) {
+            transcript.appendMessage(`${entry.name}:${entry.value}`, "listing");
+          }
+          break;
+        case "function_listing":
+          for (const entry of event.functions) {
+            transcript.appendMessage(
+              `${entry.name}/${entry.arity_label} - ${entry.summary}`,
+              "listing",
+            );
+          }
+          break;
+        default:
+          transcript.appendMessage(event.text, "text");
+          break;
+      }
+    }
+
+    panes.render(result.snapshot);
+  };
+
+  const prompt = createPromptView(async (input) => {
+    transcript.appendCommand(input);
+    try {
+      const result = await bridge.submit(input);
+      renderResult(result);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown wasm bridge failure";
+      transcript.appendMessage(message, "error");
+    }
+  });
+  prompt.setEnabled(false);
+
+  consoleColumn.append(bridgeBanner, transcript.element, prompt.element);
+  sideColumn.append(panes.element);
 
   shell.append(consoleColumn, sideColumn);
   root.append(shell);
+
+  void (async () => {
+    try {
+      const result = await bridge.initialize();
+      bridgeBanner.textContent = "WebAssembly bridge ready.";
+      prompt.setEnabled(true);
+      prompt.setPlaceholder("enter expression or command");
+      renderResult(result);
+      prompt.focus();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown wasm bridge failure";
+      bridgeBanner.textContent = `WebAssembly bridge failed: ${message}`;
+      transcript.appendMessage(message, "error");
+    }
+  })();
+
+  globalThis.addEventListener("beforeunload", () => {
+    bridge.dispose();
+  });
 }

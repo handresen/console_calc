@@ -133,8 +133,8 @@ if(EMSCRIPTEN)
             "-sEXPORT_ES6=1"
             "-sFILESYSTEM=0"
             "-sMODULARIZE=1"
-            "-sEXPORTED_FUNCTIONS=['_console_calc_binding_session_create','_console_calc_binding_session_destroy','_console_calc_binding_session_initialize','_console_calc_binding_session_submit','_console_calc_binding_session_last_result_json']"
-            "-sEXPORTED_RUNTIME_METHODS=['UTF8ToString']"
+            "-sEXPORTED_FUNCTIONS=['_console_calc_binding_session_create','_console_calc_binding_session_destroy','_console_calc_binding_session_initialize','_console_calc_binding_session_submit','_console_calc_binding_session_last_result_json','_free']"
+            "-sEXPORTED_RUNTIME_METHODS=['UTF8ToString','stringToNewUTF8']"
         )
 endif()
 

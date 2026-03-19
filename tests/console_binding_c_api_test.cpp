@@ -39,10 +39,13 @@ bool expect_c_api_round_trip() {
 
     const std::string_view result_json = console_calc_binding_session_last_result_json(session);
     const bool ok = expect_contains(result_json, "\"should_exit\":false", "exit state") &&
-                    expect_contains(result_json, "\"display_mode\":\"dec\"", "display mode") &&
+                    expect_contains(result_json, "\"snapshot\":{\"display_mode\":\"dec\"",
+                                    "snapshot display mode") &&
                     expect_contains(result_json, "\"kind\":\"value\"", "event kind") &&
                     expect_contains(result_json, "\"text\":\"2\"", "event text") &&
-                    expect_contains(result_json, "\"display\":\"2\"", "stack display");
+                    expect_contains(result_json, "\"display\":\"2\"", "stack display") &&
+                    expect_contains(result_json, "\"constants\":[", "constants payload") &&
+                    expect_contains(result_json, "\"functions\":[", "functions payload");
 
     cleanup();
     return ok;

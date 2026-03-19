@@ -67,28 +67,104 @@ std::string event_kind_name(BindingEventKind kind) {
     return "text";
 }
 
+void append_stack_json(std::ostringstream& json, std::span<const BindingStackEntry> stack) {
+    json << '[';
+    for (std::size_t index = 0; index < stack.size(); ++index) {
+        if (index != 0) {
+            json << ',';
+        }
+        const auto& entry = stack[index];
+        json << "{\"level\":" << entry.level << ",\"display\":\"" << json_escape(entry.display)
+             << "\"}";
+    }
+    json << ']';
+}
+
+void append_definitions_json(std::ostringstream& json,
+                             std::span<const BindingDefinitionEntry> definitions) {
+    json << '[';
+    for (std::size_t index = 0; index < definitions.size(); ++index) {
+        if (index != 0) {
+            json << ',';
+        }
+        const auto& definition = definitions[index];
+        json << "{\"name\":\"" << json_escape(definition.name) << "\",\"expression\":\""
+             << json_escape(definition.expression) << "\"}";
+    }
+    json << ']';
+}
+
+void append_constants_json(std::ostringstream& json,
+                           std::span<const BindingConstantEntry> constants) {
+    json << '[';
+    for (std::size_t index = 0; index < constants.size(); ++index) {
+        if (index != 0) {
+            json << ',';
+        }
+        const auto& constant = constants[index];
+        json << "{\"name\":\"" << json_escape(constant.name) << "\",\"value\":\""
+             << json_escape(constant.value) << "\"}";
+    }
+    json << ']';
+}
+
+void append_functions_json(std::ostringstream& json,
+                           std::span<const BindingFunctionEntry> functions) {
+    json << '[';
+    for (std::size_t index = 0; index < functions.size(); ++index) {
+        if (index != 0) {
+            json << ',';
+        }
+        const auto& function = functions[index];
+        json << "{\"name\":\"" << json_escape(function.name) << "\",\"arity_label\":\""
+             << json_escape(function.arity_label) << "\",\"category\":\""
+             << json_escape(function.category) << "\",\"summary\":\""
+             << json_escape(function.summary) << "\"}";
+    }
+    json << ']';
+}
+
+void append_snapshot_json(std::ostringstream& json, const BindingSnapshot& snapshot) {
+    json << "{\"display_mode\":\"" << json_escape(snapshot.display_mode) << '"';
+    json << "\",\"max_stack_depth\":" << snapshot.max_stack_depth;
+    json << ",\"stack\":";
+    append_stack_json(json, snapshot.stack);
+    json << ",\"definitions\":";
+    append_definitions_json(json, snapshot.definitions);
+    json << ",\"constants\":";
+    append_constants_json(json, snapshot.constants);
+    json << ",\"functions\":";
+    append_functions_json(json, snapshot.functions);
+    json << '}';
+}
+
+void append_event_json(std::ostringstream& json, const BindingEvent& event) {
+    json << "{\"kind\":\"" << event_kind_name(event.kind) << '"';
+    json << "\",\"text\":\"" << json_escape(event.text) << '"';
+    json << "\",\"stack\":";
+    append_stack_json(json, event.stack);
+    json << ",\"definitions\":";
+    append_definitions_json(json, event.definitions);
+    json << ",\"constants\":";
+    append_constants_json(json, event.constants);
+    json << ",\"functions\":";
+    append_functions_json(json, event.functions);
+    json << '}';
+}
+
 std::string result_to_json(const BindingCommandResult& result) {
     std::ostringstream json;
     json << "{\"should_exit\":" << (result.should_exit ? "true" : "false");
-    json << ",\"display_mode\":\"" << json_escape(result.snapshot.display_mode) << '"';
     json << "\",\"events\":[";
     for (std::size_t index = 0; index < result.events.size(); ++index) {
         if (index != 0) {
             json << ',';
         }
-        json << "{\"kind\":\"" << event_kind_name(result.events[index].kind) << '"';
-        json << ",\"text\":\"" << json_escape(result.events[index].text) << "\"}";
+        append_event_json(json, result.events[index]);
     }
-    json << "],\"stack\":[";
-    for (std::size_t index = 0; index < result.snapshot.stack.size(); ++index) {
-        if (index != 0) {
-            json << ',';
-        }
-        const auto& entry = result.snapshot.stack[index];
-        json << "{\"level\":" << entry.level
-             << ",\"display\":\"" << json_escape(entry.display) << "\"}";
-    }
-    json << "]}";
+    json << "],\"snapshot\":";
+    append_snapshot_json(json, result.snapshot);
+    json << '}';
     return json.str();
 }
 
@@ -112,6 +188,8 @@ int console_calc_binding_session_initialize(console_calc_binding_session* sessio
     }
 
     session->facade.initialize();
+    session->last_result_json =
+        console_calc::result_to_json({.should_exit = false, .snapshot = session->facade.snapshot()});
     return 0;
 }
 
