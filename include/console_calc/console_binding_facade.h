@@ -17,6 +17,7 @@ class ExpressionParser;
 struct BindingStackEntry {
     std::size_t level = 0;
     std::string display;
+    std::vector<double> list_values;
 };
 
 struct BindingDefinitionEntry {

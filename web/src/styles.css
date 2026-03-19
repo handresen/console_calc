@@ -56,6 +56,20 @@ body {
   padding: 1rem 1.1rem;
 }
 
+.panes-view {
+  display: grid;
+  gap: 1rem;
+  padding: 0;
+}
+
+.info-panel,
+.plot-panel {
+  border: 1px solid rgba(29, 36, 28, 0.1);
+  border-radius: 0.9rem;
+  background: rgba(252, 248, 239, 0.7);
+  padding: 1rem 1.1rem;
+}
+
 .bridge-banner {
   border-bottom: 1px solid rgba(29, 36, 28, 0.1);
   font-size: 0.95rem;
@@ -182,6 +196,35 @@ body {
 
 .pane-empty {
   color: #7d7b73;
+}
+
+.plot-meta {
+  margin-bottom: 0.45rem;
+  color: #5e5a4c;
+  font-size: 0.85rem;
+}
+
+.plot-svg {
+  width: 100%;
+  height: 11rem;
+  border: 1px solid rgba(29, 36, 28, 0.12);
+  border-radius: 0.65rem;
+  background:
+    linear-gradient(180deg, rgba(220, 233, 211, 0.35) 0%, rgba(252, 248, 239, 0.92) 100%);
+}
+
+.plot-grid {
+  stroke: rgba(29, 36, 28, 0.18);
+  stroke-width: 1;
+  fill: none;
+}
+
+.plot-line {
+  stroke: #2e5d31;
+  stroke-width: 2.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 @media (max-width: 900px) {

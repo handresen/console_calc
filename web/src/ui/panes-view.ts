@@ -11,6 +11,17 @@ export interface PanesView {
   render(snapshot: BindingSnapshot): void;
 }
 
+interface PlotSeries {
+  key: string;
+  label: string;
+  values: number[];
+  truncated: boolean;
+}
+
+function isPlotSeries(value: PlotSeries | null): value is PlotSeries {
+  return value !== null;
+}
+
 function renderTextList(container: HTMLElement, values: string[]): void {
   container.replaceChildren();
   if (values.length === 0) {
@@ -43,6 +54,51 @@ function constantDisplay(entry: BindingConstantEntry): string {
 
 function functionDisplay(entry: BindingFunctionEntry): string {
   return `${entry.name}/${entry.arity_label} - ${entry.summary}`;
+}
+
+function parsePlotSeries(entry: BindingStackEntry): PlotSeries | null {
+  const listValues = entry.list_values ?? [];
+  if (listValues.length === 0 && !entry.display.trim().startsWith("{}")) {
+    return null;
+  }
+  const values =
+    listValues.length <= 500
+      ? listValues
+      : Array.from({ length: 500 }, (_, index) => {
+          const sourceIndex = Math.round((index / 499) * (listValues.length - 1));
+          return listValues[sourceIndex] ?? 0;
+        });
+  const truncated = listValues.length > 500;
+
+  return {
+    key: `stack-${entry.level}`,
+    label: `Stack ${entry.level}`,
+    values,
+    truncated,
+  };
+}
+
+function buildPlotPath(values: number[], width: number, height: number): string {
+  if (values.length === 0) {
+    return "";
+  }
+
+  if (values.length === 1) {
+    const y = height / 2;
+    return `M 0 ${y} L ${width} ${y}`;
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+
+  return values
+    .map((value, index) => {
+      const x = (index / (values.length - 1)) * width;
+      const y = height - ((value - min) / range) * height;
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
 }
 
 interface PaneElements {
@@ -92,6 +148,12 @@ export function createPanesView(): PanesView {
   const section = document.createElement("section");
   section.className = "panes-view";
 
+  const infoPanel = document.createElement("section");
+  infoPanel.className = "info-panel";
+
+  const plotPanel = document.createElement("section");
+  plotPanel.className = "plot-panel";
+
   const status = document.createElement("div");
   status.className = "pane-status";
 
@@ -99,14 +161,54 @@ export function createPanesView(): PanesView {
   const definitionsPane = createPane("Definitions");
   const constantsPane = createPane("Constants");
   const functionsPane = createPane("Functions");
+  const plotPane = createPane("Plot");
 
-  section.append(
+  const plotMeta = document.createElement("div");
+  plotMeta.className = "plot-meta";
+
+  const plotSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  plotSvg.setAttribute("viewBox", "0 0 320 180");
+  plotSvg.setAttribute("preserveAspectRatio", "none");
+  plotSvg.classList.add("plot-svg");
+
+  const plotGrid = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  plotGrid.setAttribute("d", "M 0 90 L 320 90 M 0 0 L 0 180 M 0 180 L 320 180");
+  plotGrid.setAttribute("class", "plot-grid");
+
+  const plotLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  plotLine.setAttribute("class", "plot-line");
+
+  plotSvg.append(plotGrid, plotLine);
+  plotPane.body.append(plotMeta, plotSvg);
+
+  const renderPlot = (seriesList: PlotSeries[]) => {
+    plotPane.count.textContent = `${seriesList.length}`;
+
+    if (seriesList.length === 0) {
+      plotMeta.textContent = "No list values in stack";
+      plotLine.setAttribute("d", "");
+      return;
+    }
+
+    const currentSeries = seriesList[seriesList.length - 1];
+    const suffix = currentSeries.truncated ? " | using visible values" : "";
+    plotMeta.textContent = `${currentSeries.label} | ${currentSeries.values.length} points${suffix}`;
+    plotLine.setAttribute("d", buildPlotPath(currentSeries.values, 320, 180));
+  };
+
+  infoPanel.append(
     status,
     stackPane.section,
     definitionsPane.section,
     constantsPane.section,
     functionsPane.section,
   );
+
+  plotPanel.append(
+    plotPane.section,
+  );
+
+  section.append(infoPanel, plotPanel);
 
   return {
     element: section,
@@ -132,6 +234,7 @@ export function createPanesView(): PanesView {
         functionsPane.body,
         snapshot.functions.map((entry) => functionDisplay(entry)),
       );
+      renderPlot(snapshot.stack.map((entry) => parsePlotSeries(entry)).filter(isPlotSeries));
     },
   };
 }

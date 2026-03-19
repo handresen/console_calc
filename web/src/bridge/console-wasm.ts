@@ -1,6 +1,7 @@
 export interface BindingStackEntry {
   level: number;
   display: string;
+  list_values?: number[];
 }
 
 export interface BindingDefinitionEntry {

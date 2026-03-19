@@ -24,6 +24,21 @@ struct ConsoleBindingFacade::Impl {
 
 namespace {
 
+std::vector<double> to_binding_list_values(const Value& value) {
+    if (!std::holds_alternative<ListValue>(value)) {
+        return {};
+    }
+
+    std::vector<double> output;
+    const auto& list = std::get<ListValue>(value);
+    output.reserve(list.size());
+    for (const auto& scalar : list) {
+        output.push_back(std::visit(
+            [](const auto raw_value) { return static_cast<double>(raw_value); }, scalar));
+    }
+    return output;
+}
+
 std::string display_mode_name(IntegerDisplayMode mode) {
     switch (mode) {
     case IntegerDisplayMode::decimal:
@@ -54,6 +69,7 @@ BindingStackEntry to_binding_entry(const StackEntryView& entry, IntegerDisplayMo
     return BindingStackEntry{
         .level = entry.level,
         .display = format_console_value(entry.value, mode),
+        .list_values = to_binding_list_values(entry.value),
     };
 }
 

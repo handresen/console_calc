@@ -75,7 +75,14 @@ void append_stack_json(std::ostringstream& json, std::span<const BindingStackEnt
         }
         const auto& entry = stack[index];
         json << "{\"level\":" << entry.level << ",\"display\":\"" << json_escape(entry.display)
-             << "\"}";
+             << "\",\"list_values\":[";
+        for (std::size_t value_index = 0; value_index < entry.list_values.size(); ++value_index) {
+            if (value_index != 0) {
+                json << ',';
+            }
+            json << entry.list_values[value_index];
+        }
+        json << "]}";
     }
     json << ']';
 }
