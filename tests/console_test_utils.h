@@ -126,4 +126,52 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
     return false;
 }
 
+[[nodiscard]] inline bool expect_single_stack_listing_event(
+    std::string_view label, const ConsoleEngineCommandResult& result) {
+    if (result.events.size() == 1 &&
+        result.events[0].kind == ConsoleOutputEventKind::stack_listing) {
+        return true;
+    }
+
+    std::fprintf(stderr, "%.*s expected one stack listing event, got %zu events\n",
+                 static_cast<int>(label.size()), label.data(), result.events.size());
+    return false;
+}
+
+[[nodiscard]] inline bool expect_single_definition_listing_event(
+    std::string_view label, const ConsoleEngineCommandResult& result) {
+    if (result.events.size() == 1 &&
+        result.events[0].kind == ConsoleOutputEventKind::definition_listing) {
+        return true;
+    }
+
+    std::fprintf(stderr, "%.*s expected one definition listing event, got %zu events\n",
+                 static_cast<int>(label.size()), label.data(), result.events.size());
+    return false;
+}
+
+[[nodiscard]] inline bool expect_single_constant_listing_event(
+    std::string_view label, const ConsoleEngineCommandResult& result) {
+    if (result.events.size() == 1 &&
+        result.events[0].kind == ConsoleOutputEventKind::constant_listing) {
+        return true;
+    }
+
+    std::fprintf(stderr, "%.*s expected one constant listing event, got %zu events\n",
+                 static_cast<int>(label.size()), label.data(), result.events.size());
+    return false;
+}
+
+[[nodiscard]] inline bool expect_single_function_listing_event(
+    std::string_view label, const ConsoleEngineCommandResult& result) {
+    if (result.events.size() == 1 &&
+        result.events[0].kind == ConsoleOutputEventKind::function_listing) {
+        return true;
+    }
+
+    std::fprintf(stderr, "%.*s expected one function listing event, got %zu events\n",
+                 static_cast<int>(label.size()), label.data(), result.events.size());
+    return false;
+}
+
 }  // namespace console_calc::test

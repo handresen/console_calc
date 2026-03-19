@@ -12,7 +12,10 @@ namespace {
 
 using console_calc::test::definitions_equal;
 using console_calc::test::expect_single_error_event;
-using console_calc::test::expect_single_text_event;
+using console_calc::test::expect_single_constant_listing_event;
+using console_calc::test::expect_single_definition_listing_event;
+using console_calc::test::expect_single_function_listing_event;
+using console_calc::test::expect_single_stack_listing_event;
 using console_calc::test::expect_single_value_event;
 
 class FakeCurrencyRateProvider final : public console_calc::CurrencyRateProvider {
@@ -91,7 +94,11 @@ bool expect_engine_display_mode_and_stack_state() {
     }
 
     const auto stack_result = engine.submit("s");
-    if (!expect_single_text_event("engine list stack", stack_result, "0:0xff\n")) {
+    if (!expect_single_stack_listing_event("engine list stack", stack_result) ||
+        stack_result.events[0].stack_entries.size() != 1 ||
+        stack_result.events[0].stack_entries[0].level != 0 ||
+        !std::holds_alternative<std::int64_t>(stack_result.events[0].stack_entries[0].value) ||
+        std::get<std::int64_t>(stack_result.events[0].stack_entries[0].value) != 255) {
         return false;
     }
 
@@ -141,7 +148,7 @@ bool expect_engine_stack_commands() {
            clear_result.state.max_stack_depth == 100;
 }
 
-bool expect_engine_listing_text_events() {
+bool expect_engine_listing_events() {
     console_calc::ExpressionParser parser;
     const console_calc::ConstantTable constants = default_constants();
     console_calc::ConsoleSessionEngine engine(parser, constants);
@@ -150,53 +157,33 @@ bool expect_engine_listing_text_events() {
     (void)engine.submit("x:pi+1");
 
     const auto vars_result = engine.submit("vars");
-    if (!expect_single_text_event("engine vars", vars_result, "x:pi+1\n")) {
+    if (!expect_single_definition_listing_event("engine vars", vars_result) ||
+        vars_result.events[0].definitions.size() != 1 ||
+        vars_result.events[0].definitions[0].name != "x" ||
+        vars_result.events[0].definitions[0].expression != "pi+1") {
         return false;
     }
 
     const auto consts_result = engine.submit("consts");
-    if (!expect_single_text_event(
-            "engine consts", consts_result,
-            "e:2.7182818284590451\npi:3.1415926535897931\ntau:6.2831853071795862\n")) {
+    if (!expect_single_constant_listing_event("engine consts", consts_result) ||
+        consts_result.events[0].constants.size() != 3 ||
+        consts_result.events[0].constants[0].name != "e" ||
+        !std::holds_alternative<double>(consts_result.events[0].constants[0].value) ||
+        std::get<double>(consts_result.events[0].constants[0].value) !=
+            2.7182818284590451) {
         return false;
     }
 
     const auto funcs_result = engine.submit("funcs");
-    return expect_single_text_event(
-        "engine funcs", funcs_result,
-        "Scalar functions\n"
-        "  abs/1       absolute value\n"
-        "  cos/1       cosine in radians\n"
-        "  cosd/1      cosine in degrees\n"
-        "  pow/2       power\n"
-        "  sin/1       sine in radians\n"
-        "  sind/1      sine in degrees\n"
-        "  sqrt/1      square root\n"
-        "  tan/1       tangent in radians\n"
-        "  tand/1      tangent in degrees\n"
-        "\n"
-        "List functions\n"
-        "  avg/1       average of list elements\n"
-        "  drop/2      drop first n list elements\n"
-        "  first/2     first n list elements\n"
-        "  len/1       list length\n"
-        "  list_add/2  add matching list elements\n"
-        "  list_div/2  divide matching list elements\n"
-        "  list_mul/2  multiply matching list elements\n"
-        "  list_sub/2  subtract matching list elements\n"
-        "  map/2       map unary scalar builtin over list\n"
-        "  max/1       maximum list element\n"
-        "  min/1       minimum list element\n"
-        "  product/1   product of list elements\n"
-        "  reduce/2    reduce list with binary operator\n"
-        "  sum/1       sum list elements\n"
-        "\n"
-        "List generation functions\n"
-        "  geom/2-3    generate geometric series from start\n"
-        "  linspace/3  generate evenly spaced values over interval\n"
-        "  powers/2-3  generate successive integer powers\n"
-        "  range/2-3   generate linear series from start\n"
-        "  repeat/2    repeat value count times\n");
+    return expect_single_function_listing_event("engine funcs", funcs_result) &&
+           !funcs_result.events[0].functions.empty() &&
+           funcs_result.events[0].functions.front().name == "abs" &&
+           funcs_result.events[0].functions.front().arity_label == "1" &&
+           funcs_result.events[0].functions.front().category ==
+               console_calc::BuiltinFunctionCategory::scalar &&
+           funcs_result.events[0].functions.back().name == "repeat" &&
+           funcs_result.events[0].functions.back().category ==
+               console_calc::BuiltinFunctionCategory::list_generation;
 }
 
 bool expect_engine_currency_refresh() {
@@ -318,7 +305,7 @@ int main() {
     if (!expect_engine_stack_commands()) {
         return EXIT_FAILURE;
     }
-    if (!expect_engine_listing_text_events()) {
+    if (!expect_engine_listing_events()) {
         return EXIT_FAILURE;
     }
     if (!expect_engine_currency_refresh()) {

@@ -7,10 +7,10 @@
 #include <vector>
 
 #include "console_command.h"
+#include "console_listing.h"
 #include "currency_rate_provider.h"
 #include "expression_environment.h"
 #include "console_calc/value.h"
-#include "console_calc/value_format.h"
 
 namespace console_calc {
 
@@ -26,6 +26,10 @@ struct ConsoleSessionState {
 enum class ConsoleOutputEventKind {
     value,
     text,
+    stack_listing,
+    definition_listing,
+    constant_listing,
+    function_listing,
     error,
 };
 
@@ -33,6 +37,10 @@ struct ConsoleOutputEvent {
     ConsoleOutputEventKind kind = ConsoleOutputEventKind::text;
     std::optional<Value> value;
     std::string text;
+    std::vector<StackEntryView> stack_entries;
+    std::vector<DefinitionView> definitions;
+    std::vector<ConstantView> constants;
+    std::vector<FunctionView> functions;
 };
 
 struct ConsoleEngineCommandResult {

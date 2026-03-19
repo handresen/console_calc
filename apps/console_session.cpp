@@ -88,6 +88,26 @@ int ConsoleSession::handle_line(std::string_view line) {
             continue;
         }
 
+        if (event.kind == ConsoleOutputEventKind::stack_listing) {
+            output_ << format_stack_listing(event.stack_entries, result.state.display_mode);
+            continue;
+        }
+
+        if (event.kind == ConsoleOutputEventKind::definition_listing) {
+            output_ << format_definition_listing(event.definitions);
+            continue;
+        }
+
+        if (event.kind == ConsoleOutputEventKind::constant_listing) {
+            output_ << format_constant_listing(event.constants);
+            continue;
+        }
+
+        if (event.kind == ConsoleOutputEventKind::function_listing) {
+            output_ << format_builtin_function_listing(event.functions);
+            continue;
+        }
+
         error_ << "error: " << event.text << '\n';
     }
 

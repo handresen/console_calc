@@ -67,8 +67,12 @@ std::vector<StackEntryView> stack_entry_views(std::span<const Value> values) {
 }
 
 std::string format_stack_listing(std::span<const Value> values, IntegerDisplayMode mode) {
+    return format_stack_listing(stack_entry_views(values), mode);
+}
+
+std::string format_stack_listing(std::span<const StackEntryView> entries, IntegerDisplayMode mode) {
     std::string output;
-    for (const auto& entry : stack_entry_views(values)) {
+    for (const auto& entry : entries) {
         output += std::to_string(entry.level);
         output += ':';
         output += format_console_value(entry.value, mode);
@@ -103,8 +107,12 @@ std::vector<DefinitionView> definition_views(const DefinitionTable& definitions)
 }
 
 std::string format_definition_listing(const DefinitionTable& definitions) {
+    return format_definition_listing(definition_views(definitions));
+}
+
+std::string format_definition_listing(std::span<const DefinitionView> definitions) {
     std::string output;
-    for (const auto& view : definition_views(definitions)) {
+    for (const auto& view : definitions) {
         output += view.name;
         output += ':';
         output += view.expression;
@@ -130,8 +138,12 @@ std::vector<ConstantView> constant_views(const ConstantTable& constants) {
 }
 
 std::string format_constant_listing(const ConstantTable& constants) {
+    return format_constant_listing(constant_views(constants));
+}
+
+std::string format_constant_listing(std::span<const ConstantView> constants) {
     std::string output;
-    for (const auto& view : constant_views(constants)) {
+    for (const auto& view : constants) {
         output += view.name;
         output += ':';
         output += format_scalar(view.value);
@@ -162,7 +174,10 @@ std::vector<FunctionView> builtin_function_views(std::span<const BuiltinFunction
 }
 
 std::string format_builtin_function_listing(std::span<const BuiltinFunctionInfo> functions) {
-    const auto views = builtin_function_views(functions);
+    return format_builtin_function_listing(builtin_function_views(functions));
+}
+
+std::string format_builtin_function_listing(std::span<const FunctionView> views) {
     std::vector<FunctionView> scalar_entries;
     std::vector<FunctionView> list_entries;
     std::vector<FunctionView> list_generation_entries;

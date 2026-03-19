@@ -33,6 +33,13 @@ namespace {
     return std::string(text.substr(begin, end - begin));
 }
 
+[[nodiscard]] bool is_listing_command(ConsoleCommandKind command) {
+    return command == ConsoleCommandKind::list_stack ||
+           command == ConsoleCommandKind::list_variables ||
+           command == ConsoleCommandKind::list_constants ||
+           command == ConsoleCommandKind::list_functions;
+}
+
 }  // namespace
 
 ConsoleSessionEngine::ConsoleSessionEngine(const ExpressionParser& parser,
@@ -80,24 +87,45 @@ ConsoleEngineCommandResult ConsoleSessionEngine::submit(std::string_view line) {
             return result;
         }
 
+        if (is_listing_command(command.kind)) {
+            ConsoleOutputEvent event;
+            switch (command.kind) {
+            case ConsoleCommandKind::list_stack:
+                event.kind = ConsoleOutputEventKind::stack_listing;
+                event.stack_entries = stack_entry_views(result_stack_);
+                break;
+            case ConsoleCommandKind::list_variables:
+                event.kind = ConsoleOutputEventKind::definition_listing;
+                event.definitions = definition_views(definitions_);
+                break;
+            case ConsoleCommandKind::list_constants:
+                event.kind = ConsoleOutputEventKind::constant_listing;
+                event.constants = constant_views(constants_);
+                break;
+            case ConsoleCommandKind::list_functions:
+                event.kind = ConsoleOutputEventKind::function_listing;
+                event.functions = builtin_function_views(builtin_functions());
+                break;
+            default:
+                break;
+            }
+            result.events.push_back(std::move(event));
+            result.state = state();
+            return result;
+        }
+
         if (is_non_evaluating_console_command(command.kind)) {
-            std::vector<std::string> output_lines;
+            std::vector<std::string> ignored_output_lines;
             StringConsoleCommandExecutionContext context{
                 .result_stack = result_stack_,
                 .max_stack_depth = max_stack_depth_,
                 .definitions = definitions_,
                 .constants = constants_,
                 .display_mode = display_mode_,
-                .output_lines = output_lines,
+                .output_lines = ignored_output_lines,
                 .mutable_stack = result_stack_,
             };
             execute_non_evaluating_console_command(command.kind, context);
-            for (const auto& line : context.output_lines) {
-                result.events.push_back(ConsoleOutputEvent{
-                    .kind = ConsoleOutputEventKind::text,
-                    .text = line,
-                });
-            }
             result.state = state();
             return result;
         }
