@@ -40,6 +40,42 @@ function renderTextList(container: HTMLElement, values: string[]): void {
   }
 }
 
+function renderFunctionTable(
+  container: HTMLElement,
+  values: BindingFunctionEntry[],
+): void {
+  container.replaceChildren();
+  if (values.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "pane-empty";
+    empty.textContent = "Empty";
+    container.append(empty);
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "function-table";
+
+  const body = document.createElement("tbody");
+  for (const value of values) {
+    const row = document.createElement("tr");
+
+    const signature = document.createElement("td");
+    signature.className = "function-signature";
+    signature.textContent = value.signature;
+
+    const summary = document.createElement("td");
+    summary.className = "function-summary";
+    summary.textContent = value.summary;
+
+    row.append(signature, summary);
+    body.append(row);
+  }
+
+  table.append(body);
+  container.append(table);
+}
+
 function stackDisplay(entry: BindingStackEntry): string {
   return `${entry.level}:${entry.display}`;
 }
@@ -50,10 +86,6 @@ function definitionDisplay(entry: BindingDefinitionEntry): string {
 
 function constantDisplay(entry: BindingConstantEntry): string {
   return `${entry.name}:${entry.value}`;
-}
-
-function functionDisplay(entry: BindingFunctionEntry): string {
-  return `${entry.signature} - ${entry.summary}`;
 }
 
 function parsePlotSeries(entry: BindingStackEntry): PlotSeries | null {
@@ -99,6 +131,23 @@ function buildPlotPath(values: number[], width: number, height: number): string 
       return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
     })
     .join(" ");
+}
+
+function buildZeroAxisPath(values: number[], width: number, height: number): string {
+  if (values.length === 0) {
+    return `M 0 ${height} L ${width} ${height}`;
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+
+  if (min > 0 || max < 0) {
+    return "";
+  }
+
+  const range = max - min || 1;
+  const y = height - ((0 - min) / range) * height;
+  return `M 0 ${y.toFixed(2)} L ${width} ${y.toFixed(2)}`;
 }
 
 interface PaneElements {
@@ -163,6 +212,8 @@ export function createPanesView(): PanesView {
   const functionsPane = createPane("Functions");
   const plotPane = createPane("Plot");
 
+  functionsPane.body.classList.add("functions-pane-body");
+
   const plotMeta = document.createElement("div");
   plotMeta.className = "plot-meta";
 
@@ -172,13 +223,16 @@ export function createPanesView(): PanesView {
   plotSvg.classList.add("plot-svg");
 
   const plotGrid = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  plotGrid.setAttribute("d", "M 0 90 L 320 90 M 0 0 L 0 180 M 0 180 L 320 180");
+  plotGrid.setAttribute("d", "M 0 0 L 0 180 M 0 180 L 320 180");
   plotGrid.setAttribute("class", "plot-grid");
+
+  const plotZeroAxis = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  plotZeroAxis.setAttribute("class", "plot-zero-axis");
 
   const plotLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
   plotLine.setAttribute("class", "plot-line");
 
-  plotSvg.append(plotGrid, plotLine);
+  plotSvg.append(plotGrid, plotZeroAxis, plotLine);
   plotPane.body.append(plotMeta, plotSvg);
 
   const renderPlot = (seriesList: PlotSeries[]) => {
@@ -186,6 +240,7 @@ export function createPanesView(): PanesView {
 
     if (seriesList.length === 0) {
       plotMeta.textContent = "No list values in stack";
+      plotZeroAxis.setAttribute("d", "");
       plotLine.setAttribute("d", "");
       return;
     }
@@ -193,6 +248,7 @@ export function createPanesView(): PanesView {
     const currentSeries = seriesList[seriesList.length - 1];
     const suffix = currentSeries.truncated ? " | using visible values" : "";
     plotMeta.textContent = `${currentSeries.label} | ${currentSeries.values.length} points${suffix}`;
+    plotZeroAxis.setAttribute("d", buildZeroAxisPath(currentSeries.values, 320, 180));
     plotLine.setAttribute("d", buildPlotPath(currentSeries.values, 320, 180));
   };
 
@@ -230,10 +286,7 @@ export function createPanesView(): PanesView {
         constantsPane.body,
         snapshot.constants.map((entry) => constantDisplay(entry)),
       );
-      renderTextList(
-        functionsPane.body,
-        snapshot.functions.map((entry) => functionDisplay(entry)),
-      );
+      renderFunctionTable(functionsPane.body, snapshot.functions);
       renderPlot(snapshot.stack.map((entry) => parsePlotSeries(entry)).filter(isPlotSeries));
     },
   };
