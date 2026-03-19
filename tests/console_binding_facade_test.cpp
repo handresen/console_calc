@@ -3,8 +3,9 @@
 #include <span>
 #include <string_view>
 
-#include "console_binding_facade.h"
+#include "console_calc/console_binding_facade.h"
 #include "console_calc/expression_parser.h"
+#include "currency_rate_provider.h"
 
 namespace {
 

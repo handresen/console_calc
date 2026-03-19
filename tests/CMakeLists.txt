@@ -99,7 +99,7 @@ target_include_directories(console_calc_binding_facade_test
 
 target_link_libraries(console_calc_binding_facade_test
     PRIVATE
-        console_calc_app_lib
+        console_calc_host_lib
 )
 
 add_test(NAME console_calc_binding_facade_test COMMAND $<TARGET_FILE:console_calc_binding_facade_test>)

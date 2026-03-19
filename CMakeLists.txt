@@ -48,7 +48,6 @@ target_compile_features(console_calc_lib PUBLIC cxx_std_20)
 add_library(console_calc_app_lib
     apps/console_calc_app.cpp
     apps/console_assignment.cpp
-    apps/console_binding_facade.cpp
     apps/console_command.cpp
     apps/console_command_executor.cpp
     apps/console_history.cpp
@@ -78,6 +77,25 @@ target_link_libraries(console_calc_app_lib
 )
 
 target_compile_features(console_calc_app_lib PUBLIC cxx_std_20)
+
+add_library(console_calc_host_lib
+    src/console_binding_facade.cpp
+)
+
+target_include_directories(console_calc_host_lib
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/include
+        ${PROJECT_SOURCE_DIR}/apps
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/src
+)
+
+target_link_libraries(console_calc_host_lib
+    PRIVATE
+        console_calc_app_lib
+)
+
+target_compile_features(console_calc_host_lib PUBLIC cxx_std_20)
 
 add_executable(console_calc
     apps/console_calc_main.cpp

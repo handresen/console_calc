@@ -1,12 +1,26 @@
-#include "console_binding_facade.h"
+#include "console_calc/console_binding_facade.h"
 
 #include <string>
 #include <utility>
 
-#include "console_calc/expression_parser.h"
 #include "console_listing.h"
+#include "console_session_engine.h"
+#include "console_calc/builtin_function.h"
+#include "console_calc/expression_parser.h"
 
 namespace console_calc {
+
+struct ConsoleBindingFacade::Impl {
+    ConstantTable constants;
+    ConsoleSessionEngine engine;
+
+    Impl(const ExpressionParser& parser, const ConstantTable& constants_table,
+         CurrencyRateProvider* currency_rate_provider,
+         std::chrono::milliseconds currency_rate_timeout, bool auto_refresh_currency_rates)
+        : constants(constants_table),
+          engine(parser, constants, currency_rate_provider, currency_rate_timeout,
+                 auto_refresh_currency_rates) {}
+};
 
 namespace {
 
@@ -146,14 +160,15 @@ ConsoleBindingFacade::ConsoleBindingFacade(const ExpressionParser& parser,
                                            CurrencyRateProvider* currency_rate_provider,
                                            std::chrono::milliseconds currency_rate_timeout,
                                            bool auto_refresh_currency_rates)
-    : constants_(constants),
-      engine_(parser, constants_, currency_rate_provider, currency_rate_timeout,
-              auto_refresh_currency_rates) {}
+    : impl_(std::make_unique<Impl>(parser, constants, currency_rate_provider,
+                                   currency_rate_timeout, auto_refresh_currency_rates)) {}
 
-void ConsoleBindingFacade::initialize() { engine_.initialize(); }
+ConsoleBindingFacade::~ConsoleBindingFacade() = default;
+
+void ConsoleBindingFacade::initialize() { impl_->engine.initialize(); }
 
 BindingCommandResult ConsoleBindingFacade::submit(std::string_view input) {
-    const ConsoleCommandResult result = engine_.submit(input);
+    const ConsoleCommandResult result = impl_->engine.submit(input);
 
     BindingCommandResult binding_result{
         .should_exit = result.should_exit,
@@ -167,7 +182,7 @@ BindingCommandResult ConsoleBindingFacade::submit(std::string_view input) {
 }
 
 BindingSnapshot ConsoleBindingFacade::snapshot() const {
-    return to_binding_snapshot(engine_.state());
+    return to_binding_snapshot(impl_->engine.state());
 }
 
 }  // namespace console_calc
