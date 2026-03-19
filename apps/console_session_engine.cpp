@@ -53,7 +53,7 @@ void ConsoleSessionEngine::initialize() {
     initialized_ = true;
 
     if (auto_refresh_currency_rates_) {
-        ConsoleEngineCommandResult ignored;
+        ConsoleEngineCommandResult ignored = make_result();
         refresh_currency_rates(false, ignored);
     }
 }
@@ -61,45 +61,59 @@ void ConsoleSessionEngine::initialize() {
 ConsoleEngineCommandResult ConsoleSessionEngine::submit(std::string_view line) {
     initialize();
 
-    ConsoleEngineCommandResult result;
+    ConsoleEngineCommandResult result = make_result();
     const std::string trimmed = trim(line);
     if (trimmed.empty()) {
         return result;
     }
 
-    if (try_handle_hidden_command(trimmed, result)) {
-        return result;
-    }
-
-    const ConsoleCommand command = classify_console_command(trimmed);
-    if (command.kind == ConsoleCommandKind::quit) {
-        result.should_exit = true;
-        return result;
-    }
-
     try {
+        if (try_handle_hidden_command(trimmed, result)) {
+            result.state = state();
+            return result;
+        }
+
+        const ConsoleCommand command = classify_console_command(trimmed);
+        if (command.kind == ConsoleCommandKind::quit) {
+            result = make_result(true);
+            return result;
+        }
+
         if (command.kind == ConsoleCommandKind::refresh_currency_rates) {
             refresh_currency_rates(true, result);
+            result.state = state();
             return result;
         }
 
         if (is_non_evaluating_console_command(command.kind)) {
+            std::vector<std::string> output_lines;
             StringConsoleCommandExecutionContext context{
                 .result_stack = result_stack_,
                 .max_stack_depth = max_stack_depth_,
                 .definitions = definitions_,
                 .constants = constants_,
                 .display_mode = display_mode_,
-                .output_lines = result.output_lines,
+                .output_lines = output_lines,
                 .mutable_stack = result_stack_,
             };
             execute_non_evaluating_console_command(command.kind, context);
+            for (const auto& line : context.output_lines) {
+                result.events.push_back(ConsoleOutputEvent{
+                    .kind = ConsoleOutputEventKind::text,
+                    .text = line,
+                });
+            }
+            result.state = state();
             return result;
         }
 
         if (command.kind == ConsoleCommandKind::stack_operator) {
             const Value stack_result = apply_stack_operator(command.stack_operator);
-            result.emitted_values.push_back(stack_result);
+            result.events.push_back(ConsoleOutputEvent{
+                .kind = ConsoleOutputEventKind::value,
+                .value = stack_result,
+            });
+            result.state = state();
             return result;
         }
 
@@ -111,6 +125,7 @@ ConsoleEngineCommandResult ConsoleSessionEngine::submit(std::string_view line) {
                     throw std::invalid_argument("cannot redefine constant: " + assignment->name);
                 }
                 assign_definition(assignment->name, assignment->expression, result_reference);
+                result.state = state();
                 return result;
             }
         }
@@ -118,12 +133,28 @@ ConsoleEngineCommandResult ConsoleSessionEngine::submit(std::string_view line) {
         const Value evaluation_result = evaluate_expanded_expression(
             parser_, trimmed, constants_, definitions_, result_reference);
         push_result(evaluation_result);
-        result.emitted_values.push_back(evaluation_result);
+        result.events.push_back(ConsoleOutputEvent{
+            .kind = ConsoleOutputEventKind::value,
+            .value = evaluation_result,
+        });
     } catch (const std::exception& ex) {
-        result.error_lines.emplace_back(ex.what());
+        result.events.push_back(ConsoleOutputEvent{
+            .kind = ConsoleOutputEventKind::error,
+            .text = ex.what(),
+        });
     }
 
+    result.state = state();
     return result;
+}
+
+ConsoleSessionState ConsoleSessionEngine::state() const {
+    return ConsoleSessionState{
+        .stack = result_stack_,
+        .max_stack_depth = max_stack_depth_,
+        .definitions = definitions_,
+        .display_mode = display_mode_,
+    };
 }
 
 std::size_t ConsoleSessionEngine::stack_depth() const { return result_stack_.size(); }
@@ -135,6 +166,13 @@ std::span<const Value> ConsoleSessionEngine::stack() const { return result_stack
 const DefinitionTable& ConsoleSessionEngine::definitions() const { return definitions_; }
 
 const ConstantTable& ConsoleSessionEngine::constants() const { return constants_; }
+
+ConsoleEngineCommandResult ConsoleSessionEngine::make_result(bool should_exit) const {
+    return ConsoleEngineCommandResult{
+        .should_exit = should_exit,
+        .state = state(),
+    };
+}
 
 bool ConsoleSessionEngine::try_handle_hidden_command(std::string_view line,
                                                      ConsoleEngineCommandResult&) {

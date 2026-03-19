@@ -1,8 +1,13 @@
 #pragma once
 
 #include <cstdio>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+
+#include "expression_environment.h"
+#include "console_session_engine.h"
 
 namespace console_calc::test {
 
@@ -49,6 +54,76 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
     }
 
     return matches;
+}
+
+[[nodiscard]] inline bool definitions_equal(const DefinitionTable& lhs, const DefinitionTable& rhs) {
+    if (lhs.size() != rhs.size()) {
+        return false;
+    }
+
+    for (const auto& [name, definition] : lhs) {
+        const auto found = rhs.find(name);
+        if (found == rhs.end() || found->second.expression != definition.expression) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+[[nodiscard]] inline bool expect_single_value_event(std::string_view label,
+                                                    const ConsoleEngineCommandResult& result) {
+    if (result.events.size() == 1 &&
+        result.events[0].kind == ConsoleOutputEventKind::value &&
+        result.events[0].value.has_value()) {
+        return true;
+    }
+
+    std::fprintf(stderr, "%.*s expected one value event, got %zu events\n",
+                 static_cast<int>(label.size()), label.data(), result.events.size());
+    return false;
+}
+
+[[nodiscard]] inline bool expect_single_text_event(std::string_view label,
+                                                   const ConsoleEngineCommandResult& result,
+                                                   std::string_view expected_text) {
+    if (result.events.size() == 1 &&
+        result.events[0].kind == ConsoleOutputEventKind::text &&
+        result.events[0].text == expected_text) {
+        return true;
+    }
+
+    std::fprintf(stderr, "%.*s text event mismatch\n", static_cast<int>(label.size()),
+                 label.data());
+    std::fprintf(stderr, "expected: [%.*s]\n", static_cast<int>(expected_text.size()),
+                 expected_text.data());
+    if (result.events.size() == 1) {
+        std::fprintf(stderr, "actual:   [%s]\n", result.events[0].text.c_str());
+    } else {
+        std::fprintf(stderr, "actual:   [%zu events]\n", result.events.size());
+    }
+    return false;
+}
+
+[[nodiscard]] inline bool expect_single_error_event(std::string_view label,
+                                                    const ConsoleEngineCommandResult& result,
+                                                    std::string_view expected_text) {
+    if (result.events.size() == 1 &&
+        result.events[0].kind == ConsoleOutputEventKind::error &&
+        result.events[0].text == expected_text) {
+        return true;
+    }
+
+    std::fprintf(stderr, "%.*s error event mismatch\n", static_cast<int>(label.size()),
+                 label.data());
+    std::fprintf(stderr, "expected: [%.*s]\n", static_cast<int>(expected_text.size()),
+                 expected_text.data());
+    if (result.events.size() == 1) {
+        std::fprintf(stderr, "actual:   [%s]\n", result.events[0].text.c_str());
+    } else {
+        std::fprintf(stderr, "actual:   [%zu events]\n", result.events.size());
+    }
+    return false;
 }
 
 }  // namespace console_calc::test
