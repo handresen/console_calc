@@ -51,8 +51,41 @@ bool expect_c_api_round_trip() {
     return ok;
 }
 
+bool expect_c_api_invalid_input_error_result() {
+    console_calc_binding_session* const session = console_calc_binding_session_create();
+    if (session == nullptr) {
+        std::cerr << "Failed to create binding session\n";
+        return false;
+    }
+
+    const auto cleanup = [&]() { console_calc_binding_session_destroy(session); };
+
+    if (console_calc_binding_session_initialize(session) != 0) {
+        std::cerr << "Failed to initialize binding session\n";
+        cleanup();
+        return false;
+    }
+
+    if (console_calc_binding_session_submit(session, "guard()") != 0) {
+        std::cerr << "Failed to submit invalid expression to binding session\n";
+        cleanup();
+        return false;
+    }
+
+    const std::string_view result_json = console_calc_binding_session_last_result_json(session);
+    const bool ok =
+        expect_contains(result_json, "\"kind\":\"error\"", "error event kind") &&
+        expect_contains(result_json, "function 'guard' expects guard(expr, fallback)",
+                        "guard signature error");
+
+    cleanup();
+    return ok;
+}
+
 }  // namespace
 
 int main() {
-    return expect_c_api_round_trip() ? EXIT_SUCCESS : EXIT_FAILURE;
+    return expect_c_api_round_trip() && expect_c_api_invalid_input_error_result()
+               ? EXIT_SUCCESS
+               : EXIT_FAILURE;
 }

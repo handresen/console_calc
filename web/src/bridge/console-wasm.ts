@@ -67,6 +67,7 @@ interface ConsoleCalcWasmModuleFactory {
 export class ConsoleWasmBridge {
   private modulePromise: Promise<ConsoleCalcWasmModule> | null = null;
   private sessionPointer: number | null = null;
+  private readonly cacheBust = `${Date.now()}`;
 
   async initialize(): Promise<BindingCommandResult> {
     const module = await this.loadModule();
@@ -123,7 +124,11 @@ export class ConsoleWasmBridge {
 
   private async loadModule(): Promise<ConsoleCalcWasmModule> {
     if (this.modulePromise === null) {
-      const moduleUrl = new URL("./wasm/console_calc.mjs", window.location.href).toString();
+      const modulePath = new URL("./wasm/console_calc.mjs", window.location.href);
+      if (import.meta.env.DEV) {
+        modulePath.searchParams.set("t", this.cacheBust);
+      }
+      const moduleUrl = modulePath.toString();
       this.modulePromise = import(/* @vite-ignore */ moduleUrl).then(
         async (module): Promise<ConsoleCalcWasmModule> => {
           const factory = module.default as ConsoleCalcWasmModuleFactory;

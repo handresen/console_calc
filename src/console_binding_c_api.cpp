@@ -174,6 +174,19 @@ std::string result_to_json(const BindingCommandResult& result) {
     return json.str();
 }
 
+BindingCommandResult error_result_for_session(const console_calc_binding_session& session,
+                                              std::string_view message) {
+    return BindingCommandResult{
+        .should_exit = false,
+        .events =
+            {BindingEvent{
+                .kind = BindingEventKind::error,
+                .text = std::string(message),
+            }},
+        .snapshot = session.facade.snapshot(),
+    };
+}
+
 }  // namespace
 
 }  // namespace console_calc
@@ -193,9 +206,17 @@ int console_calc_binding_session_initialize(console_calc_binding_session* sessio
         return 1;
     }
 
-    session->facade.initialize();
-    session->last_result_json =
-        console_calc::result_to_json({.should_exit = false, .snapshot = session->facade.snapshot()});
+    try {
+        session->facade.initialize();
+        session->last_result_json = console_calc::result_to_json(
+            {.should_exit = false, .snapshot = session->facade.snapshot()});
+    } catch (const std::exception& error) {
+        session->last_result_json = console_calc::result_to_json(
+            console_calc::error_result_for_session(*session, error.what()));
+    } catch (...) {
+        session->last_result_json = console_calc::result_to_json(
+            console_calc::error_result_for_session(*session, "unknown binding failure"));
+    }
     return 0;
 }
 
@@ -204,8 +225,16 @@ int console_calc_binding_session_submit(console_calc_binding_session* session, c
         return 1;
     }
 
-    const auto result = session->facade.submit(input);
-    session->last_result_json = console_calc::result_to_json(result);
+    try {
+        const auto result = session->facade.submit(input);
+        session->last_result_json = console_calc::result_to_json(result);
+    } catch (const std::exception& error) {
+        session->last_result_json = console_calc::result_to_json(
+            console_calc::error_result_for_session(*session, error.what()));
+    } catch (...) {
+        session->last_result_json = console_calc::result_to_json(
+            console_calc::error_result_for_session(*session, "unknown binding failure"));
+    }
     return 0;
 }
 

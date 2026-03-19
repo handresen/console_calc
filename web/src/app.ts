@@ -3,6 +3,28 @@ import { createPanesView } from "./ui/panes-view";
 import { createPromptView } from "./ui/prompt-view";
 import { createTranscriptView } from "./ui/transcript-view";
 
+function expectedFunctionSignature(
+  result: BindingCommandResult,
+  input?: string,
+): string | null {
+  if (input === undefined) {
+    return null;
+  }
+
+  const match = input.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(/);
+  if (match === null) {
+    return null;
+  }
+
+  const functionName = match[1];
+  if (functionName === undefined) {
+    return null;
+  }
+
+  const functionEntry = result.snapshot.functions.find((entry) => entry.name === functionName);
+  return functionEntry?.signature ?? null;
+}
+
 export function createApp(root: HTMLElement): void {
   root.replaceChildren();
 
@@ -38,6 +60,15 @@ export function createApp(root: HTMLElement): void {
           break;
         case "error":
           transcript.appendMessage(`error: ${event.text}`, "error");
+          {
+            const signature = expectedFunctionSignature(result, input);
+            if (
+              signature !== null &&
+              !event.text.includes(signature)
+            ) {
+              transcript.appendMessage(`expected: ${signature}`, "listing");
+            }
+          }
           break;
         case "text":
           transcript.appendMessage(event.text, "text");

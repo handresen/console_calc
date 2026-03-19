@@ -109,6 +109,21 @@ target_link_libraries(console_calc_host_lib
 target_compile_features(console_calc_host_lib PUBLIC cxx_std_20)
 
 if(EMSCRIPTEN)
+    target_compile_options(console_calc_lib
+        PRIVATE
+            -fexceptions
+    )
+
+    target_compile_options(console_calc_runtime_lib
+        PRIVATE
+            -fexceptions
+    )
+
+    target_compile_options(console_calc_host_lib
+        PRIVATE
+            -fexceptions
+    )
+
     add_executable(console_calc_wasm
         src/console_wasm_entry.cpp
     )
@@ -127,8 +142,10 @@ if(EMSCRIPTEN)
 
     target_link_options(console_calc_wasm
         PRIVATE
+            "-fexceptions"
             "--no-entry"
             "-sALLOW_MEMORY_GROWTH=1"
+            "-sDISABLE_EXCEPTION_CATCHING=0"
             "-sENVIRONMENT=web"
             "-sEXPORT_ES6=1"
             "-sFILESYSTEM=0"
