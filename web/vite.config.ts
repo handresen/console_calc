@@ -21,10 +21,21 @@ function consoleCalcWasmArtifacts(): Plugin {
   return {
     name: "console-calc-wasm-artifacts",
     configureServer(server) {
-      server.middlewares.use("/wasm", (req, res, next) => {
+      server.middlewares.use((req, res, next) => {
         const rawPath = (req.url ?? "/").split("?")[0];
-        const relativePath =
-          rawPath === "/" ? "console_calc.mjs" : rawPath.replace(/^\/+/, "");
+        const wasmPrefix = "/wasm/";
+        const wasmIndex = rawPath.indexOf(wasmPrefix);
+        if (wasmIndex === -1) {
+          next();
+          return;
+        }
+
+        const relativePath = rawPath.slice(wasmIndex + wasmPrefix.length);
+        if (relativePath.length === 0) {
+          next();
+          return;
+        }
+
         const filePath = path.resolve(wasmArtifactDir, relativePath);
         if (!filePath.startsWith(wasmArtifactDir) || !existsSync(filePath)) {
           next();
@@ -49,9 +60,12 @@ function consoleCalcWasmArtifacts(): Plugin {
 }
 
 export default defineConfig({
+  base: "/cc/",
   plugins: [consoleCalcWasmArtifacts()],
   server: {
-    port: 4173,
+    allowedHosts: ["hvrd.com"],
+    host: true,
+    port: 3003,
     fs: {
       allow: [path.resolve(__dirname, "..")],
     },

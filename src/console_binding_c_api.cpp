@@ -125,8 +125,8 @@ void append_functions_json(std::ostringstream& json,
 }
 
 void append_snapshot_json(std::ostringstream& json, const BindingSnapshot& snapshot) {
-    json << "{\"display_mode\":\"" << json_escape(snapshot.display_mode) << '"';
-    json << "\",\"max_stack_depth\":" << snapshot.max_stack_depth;
+    json << "{\"display_mode\":\"" << json_escape(snapshot.display_mode)
+         << "\",\"max_stack_depth\":" << snapshot.max_stack_depth;
     json << ",\"stack\":";
     append_stack_json(json, snapshot.stack);
     json << ",\"definitions\":";
@@ -139,9 +139,8 @@ void append_snapshot_json(std::ostringstream& json, const BindingSnapshot& snaps
 }
 
 void append_event_json(std::ostringstream& json, const BindingEvent& event) {
-    json << "{\"kind\":\"" << event_kind_name(event.kind) << '"';
-    json << "\",\"text\":\"" << json_escape(event.text) << '"';
-    json << "\",\"stack\":";
+    json << "{\"kind\":\"" << event_kind_name(event.kind) << "\",\"text\":\""
+         << json_escape(event.text) << "\",\"stack\":";
     append_stack_json(json, event.stack);
     json << ",\"definitions\":";
     append_definitions_json(json, event.definitions);
@@ -155,7 +154,7 @@ void append_event_json(std::ostringstream& json, const BindingEvent& event) {
 std::string result_to_json(const BindingCommandResult& result) {
     std::ostringstream json;
     json << "{\"should_exit\":" << (result.should_exit ? "true" : "false");
-    json << "\",\"events\":[";
+    json << ",\"events\":[";
     for (std::size_t index = 0; index < result.events.size(); ++index) {
         if (index != 0) {
             json << ',';

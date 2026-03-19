@@ -122,12 +122,12 @@ export class ConsoleWasmBridge {
 
   private async loadModule(): Promise<ConsoleCalcWasmModule> {
     if (this.modulePromise === null) {
-      const moduleUrl = "/wasm/console_calc.mjs";
+      const moduleUrl = new URL("./wasm/console_calc.mjs", window.location.href).toString();
       this.modulePromise = import(/* @vite-ignore */ moduleUrl).then(
         async (module): Promise<ConsoleCalcWasmModule> => {
           const factory = module.default as ConsoleCalcWasmModuleFactory;
           return factory({
-            locateFile: (filePath) => `/wasm/${filePath}`,
+            locateFile: (filePath) => new URL(filePath, moduleUrl).toString(),
             print: () => undefined,
             printErr: () => undefined,
           });
