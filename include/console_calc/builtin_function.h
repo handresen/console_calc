@@ -21,6 +21,7 @@ struct BuiltinFunctionInfo {
     std::size_t min_arity;
     std::size_t max_arity;
     BuiltinFunctionCategory category;
+    bool scalar_arguments = true;
     bool mappable = false;
     std::string_view signature;
     std::string_view summary;

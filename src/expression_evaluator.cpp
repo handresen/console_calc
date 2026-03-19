@@ -12,6 +12,7 @@
 #include <type_traits>
 #include <variant>
 
+#include "geodesy.h"
 #include "scalar_math.h"
 
 namespace console_calc {
@@ -28,6 +29,9 @@ namespace {
     if (const auto* scalar = std::get_if<double>(&value)) {
         return *scalar;
     }
+    if (std::holds_alternative<PositionValue>(value)) {
+        throw EvaluationError("position value cannot be used as a scalar");
+    }
 
     throw EvaluationError("list value cannot be used as a scalar");
 }
@@ -43,9 +47,13 @@ namespace {
         if (list->size() == 1) {
             return (*list)[0];
         }
+        throw EvaluationError("list value cannot be used as a scalar");
+    }
+    if (std::holds_alternative<PositionValue>(value)) {
+        throw EvaluationError("position value cannot be used as a scalar");
     }
 
-    throw EvaluationError("list value cannot be used as a scalar");
+    throw EvaluationError("scalar value required");
 }
 
 [[nodiscard]] ListValue require_list(const Value& value) {
@@ -54,6 +62,14 @@ namespace {
     }
 
     throw EvaluationError("list value required");
+}
+
+[[nodiscard]] PositionValue require_position(const Value& value) {
+    if (const auto* position = std::get_if<PositionValue>(&value)) {
+        return *position;
+    }
+
+    throw EvaluationError("position value required");
 }
 
 [[nodiscard]] std::size_t require_list_index(const ScalarValue& value) {
@@ -136,6 +152,12 @@ namespace {
         }
         return require_finite_result(std::sqrt(argument));
     case Function::pow:
+    case Function::pos:
+    case Function::lat:
+    case Function::lon:
+    case Function::dist:
+    case Function::bearing:
+    case Function::br_to_pos:
     case Function::sum:
     case Function::len:
     case Function::product:
@@ -205,6 +227,25 @@ template <typename Operation>
         return to_value(power_scalars(
             require_scalar_or_singleton_list_value(arguments[0]),
             require_scalar_or_singleton_list_value(arguments[1])));
+    case Function::pos:
+        return normalize_position(
+            scalar_to_double(require_scalar_or_singleton_list_value(arguments[0])),
+            scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])));
+    case Function::lat:
+        return require_position(arguments[0]).latitude_deg;
+    case Function::lon:
+        return require_position(arguments[0]).longitude_deg;
+    case Function::dist:
+        return wgs84_inverse(require_position(arguments[0]), require_position(arguments[1]))
+            .distance_m;
+    case Function::bearing:
+        return wgs84_inverse(require_position(arguments[0]), require_position(arguments[1]))
+            .initial_bearing_deg;
+    case Function::br_to_pos:
+        return wgs84_direct(
+            require_position(arguments[0]),
+            scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])),
+            scalar_to_double(require_scalar_or_singleton_list_value(arguments[2])));
     case Function::sum:
     case Function::len:
     case Function::product:
@@ -319,6 +360,12 @@ template <typename Operation>
     case Function::map:
     case Function::reduce:
         break;
+    case Function::pos:
+    case Function::lat:
+    case Function::lon:
+    case Function::dist:
+    case Function::bearing:
+    case Function::br_to_pos:
     case Function::abs:
     case Function::sin:
     case Function::cos:
@@ -425,6 +472,12 @@ template <typename Operation>
         }
         return values;
     }
+    case Function::pos:
+    case Function::lat:
+    case Function::lon:
+    case Function::dist:
+    case Function::bearing:
+    case Function::br_to_pos:
     case Function::abs:
     case Function::sin:
     case Function::cos:

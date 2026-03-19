@@ -62,6 +62,12 @@ enum class Function {
     repeat,
     linspace,
     powers,
+    pos,
+    lat,
+    lon,
+    dist,
+    bearing,
+    br_to_pos,
 };
 
 struct BinaryExpression {

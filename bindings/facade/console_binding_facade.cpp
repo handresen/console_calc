@@ -39,6 +39,17 @@ std::vector<double> to_binding_list_values(const Value& value) {
     return output;
 }
 
+std::optional<BindingPositionEntry> to_binding_position(const Value& value) {
+    if (const auto* position = std::get_if<PositionValue>(&value)) {
+        return BindingPositionEntry{
+            .latitude_deg = position->latitude_deg,
+            .longitude_deg = position->longitude_deg,
+        };
+    }
+
+    return std::nullopt;
+}
+
 std::string display_mode_name(IntegerDisplayMode mode) {
     switch (mode) {
     case IntegerDisplayMode::decimal:
@@ -70,6 +81,7 @@ BindingStackEntry to_binding_entry(const StackEntryView& entry, IntegerDisplayMo
         .level = entry.level,
         .display = format_console_value(entry.value, mode),
         .list_values = to_binding_list_values(entry.value),
+        .position = to_binding_position(entry.value),
     };
 }
 

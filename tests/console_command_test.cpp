@@ -38,39 +38,45 @@ bool expect_command_classification() {
 bool expect_builtin_function_listing() {
     return console_calc::format_builtin_function_listing(console_calc::builtin_functions()) ==
            "Scalar functions\n"
-           "  abs(x)                            absolute value\n"
-           "  cos(x)                            cosine in radians\n"
-           "  cosd(x)                           cosine in degrees\n"
-           "  guard(expr, fallback)             use fallback when expr evaluation fails\n"
-           "  pow(x, y)                         power\n"
-           "  sin(x)                            sine in radians\n"
-           "  sind(x)                           sine in degrees\n"
-           "  sqrt(x)                           square root\n"
-           "  tan(x)                            tangent in radians\n"
-           "  tand(x)                           tangent in degrees\n"
+           "  abs(x)                                absolute value\n"
+           "  bearing(pos1, pos2)                   initial WGS84 bearing in degrees\n"
+           "  br_to_pos(pos, bearing_deg, range_m)  destination position from bearing and range\n"
+           "  cos(x)                                cosine in radians\n"
+           "  cosd(x)                               cosine in degrees\n"
+           "  dist(pos1, pos2)                      WGS84 ellipsoid distance in meters\n"
+           "  guard(expr, fallback)                 use fallback when expr evaluation fails\n"
+           "  lat(pos)                              extract latitude in degrees\n"
+           "  lon(pos)                              extract longitude in degrees\n"
+           "  pos(lat, lon)                         construct WGS84 position in degrees\n"
+           "  pow(x, y)                             power\n"
+           "  sin(x)                                sine in radians\n"
+           "  sind(x)                               sine in degrees\n"
+           "  sqrt(x)                               square root\n"
+           "  tan(x)                                tangent in radians\n"
+           "  tand(x)                               tangent in degrees\n"
            "\n"
            "List functions\n"
-           "  avg(list)                         average of list elements\n"
-           "  drop(n, list)                     drop first n list elements\n"
-           "  first(n, list)                    first n list elements\n"
-           "  len(list)                         list length\n"
-           "  list_add(a, b)                    add matching list elements\n"
-           "  list_div(a, b)                    divide matching list elements\n"
-           "  list_mul(a, b)                    multiply matching list elements\n"
-           "  list_sub(a, b)                    subtract matching list elements\n"
-           "  map(list, expr)                   map inline expression over list\n"
-           "  max(list)                         maximum list element\n"
-           "  min(list)                         minimum list element\n"
-           "  product(list)                     product of list elements\n"
-           "  reduce(list, op)                  reduce list with binary operator\n"
-           "  sum(list)                         sum list elements\n"
+           "  avg(list)                             average of list elements\n"
+           "  drop(n, list)                         drop first n list elements\n"
+           "  first(n, list)                        first n list elements\n"
+           "  len(list)                             list length\n"
+           "  list_add(a, b)                        add matching list elements\n"
+           "  list_div(a, b)                        divide matching list elements\n"
+           "  list_mul(a, b)                        multiply matching list elements\n"
+           "  list_sub(a, b)                        subtract matching list elements\n"
+           "  map(list, expr)                       map inline expression over list\n"
+           "  max(list)                             maximum list element\n"
+           "  min(list)                             minimum list element\n"
+           "  product(list)                         product of list elements\n"
+           "  reduce(list, op)                      reduce list with binary operator\n"
+           "  sum(list)                             sum list elements\n"
            "\n"
            "List generation functions\n"
-           "  geom(start, count[, ratio])       generate geometric series from start\n"
-           "  linspace(start, stop, count)      generate evenly spaced values over interval\n"
-           "  powers(base, count[, start_exp])  generate successive integer powers\n"
-           "  range(start, count[, step])       generate linear series from start\n"
-           "  repeat(value, count)              repeat value count times\n";
+           "  geom(start, count[, ratio])           generate geometric series from start\n"
+           "  linspace(start, stop, count)          generate evenly spaced values over interval\n"
+           "  powers(base, count[, start_exp])      generate successive integer powers\n"
+           "  range(start, count[, step])           generate linear series from start\n"
+           "  repeat(value, count)                  repeat value count times\n";
 }
 
 bool expect_constant_and_definition_listing() {
@@ -141,6 +147,12 @@ bool expect_builtin_function_metadata() {
     const auto list_mul_info = console_calc::builtin_function_info(console_calc::Function::list_mul);
     const auto list_sub_info = console_calc::builtin_function_info(console_calc::Function::list_sub);
     const auto guard_info = console_calc::builtin_function_info(console_calc::Function::guard);
+    const auto pos_info = console_calc::builtin_function_info(console_calc::Function::pos);
+    const auto lat_info = console_calc::builtin_function_info(console_calc::Function::lat);
+    const auto lon_info = console_calc::builtin_function_info(console_calc::Function::lon);
+    const auto dist_info = console_calc::builtin_function_info(console_calc::Function::dist);
+    const auto bearing_info = console_calc::builtin_function_info(console_calc::Function::bearing);
+    const auto br_to_pos_info = console_calc::builtin_function_info(console_calc::Function::br_to_pos);
     const auto reduce_info = console_calc::builtin_function_info(console_calc::Function::reduce);
     const auto map_info = console_calc::builtin_function_info(console_calc::Function::map);
     const auto range_info = console_calc::builtin_function_info(console_calc::Function::range);
@@ -178,6 +190,20 @@ bool expect_builtin_function_metadata() {
            guard_info.category == console_calc::BuiltinFunctionCategory::scalar &&
            guard_info.signature == "guard(expr, fallback)" &&
            guard_info.summary == "use fallback when expr evaluation fails" &&
+           pos_info.name == "pos" && pos_info.min_arity == 2 && pos_info.max_arity == 2 &&
+           pos_info.signature == "pos(lat, lon)" && pos_info.scalar_arguments &&
+           lat_info.name == "lat" && lat_info.min_arity == 1 && lat_info.max_arity == 1 &&
+           lat_info.signature == "lat(pos)" && !lat_info.scalar_arguments &&
+           lon_info.name == "lon" && lon_info.signature == "lon(pos)" &&
+           !lon_info.scalar_arguments &&
+           dist_info.name == "dist" && dist_info.signature == "dist(pos1, pos2)" &&
+           !dist_info.scalar_arguments &&
+           bearing_info.name == "bearing" &&
+           bearing_info.signature == "bearing(pos1, pos2)" &&
+           !bearing_info.scalar_arguments &&
+           br_to_pos_info.name == "br_to_pos" &&
+           br_to_pos_info.signature == "br_to_pos(pos, bearing_deg, range_m)" &&
+           !br_to_pos_info.scalar_arguments &&
            reduce_info.name == "reduce" && reduce_info.min_arity == 2 &&
            reduce_info.max_arity == 2 &&
            reduce_info.category == console_calc::BuiltinFunctionCategory::list &&
@@ -204,6 +230,7 @@ bool expect_builtin_function_helpers() {
     return console_calc::is_scalar_function(console_calc::Function::sin) &&
            console_calc::is_scalar_function(console_calc::Function::abs) &&
            console_calc::is_scalar_function(console_calc::Function::guard) &&
+           console_calc::is_scalar_function(console_calc::Function::pos) &&
            !console_calc::is_scalar_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::list_add) &&
@@ -212,6 +239,7 @@ bool expect_builtin_function_helpers() {
            console_calc::is_unary_scalar_function(console_calc::Function::sin) &&
            console_calc::is_unary_scalar_function(console_calc::Function::abs) &&
            console_calc::is_unary_scalar_function(console_calc::Function::sqrt) &&
+           !console_calc::is_unary_scalar_function(console_calc::Function::lat) &&
            !console_calc::is_unary_scalar_function(console_calc::Function::pow) &&
            console_calc::is_mappable_unary_scalar_function(console_calc::Function::sin) &&
            console_calc::is_mappable_unary_scalar_function(console_calc::Function::abs) &&

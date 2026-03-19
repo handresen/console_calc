@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -15,10 +16,16 @@ namespace console_calc {
 
 class ExpressionParser;
 
+struct BindingPositionEntry {
+    double latitude_deg = 0.0;
+    double longitude_deg = 0.0;
+};
+
 struct BindingStackEntry {
     std::size_t level = 0;
     std::string display;
     std::vector<double> list_values;
+    std::optional<BindingPositionEntry> position;
 };
 
 struct BindingDefinitionEntry {

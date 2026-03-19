@@ -11,7 +11,7 @@ Current scope:
 - binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - parentheses for grouping
 - list literals with `{ ... }`
-- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`, `list_div`, `list_mul`, `guard`, `reduce`, `map`, `range`, `geom`, `repeat`, `linspace`, `powers`
+- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `pos`, `lat`, `lon`, `dist`, `bearing`, `br_to_pos`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`, `list_div`, `list_mul`, `guard`, `reduce`, `map`, `range`, `geom`, `repeat`, `linspace`, `powers`
 - optional whitespace between tokens
 
 Explicitly out of scope for this first version:
@@ -79,6 +79,11 @@ Builtin functions:
 - `sin(x)`, `cos(x)`, `tan(x)` use radians
 - `sind(x)`, `cosd(x)`, `tand(x)` use degrees
 - `pow(x, y)` is equivalent to `x ^ y`
+- `pos(lat, lon)` constructs a WGS84 position from latitude/longitude in degrees
+- `lat(pos)` and `lon(pos)` extract latitude and longitude in degrees
+- `dist(pos1, pos2)` returns WGS84 ellipsoid distance in meters
+- `bearing(pos1, pos2)` returns initial WGS84 bearing in degrees
+- `br_to_pos(pos, bearing_deg, range_m)` returns a destination position from a start position, bearing, and range in meters
 - `sum(list)` sums a list value
 - `len(list)` returns list length
 - `product(list)` multiplies all list values; `product({})` is `1`
@@ -107,6 +112,8 @@ Integer-preserving behavior:
 
 For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, the second argument is an expression that uses `_` as the current element placeholder. `_` is only valid inside `map(..., expr)`.
 
+Geo positions are a dedicated value type, separate from scalars and lists. They use the `(lat, lon)` convention in degrees. Only the geo-specific functions accept position values.
+
 Examples:
 - `2 + 3` => `5`
 - `2 + 3 * 4` => `14`
@@ -116,6 +123,11 @@ Examples:
 - `sin(0)` => `0`
 - `sind(30)` => `0.5`
 - `pow(2, 3)` => `8`
+- `lat(pos(60, 10))` => `60`
+- `lon(pos(60, 10))` => `10`
+- `dist(pos(0, 0), pos(0, 1))` => `111319.4907932264`
+- `bearing(pos(0, 0), pos(0, 1))` => `90`
+- `lon(br_to_pos(pos(0, 0), 90, 111319.4907932264))` => `1`
 - `len({1, 2, 3})` => `3`
 - `product({2, 3, 4})` => `24`
 - `avg({2, 4, 6})` => `4`
@@ -158,6 +170,9 @@ Examples:
 - `sin(0)`
 - `sind(30)`
 - `pow(2, 3)`
+- `pos(60, 10)`
+- `lat(pos(60, 10))`
+- `dist(pos(0, 0), pos(0, 1))`
 - `len({1, 2, 3})`
 - `product({2, 3, 4})`
 - `avg({2, 4, 6})`
@@ -203,6 +218,10 @@ Examples:
 - `map({1, 2}, sum)`
 - `map({1, 2}, pow)`
 - `map({1, 2}, sin)`
+- `pos(100, 0)`
+- `lat(1)`
+- `dist(pos(0, 0), 1)`
+- `br_to_pos(pos(0, 0), 90, -1)`
 - `map({1, 2}, _ + foo)`
 - `guard(1 / 0)`
 - `_`

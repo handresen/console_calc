@@ -46,6 +46,11 @@ std::string format_scalar(const ScalarValue& value, IntegerDisplayMode mode) {
     return stream.str();
 }
 
+std::string format_position(const PositionValue& value) {
+    return "pos(" + format_scalar(ScalarValue{value.latitude_deg}) + ", " +
+           format_scalar(ScalarValue{value.longitude_deg}) + ")";
+}
+
 std::string format_list(const ListValue& values) {
     return format_list(values, IntegerDisplayMode::decimal);
 }
@@ -73,6 +78,10 @@ std::string format_value(const Value& value, IntegerDisplayMode mode) {
 
     if (const auto* scalar = std::get_if<double>(&value)) {
         return format_scalar(ScalarValue{*scalar}, mode);
+    }
+
+    if (const auto* position = std::get_if<PositionValue>(&value)) {
+        return format_position(*position);
     }
 
     return format_list(std::get<ListValue>(value), mode);

@@ -137,6 +137,12 @@ pow(e, 1)
 - `cosd(x)`     cosine in degrees
 - `tand(x)`     tangent in degrees
 - `pow(x, y)`   power
+- `pos(lat, lon)` construct WGS84 position in degrees
+- `lat(pos)`    extract latitude in degrees
+- `lon(pos)`    extract longitude in degrees
+- `dist(pos1, pos2)` WGS84 ellipsoid distance in meters
+- `bearing(pos1, pos2)` initial WGS84 bearing in degrees
+- `br_to_pos(pos, bearing_deg, range_m)` destination position from bearing and range
 - `guard(expr, fallback)` evaluate `fallback` only if `expr` fails
 
 ### List Functions
@@ -172,6 +178,8 @@ Function notes:
 - `reduce` requires a non-empty list
 - `reduce` uses existing binary operators such as `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - `map` accepts an inline expression using `_` as the current element
+- `pos(lat, lon)` uses the `(lat, lon)` convention in degrees
+- only geo functions accept position values
 - `map({1, 2}, sum)` and `map({1, 2}, pow)` are invalid
 - `map({1, 2}, sin)` is invalid
 - `_` is only valid inside `map(..., expr)`
@@ -203,12 +211,26 @@ map({1, 2, 3}, sin(_) + _)    => {1.84147..., 2.90929..., 3.14112...}
 guard(1 / 0, 0)               => 0
 map(range(-2, 5), guard(1 / _, 0))
 sum(map({1, 2, 3}, sin(_)))   => 1.89189...
+dist(pos(0, 0), pos(0, 1))    => 111319.490793...
+bearing(pos(0, 0), pos(0, 1)) => 90
+lon(br_to_pos(pos(0, 0), 90, 111319.4907932264)) => 1
 range(10, 4)                  => {10, 11, 12, 13}
 range(2, 4, 3)                => {2, 5, 8, 11}
 geom(2, 4)                    => {2, 4, 8, 16}
 repeat(3, 4)                  => {3, 3, 3, 3}
 linspace(0, 1, 5)             => {0, 0.25, 0.5, 0.75, 1}
 powers(-1, 4)                 => {1, -1, 1, -1}
+```
+
+## Geo Example
+
+Geo positions are WGS84 latitude/longitude pairs in degrees:
+
+```text
+home:pos(59.9127, 10.7461)
+lat(home)
+dist(home, pos(60.3913, 5.3221))
+br_to_pos(home, 270, 1000)
 ```
 
 ## Pi Example

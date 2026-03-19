@@ -15,6 +15,10 @@ bool almost_equal(double lhs, double rhs) {
     return std::fabs(lhs - rhs) < 1e-12;
 }
 
+bool almost_equal(double lhs, double rhs, double tolerance) {
+    return std::fabs(lhs - rhs) < tolerance;
+}
+
 bool almost_equal(const console_calc::ScalarValue& lhs, double rhs) {
     return almost_equal(console_calc::scalar_to_double(lhs), rhs);
 }
@@ -224,6 +228,24 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
         return false;
     }
 
+    const console_calc::Value position_value = parser.evaluate_value("pos(60, 10)");
+    const auto* position = std::get_if<console_calc::PositionValue>(&position_value);
+    if (position == nullptr || !almost_equal(position->latitude_deg, 60.0) ||
+        !almost_equal(position->longitude_deg, 10.0)) {
+        return false;
+    }
+
+    if (!almost_equal(parser.evaluate("lat(pos(60, 10))"), 60.0) ||
+        !almost_equal(parser.evaluate("lon(pos(60, 10))"), 10.0) ||
+        !almost_equal(parser.evaluate("dist(pos(0, 0), pos(0, 1))"), 111319.4907932264, 1e-6) ||
+        !almost_equal(parser.evaluate("bearing(pos(0, 0), pos(0, 1))"), 90.0, 1e-9) ||
+        !almost_equal(parser.evaluate("lat(br_to_pos(pos(0, 0), 90, 111319.4907932264))"),
+                      0.0, 1e-8) ||
+        !almost_equal(parser.evaluate("lon(br_to_pos(pos(0, 0), 90, 111319.4907932264))"),
+                      1.0, 1e-8)) {
+        return false;
+    }
+
     try {
         (void)parser.evaluate("sin({1, 2})");
         return false;
@@ -234,6 +256,14 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
 
     try {
         (void)parser.evaluate("pow({2, 3}, 2)");
+        return false;
+    } catch (const std::invalid_argument&) {
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.evaluate("lat(1)");
         return false;
     } catch (const std::invalid_argument&) {
     } catch (const std::exception&) {

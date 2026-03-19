@@ -8,46 +8,52 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<BuiltinFunctionInfo, 29> k_builtin_functions = {{
-    {Function::abs, "abs", 1, 1, BuiltinFunctionCategory::scalar, true, "abs(x)", "absolute value"},
-    {Function::sin, "sin", 1, 1, BuiltinFunctionCategory::scalar, true, "sin(x)", "sine in radians"},
-    {Function::cos, "cos", 1, 1, BuiltinFunctionCategory::scalar, true, "cos(x)", "cosine in radians"},
-    {Function::tan, "tan", 1, 1, BuiltinFunctionCategory::scalar, true, "tan(x)", "tangent in radians"},
-    {Function::sind, "sind", 1, 1, BuiltinFunctionCategory::scalar, true, "sind(x)", "sine in degrees"},
-    {Function::cosd, "cosd", 1, 1, BuiltinFunctionCategory::scalar, true, "cosd(x)", "cosine in degrees"},
-    {Function::tand, "tand", 1, 1, BuiltinFunctionCategory::scalar, true, "tand(x)", "tangent in degrees"},
-    {Function::sqrt, "sqrt", 1, 1, BuiltinFunctionCategory::scalar, true, "sqrt(x)", "square root"},
-    {Function::pow, "pow", 2, 2, BuiltinFunctionCategory::scalar, false, "pow(x, y)", "power"},
-    {Function::sum, "sum", 1, 1, BuiltinFunctionCategory::list, false, "sum(list)", "sum list elements"},
-    {Function::len, "len", 1, 1, BuiltinFunctionCategory::list, false, "len(list)", "list length"},
-    {Function::product, "product", 1, 1, BuiltinFunctionCategory::list, false, "product(list)", "product of list elements"},
-    {Function::avg, "avg", 1, 1, BuiltinFunctionCategory::list, false, "avg(list)", "average of list elements"},
-    {Function::min, "min", 1, 1, BuiltinFunctionCategory::list, false, "min(list)", "minimum list element"},
-    {Function::max, "max", 1, 1, BuiltinFunctionCategory::list, false, "max(list)", "maximum list element"},
-    {Function::first, "first", 2, 2, BuiltinFunctionCategory::list, false, "first(n, list)", "first n list elements"},
-    {Function::drop, "drop", 2, 2, BuiltinFunctionCategory::list, false, "drop(n, list)", "drop first n list elements"},
-    {Function::list_add, "list_add", 2, 2, BuiltinFunctionCategory::list, false,
+constexpr std::array<BuiltinFunctionInfo, 35> k_builtin_functions = {{
+    {Function::abs, "abs", 1, 1, BuiltinFunctionCategory::scalar, true, true, "abs(x)", "absolute value"},
+    {Function::sin, "sin", 1, 1, BuiltinFunctionCategory::scalar, true, true, "sin(x)", "sine in radians"},
+    {Function::cos, "cos", 1, 1, BuiltinFunctionCategory::scalar, true, true, "cos(x)", "cosine in radians"},
+    {Function::tan, "tan", 1, 1, BuiltinFunctionCategory::scalar, true, true, "tan(x)", "tangent in radians"},
+    {Function::sind, "sind", 1, 1, BuiltinFunctionCategory::scalar, true, true, "sind(x)", "sine in degrees"},
+    {Function::cosd, "cosd", 1, 1, BuiltinFunctionCategory::scalar, true, true, "cosd(x)", "cosine in degrees"},
+    {Function::tand, "tand", 1, 1, BuiltinFunctionCategory::scalar, true, true, "tand(x)", "tangent in degrees"},
+    {Function::sqrt, "sqrt", 1, 1, BuiltinFunctionCategory::scalar, true, true, "sqrt(x)", "square root"},
+    {Function::pow, "pow", 2, 2, BuiltinFunctionCategory::scalar, true, false, "pow(x, y)", "power"},
+    {Function::pos, "pos", 2, 2, BuiltinFunctionCategory::scalar, true, false, "pos(lat, lon)", "construct WGS84 position in degrees"},
+    {Function::lat, "lat", 1, 1, BuiltinFunctionCategory::scalar, false, false, "lat(pos)", "extract latitude in degrees"},
+    {Function::lon, "lon", 1, 1, BuiltinFunctionCategory::scalar, false, false, "lon(pos)", "extract longitude in degrees"},
+    {Function::dist, "dist", 2, 2, BuiltinFunctionCategory::scalar, false, false, "dist(pos1, pos2)", "WGS84 ellipsoid distance in meters"},
+    {Function::bearing, "bearing", 2, 2, BuiltinFunctionCategory::scalar, false, false, "bearing(pos1, pos2)", "initial WGS84 bearing in degrees"},
+    {Function::br_to_pos, "br_to_pos", 3, 3, BuiltinFunctionCategory::scalar, false, false, "br_to_pos(pos, bearing_deg, range_m)", "destination position from bearing and range"},
+    {Function::sum, "sum", 1, 1, BuiltinFunctionCategory::list, true, false, "sum(list)", "sum list elements"},
+    {Function::len, "len", 1, 1, BuiltinFunctionCategory::list, true, false, "len(list)", "list length"},
+    {Function::product, "product", 1, 1, BuiltinFunctionCategory::list, true, false, "product(list)", "product of list elements"},
+    {Function::avg, "avg", 1, 1, BuiltinFunctionCategory::list, true, false, "avg(list)", "average of list elements"},
+    {Function::min, "min", 1, 1, BuiltinFunctionCategory::list, true, false, "min(list)", "minimum list element"},
+    {Function::max, "max", 1, 1, BuiltinFunctionCategory::list, true, false, "max(list)", "maximum list element"},
+    {Function::first, "first", 2, 2, BuiltinFunctionCategory::list, true, false, "first(n, list)", "first n list elements"},
+    {Function::drop, "drop", 2, 2, BuiltinFunctionCategory::list, true, false, "drop(n, list)", "drop first n list elements"},
+    {Function::list_add, "list_add", 2, 2, BuiltinFunctionCategory::list, true, false,
      "list_add(a, b)", "add matching list elements"},
-    {Function::list_sub, "list_sub", 2, 2, BuiltinFunctionCategory::list, false,
+    {Function::list_sub, "list_sub", 2, 2, BuiltinFunctionCategory::list, true, false,
      "list_sub(a, b)", "subtract matching list elements"},
-    {Function::list_div, "list_div", 2, 2, BuiltinFunctionCategory::list, false,
+    {Function::list_div, "list_div", 2, 2, BuiltinFunctionCategory::list, true, false,
      "list_div(a, b)", "divide matching list elements"},
-    {Function::list_mul, "list_mul", 2, 2, BuiltinFunctionCategory::list, false,
+    {Function::list_mul, "list_mul", 2, 2, BuiltinFunctionCategory::list, true, false,
      "list_mul(a, b)", "multiply matching list elements"},
-    {Function::guard, "guard", 2, 2, BuiltinFunctionCategory::scalar, false,
+    {Function::guard, "guard", 2, 2, BuiltinFunctionCategory::scalar, true, false,
      "guard(expr, fallback)", "use fallback when expr evaluation fails"},
-    {Function::reduce, "reduce", 2, 2, BuiltinFunctionCategory::list, false,
+    {Function::reduce, "reduce", 2, 2, BuiltinFunctionCategory::list, true, false,
      "reduce(list, op)", "reduce list with binary operator"},
-    {Function::map, "map", 2, 2, BuiltinFunctionCategory::list, false, "map(list, expr)", "map inline expression over list"},
-    {Function::range, "range", 2, 3, BuiltinFunctionCategory::list_generation, false,
+    {Function::map, "map", 2, 2, BuiltinFunctionCategory::list, true, false, "map(list, expr)", "map inline expression over list"},
+    {Function::range, "range", 2, 3, BuiltinFunctionCategory::list_generation, true, false,
      "range(start, count[, step])", "generate linear series from start"},
-    {Function::geom, "geom", 2, 3, BuiltinFunctionCategory::list_generation, false,
+    {Function::geom, "geom", 2, 3, BuiltinFunctionCategory::list_generation, true, false,
      "geom(start, count[, ratio])", "generate geometric series from start"},
-    {Function::repeat, "repeat", 2, 2, BuiltinFunctionCategory::list_generation, false,
+    {Function::repeat, "repeat", 2, 2, BuiltinFunctionCategory::list_generation, true, false,
      "repeat(value, count)", "repeat value count times"},
-    {Function::linspace, "linspace", 3, 3, BuiltinFunctionCategory::list_generation, false,
+    {Function::linspace, "linspace", 3, 3, BuiltinFunctionCategory::list_generation, true, false,
      "linspace(start, stop, count)", "generate evenly spaced values over interval"},
-    {Function::powers, "powers", 2, 3, BuiltinFunctionCategory::list_generation, false,
+    {Function::powers, "powers", 2, 3, BuiltinFunctionCategory::list_generation, true, false,
      "powers(base, count[, start_exp])", "generate successive integer powers"},
 }};
 
@@ -112,13 +118,15 @@ bool is_list_function(Function function) {
 
 bool is_unary_scalar_function(Function function) {
     const auto& info = builtin_function_info(function);
-    return info.category == BuiltinFunctionCategory::scalar && info.min_arity == 1 &&
+    return info.category == BuiltinFunctionCategory::scalar && info.scalar_arguments &&
+           info.min_arity == 1 &&
            info.max_arity == 1;
 }
 
 bool is_mappable_unary_scalar_function(Function function) {
     const auto& info = builtin_function_info(function);
-    return info.category == BuiltinFunctionCategory::scalar && info.min_arity == 1 &&
+    return info.category == BuiltinFunctionCategory::scalar && info.scalar_arguments &&
+           info.min_arity == 1 &&
            info.max_arity == 1 && info.mappable;
 }
 

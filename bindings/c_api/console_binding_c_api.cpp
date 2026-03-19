@@ -82,7 +82,14 @@ void append_stack_json(std::ostringstream& json, std::span<const BindingStackEnt
             }
             json << entry.list_values[value_index];
         }
-        json << "]}";
+        json << "],\"position\":";
+        if (entry.position.has_value()) {
+            json << "{\"latitude_deg\":" << entry.position->latitude_deg
+                 << ",\"longitude_deg\":" << entry.position->longitude_deg << "}";
+        } else {
+            json << "null";
+        }
+        json << "}";
     }
     json << ']';
 }
