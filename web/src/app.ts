@@ -21,12 +21,15 @@ export function createApp(root: HTMLElement): void {
   bridgeBanner.textContent = "Loading WebAssembly bridge...";
 
   const transcript = createTranscriptView();
-  const panes = createPanesView();
   const bridge = new ConsoleWasmBridge();
 
-  const renderResult = (result: Awaited<ReturnType<ConsoleWasmBridge["submit"]>>, input?: string): void => {
+  const renderResult = (
+    result: Awaited<ReturnType<ConsoleWasmBridge["submit"]>>,
+    input?: string,
+    elapsedMs?: number,
+  ): void => {
     prompt.setDepth(result.snapshot.stack.length);
-    renderTranscriptResult(transcript, result, input);
+    renderTranscriptResult(transcript, result, input, elapsedMs);
     panes.render(result.snapshot);
     transcript.scrollToBottom();
   };
@@ -38,13 +41,18 @@ export function createApp(root: HTMLElement): void {
     }
 
     try {
+      const startedAt = performance.now();
       const result = await bridge.submit(input);
-      renderResult(result, input);
+      renderResult(result, input, performance.now() - startedAt);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown wasm bridge failure";
       transcript.appendMessage(message, "error");
     }
+  });
+  const panes = createPanesView((expression) => {
+    prompt.setValue(expression);
+    prompt.focus();
   });
   prompt.setEnabled(false);
 
@@ -56,11 +64,12 @@ export function createApp(root: HTMLElement): void {
 
   void (async () => {
     try {
+      const startedAt = performance.now();
       const result = await bridge.initialize();
       bridgeBanner.textContent = "WebAssembly bridge ready.";
       prompt.setEnabled(true);
       prompt.setPlaceholder("enter expression or command");
-      renderResult(result);
+      renderResult(result, undefined, performance.now() - startedAt);
       prompt.focus();
     } catch (error) {
       const message =

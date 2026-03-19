@@ -3,6 +3,7 @@ export interface PromptView {
   setEnabled(enabled: boolean): void;
   setDepth(depth: number): void;
   setPlaceholder(text: string): void;
+  setValue(value: string): void;
   focus(): void;
 }
 
@@ -89,6 +90,10 @@ export function createPromptView(onSubmit: (input: string) => void): PromptView 
     },
     setPlaceholder(text) {
       input.placeholder = text;
+    },
+    setValue(value) {
+      input.value = value;
+      input.setSelectionRange(input.value.length, input.value.length);
     },
     focus() {
       input.focus();

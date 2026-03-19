@@ -88,7 +88,23 @@ body {
 }
 
 .transcript-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
   white-space: pre-wrap;
+}
+
+.transcript-line-content {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.transcript-line-meta {
+  flex: 0 0 auto;
+  color: rgba(94, 90, 76, 0.72);
+  font-size: 0.82rem;
+  white-space: nowrap;
 }
 
 .transcript-line-command {
@@ -189,6 +205,31 @@ body {
   max-height: 20rem;
   overflow: auto;
   padding-right: 0.2rem;
+}
+
+.function-table-container {
+  min-height: 0;
+}
+
+.sample-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sample-button {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(29, 36, 28, 0.12);
+  border-radius: 0.5rem;
+  background: rgba(220, 233, 211, 0.2);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sample-button:hover {
+  background: rgba(220, 233, 211, 0.38);
 }
 
 .pane-body[hidden] {

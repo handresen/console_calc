@@ -11,6 +11,14 @@ export interface PanesView {
   render(snapshot: BindingSnapshot): void;
 }
 
+const sampleExpressions = [
+  "map(linspace(0,40*pi,500),sin(_))",
+  "map(linspace(0,40*pi,500),sin(_)+0.2*sin(3*_))",
+  "map(linspace(-10,10,400),guard(1/_,0))",
+  "map(linspace(0,4*pi,500),guard(1/sin(_),0))",
+  "map(linspace(-3,3,400),_ * _)",
+];
+
 interface PlotSeries {
   key: string;
   label: string;
@@ -193,7 +201,7 @@ function createPane(titleText: string): PaneElements {
   return { section, body, count };
 }
 
-export function createPanesView(): PanesView {
+export function createPanesView(onSampleSelected?: (expression: string) => void): PanesView {
   const section = document.createElement("section");
   section.className = "panes-view";
 
@@ -210,9 +218,30 @@ export function createPanesView(): PanesView {
   const definitionsPane = createPane("Definitions");
   const constantsPane = createPane("Constants");
   const functionsPane = createPane("Functions");
+  const samplesPane = createPane("Samples");
   const plotPane = createPane("Plot");
 
   functionsPane.body.classList.add("functions-pane-body");
+
+  const functionTableContainer = document.createElement("div");
+  functionTableContainer.className = "function-table-container";
+
+  const samplesList = document.createElement("div");
+  samplesList.className = "sample-list";
+
+  for (const expression of sampleExpressions) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "sample-button";
+    button.textContent = expression;
+    button.addEventListener("click", () => {
+      onSampleSelected?.(expression);
+    });
+    samplesList.append(button);
+  }
+
+  functionsPane.body.append(functionTableContainer);
+  samplesPane.body.append(samplesList);
 
   const plotMeta = document.createElement("div");
   plotMeta.className = "plot-meta";
@@ -258,6 +287,7 @@ export function createPanesView(): PanesView {
     definitionsPane.section,
     constantsPane.section,
     functionsPane.section,
+    samplesPane.section,
   );
 
   plotPanel.append(
@@ -274,6 +304,7 @@ export function createPanesView(): PanesView {
       definitionsPane.count.textContent = `${snapshot.definitions.length}`;
       constantsPane.count.textContent = `${snapshot.constants.length}`;
       functionsPane.count.textContent = `${snapshot.functions.length}`;
+      samplesPane.count.textContent = `${sampleExpressions.length}`;
       renderTextList(
         stackPane.body,
         snapshot.stack.map((entry) => stackDisplay(entry)),
@@ -286,7 +317,7 @@ export function createPanesView(): PanesView {
         constantsPane.body,
         snapshot.constants.map((entry) => constantDisplay(entry)),
       );
-      renderFunctionTable(functionsPane.body, snapshot.functions);
+      renderFunctionTable(functionTableContainer, snapshot.functions);
       renderPlot(snapshot.stack.map((entry) => parsePlotSeries(entry)).filter(isPlotSeries));
     },
   };
