@@ -76,13 +76,21 @@ The desired architecture is:
 
 Create a transport-free session engine from the current console session layer.
 
+Status:
+
+- in progress
+- initial extraction is complete on the `users-ha-web_frontend` branch via
+  `ConsoleSessionEngine`
+- terminal `ConsoleSession` now acts as an adapter over that engine
+
 Target outcomes:
 
 - introduce a `SessionState` type
-- introduce a `SessionEngine` or similarly named type
-- move command submission into a method such as:
+- expose stack, definitions, display mode, and related session data through an
+  explicit state model rather than only ad hoc accessors
+- keep command submission in a transport-free method such as:
   - `submit(std::string_view input) -> CommandResult`
-- remove direct dependence on `std::istream` / `std::ostream` from the reusable
+- keep direct dependence on `std::istream` / `std::ostream` out of reusable
   session logic
 
 The current `ConsoleSession` should then become a thin adapter over this engine.
@@ -90,6 +98,13 @@ The current `ConsoleSession` should then become a thin adapter over this engine.
 ### Phase 2: Replace Stream Output With Structured Results
 
 Introduce structured command results and output events.
+
+Status:
+
+- started
+- the engine already returns a structured `ConsoleEngineCommandResult`
+- results are still somewhat transitional: values are structured, but
+  informational output is still line-oriented text
 
 Suggested shapes:
 
@@ -117,6 +132,13 @@ data without scraping terminal output.
 
 Separate semantic state from transcript formatting.
 
+Status:
+
+- started
+- terminal formatting for evaluated values now happens in the terminal adapter
+- listing and informational output still need a cleaner split between semantic
+  data and adapter rendering
+
 Keep the current formatting helpers, but use them from adapter layers instead of
 embedding formatting decisions in the engine.
 
@@ -133,6 +155,13 @@ This applies especially to:
 
 Add tests that validate engine behavior directly rather than through transcript
 comparison.
+
+Status:
+
+- started
+- `console_session_engine_test.cpp` now covers direct engine behavior
+- more state-oriented tests should be added once `SessionState` and richer
+  command-result types exist
 
 Priority cases:
 
@@ -223,8 +252,8 @@ These should not be done first:
 ## Recommended Order
 
 1. extract transport-free session engine
-2. introduce structured command results
-3. keep terminal mode as an adapter over that engine
+2. introduce explicit session-state and structured command-result types
+3. keep terminal mode as an adapter over that engine/state model
 4. add state-oriented tests
 5. keep currency/network behavior provider-based
 6. add a separate WASM build target
