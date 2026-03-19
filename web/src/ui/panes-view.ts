@@ -45,19 +45,47 @@ function functionDisplay(entry: BindingFunctionEntry): string {
   return `${entry.name}/${entry.arity_label} - ${entry.summary}`;
 }
 
-function createPane(titleText: string): { section: HTMLElement; body: HTMLElement } {
+interface PaneElements {
+  section: HTMLElement;
+  body: HTMLElement;
+  count: HTMLElement;
+}
+
+function createPane(titleText: string): PaneElements {
   const section = document.createElement("section");
   section.className = "pane";
 
-  const title = document.createElement("h2");
+  const title = document.createElement("button");
   title.className = "pane-title";
-  title.textContent = titleText;
+  title.type = "button";
+  title.setAttribute("aria-expanded", "false");
+
+  const titleLabel = document.createElement("span");
+  titleLabel.className = "pane-title-label";
+  titleLabel.textContent = titleText;
+
+  const count = document.createElement("span");
+  count.className = "pane-count";
+  count.textContent = "0";
+
+  const marker = document.createElement("span");
+  marker.className = "pane-marker";
+  marker.textContent = "+";
 
   const body = document.createElement("div");
   body.className = "pane-body";
+  body.hidden = true;
 
+  title.addEventListener("click", () => {
+    const expanded = title.getAttribute("aria-expanded") !== "false";
+    title.setAttribute("aria-expanded", expanded ? "false" : "true");
+    body.hidden = expanded;
+    marker.textContent = expanded ? "+" : "−";
+  });
+
+  title.append(titleLabel, count, marker);
   section.append(title, body);
-  return { section, body };
+  return { section, body, count };
 }
 
 export function createPanesView(): PanesView {
@@ -84,6 +112,10 @@ export function createPanesView(): PanesView {
     element: section,
     render(snapshot) {
       status.textContent = `Mode ${snapshot.display_mode} | stack ${snapshot.stack.length}/${snapshot.max_stack_depth}`;
+      stackPane.count.textContent = `${snapshot.stack.length}`;
+      definitionsPane.count.textContent = `${snapshot.definitions.length}`;
+      constantsPane.count.textContent = `${snapshot.constants.length}`;
+      functionsPane.count.textContent = `${snapshot.functions.length}`;
       renderTextList(
         stackPane.body,
         snapshot.stack.map((entry) => stackDisplay(entry)),

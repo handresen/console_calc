@@ -23,11 +23,14 @@ export function createApp(root: HTMLElement): void {
   const panes = createPanesView();
   const bridge = new ConsoleWasmBridge();
 
-  const renderResult = (result: BindingCommandResult): void => {
+  const renderResult = (result: BindingCommandResult, input?: string): void => {
     for (const event of result.events) {
       switch (event.kind) {
         case "value":
-          transcript.appendMessage(event.text, "value");
+          transcript.appendMessage(
+            input === undefined ? event.text : `${input} = ${event.text}`,
+            "value",
+          );
           break;
         case "error":
           transcript.appendMessage(`error: ${event.text}`, "error");
@@ -68,10 +71,9 @@ export function createApp(root: HTMLElement): void {
   };
 
   const prompt = createPromptView(async (input) => {
-    transcript.appendCommand(input);
     try {
       const result = await bridge.submit(input);
-      renderResult(result);
+      renderResult(result, input);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown wasm bridge failure";

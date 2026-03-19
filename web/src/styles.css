@@ -117,10 +117,36 @@ body {
 }
 
 .pane-title {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
   margin: 0 0 0.55rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
   font-size: 0.95rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.pane-title-label {
+  min-width: 0;
+}
+
+.pane-count {
+  color: #5e5a4c;
+  font-size: 0.85rem;
+}
+
+.pane-marker {
+  width: 1rem;
+  text-align: center;
+  color: #2e5d31;
 }
 
 .pane-status {
@@ -141,6 +167,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+}
+
+.pane-body[hidden] {
+  display: none;
 }
 
 .pane-line,
