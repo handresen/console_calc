@@ -46,7 +46,7 @@ unary      = [ "-" ] , power ;
 power      = primary , [ "^" , unary ] ;
 primary    = number | function_call | map_call | guard_call | list | "(" , expression , ")" ;
 function_call = identifier , "(" , expression , { "," , expression } , ")" ;
-map_call   = "map" , "(" , expression , "," , ( identifier | expression ) , ")" ;
+map_call   = "map" , "(" , expression , "," , expression , ")" ;
 guard_call = "guard" , "(" , expression , "," , expression , ")" ;
 list       = "{" , expression , { "," , expression } , "}" ;
 number     = mantissa , [ exponent ] ;
@@ -105,7 +105,7 @@ Integer-preserving behavior:
 - `sum(list)` and `product(list)` preserve integer results when all inputs remain integral
 - trig functions always return floating-point results
 
-For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, the second argument may either be a unary scalar builtin such as `sin` or `cosd`, or an expression that uses `_` as the current element placeholder. In builtin-name form, list functions and multi-argument functions are rejected. `_` is only valid inside `map(..., expr)`.
+For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, the second argument is an expression that uses `_` as the current element placeholder. `_` is only valid inside `map(..., expr)`.
 
 Examples:
 - `2 + 3` => `5`
