@@ -13,6 +13,17 @@ The project currently builds in four layers:
 - `console_calc`
   Terminal executable and terminal-only adapter code
 
+Implementation is currently organized across:
+
+- `src/`
+  core library implementation
+- `apps/`
+  runtime/session and terminal adapter code
+- `bindings/`
+  binding-facing implementation such as the facade, C API, and wasm entrypoint
+
+See [architecture.md](./architecture.md) for the current intended layer boundaries.
+
 For host-facing or future WebAssembly preparation work, prefer depending on
 `console_calc_host_lib` rather than the terminal application target.
 

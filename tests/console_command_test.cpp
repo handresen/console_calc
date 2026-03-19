@@ -58,7 +58,7 @@ bool expect_builtin_function_listing() {
            "  list_div(a, b)                    divide matching list elements\n"
            "  list_mul(a, b)                    multiply matching list elements\n"
            "  list_sub(a, b)                    subtract matching list elements\n"
-           "  map(list, func_or_expr)           map unary scalar builtin over list\n"
+           "  map(list, expr)                   map inline expression over list\n"
            "  max(list)                         maximum list element\n"
            "  min(list)                         minimum list element\n"
            "  product(list)                     product of list elements\n"
@@ -184,7 +184,8 @@ bool expect_builtin_function_metadata() {
            reduce_info.summary == "reduce list with binary operator" &&
            map_info.name == "map" && map_info.min_arity == 2 && map_info.max_arity == 2 &&
            map_info.category == console_calc::BuiltinFunctionCategory::list &&
-           map_info.summary == "map unary scalar builtin over list" && !map_info.mappable &&
+           map_info.signature == "map(list, expr)" &&
+           map_info.summary == "map inline expression over list" && !map_info.mappable &&
            range_info.name == "range" && range_info.min_arity == 2 && range_info.max_arity == 3 &&
            range_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
            range_info.summary == "generate linear series from start" &&

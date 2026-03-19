@@ -38,7 +38,7 @@ constexpr std::array<BuiltinFunctionInfo, 29> k_builtin_functions = {{
      "guard(expr, fallback)", "use fallback when expr evaluation fails"},
     {Function::reduce, "reduce", 2, 2, BuiltinFunctionCategory::list, false,
      "reduce(list, op)", "reduce list with binary operator"},
-    {Function::map, "map", 2, 2, BuiltinFunctionCategory::list, false, "map(list, func_or_expr)", "map unary scalar builtin over list"},
+    {Function::map, "map", 2, 2, BuiltinFunctionCategory::list, false, "map(list, expr)", "map inline expression over list"},
     {Function::range, "range", 2, 3, BuiltinFunctionCategory::list_generation, false,
      "range(start, count[, step])", "generate linear series from start"},
     {Function::geom, "geom", 2, 3, BuiltinFunctionCategory::list_generation, false,

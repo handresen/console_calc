@@ -33,6 +33,10 @@ export interface BindingSnapshot {
 export interface BindingEvent {
   kind: string;
   text: string;
+  error?: {
+    message: string;
+    expected_signature?: string | null;
+  } | null;
   stack: BindingStackEntry[];
   definitions: BindingDefinitionEntry[];
   constants: BindingConstantEntry[];

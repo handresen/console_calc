@@ -5,6 +5,12 @@ function expectedFunctionSignature(
   result: BindingCommandResult,
   input?: string,
 ): string | null {
+  for (const event of result.events) {
+    if (event.kind === "error" && event.error?.expected_signature) {
+      return event.error.expected_signature;
+    }
+  }
+
   if (input === undefined) {
     return null;
   }

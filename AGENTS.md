@@ -22,6 +22,8 @@
   - implementation files
 - `apps/`
   - command-line executable entrypoints
+- `bindings/`
+  - binding-facing bridge code such as the host facade, C API, and wasm entrypoint
 - `tests/`
   - unit and integration tests
 - `docs/`
@@ -70,6 +72,7 @@
 - Do not outsource tokenizing, parsing, or other core expression-processing logic to external libraries unless explicitly requested.
 - Keep platform-specific code out of the core library unless there is no reasonable alternative.
 - Treat the console application as a thin adapter over the core library.
+- Keep binding-facing bridge code in `bindings/` rather than mixing it back into the core library or terminal app layers.
 - Document grammar and operator-precedence assumptions as they become concrete.
 - Keep the interactive console behavior in the app layer rather than mixing REPL concerns into the parser library.
 - Keep console-only syntax expansion token-aware and localized in the app layer rather than letting it become a second ad hoc parser.

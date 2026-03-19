@@ -116,7 +116,10 @@ bool expect_binding_currency_and_errors() {
     const auto error_result = facade.submit("unknown_name");
     return error_result.events.size() == 1 &&
            error_result.events[0].kind == console_calc::BindingEventKind::error &&
-           error_result.events[0].text == "unknown identifier: unknown_name";
+           error_result.events[0].text == "unknown identifier: unknown_name" &&
+           error_result.events[0].error.has_value() &&
+           error_result.events[0].error->message == "unknown identifier: unknown_name" &&
+           !error_result.events[0].error->expected_signature.has_value();
 }
 
 }  // namespace

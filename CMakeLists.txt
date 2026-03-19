@@ -31,6 +31,7 @@ endif()
 
 add_library(console_calc_lib
     src/builtin_function.cpp
+    src/error_info.cpp
     src/expression_ast_parser.cpp
     src/expression_evaluator.cpp
     src/expression_parser.cpp
@@ -89,8 +90,8 @@ target_compile_definitions(console_calc_runtime_lib
 )
 
 add_library(console_calc_host_lib
-    src/console_binding_facade.cpp
-    src/console_binding_c_api.cpp
+    bindings/facade/console_binding_facade.cpp
+    bindings/c_api/console_binding_c_api.cpp
 )
 
 target_include_directories(console_calc_host_lib
@@ -125,7 +126,7 @@ if(EMSCRIPTEN)
     )
 
     add_executable(console_calc_wasm
-        src/console_wasm_entry.cpp
+        bindings/wasm/console_wasm_entry.cpp
     )
 
     target_link_libraries(console_calc_wasm

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "console_calc/currency_rate_provider.h"
+#include "console_calc/error_info.h"
 #include "console_calc/session_environment.h"
 #include "console_calc/value_format.h"
 
@@ -59,6 +60,7 @@ enum class BindingEventKind {
 struct BindingEvent {
     BindingEventKind kind = BindingEventKind::text;
     std::string text;
+    std::optional<ErrorInfo> error;
     std::vector<BindingStackEntry> stack;
     std::vector<BindingDefinitionEntry> definitions;
     std::vector<BindingConstantEntry> constants;

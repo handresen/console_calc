@@ -11,6 +11,7 @@
 #include "console_listing.h"
 #include "currency_catalog.h"
 #include "currency_definition_materializer.h"
+#include "console_calc/error_info.h"
 #include "console_calc/expression_parser.h"
 #include "console_calc/scalar_value.h"
 #include "scalar_math.h"
@@ -161,9 +162,11 @@ ConsoleCommandResult ConsoleSessionEngine::submit(std::string_view line) {
             .value = evaluation_result,
         });
     } catch (const std::exception& ex) {
+        const ErrorInfo error = infer_error_info(ex.what());
         result.events.push_back(ConsoleCommandEvent{
             .kind = ConsoleCommandEventKind::error,
-            .text = ex.what(),
+            .text = error.message,
+            .error = error,
         });
     }
 

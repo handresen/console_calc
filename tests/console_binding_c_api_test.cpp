@@ -75,6 +75,10 @@ bool expect_c_api_invalid_input_error_result() {
     const std::string_view result_json = console_calc_binding_session_last_result_json(session);
     const bool ok =
         expect_contains(result_json, "\"kind\":\"error\"", "error event kind") &&
+        expect_contains(result_json, "\"error\":{\"message\":\"function 'guard' expects guard(expr, fallback)\"",
+                        "structured error message") &&
+        expect_contains(result_json, "\"expected_signature\":\"guard(expr, fallback)\"",
+                        "structured expected signature") &&
         expect_contains(result_json, "function 'guard' expects guard(expr, fallback)",
                         "guard signature error");
 

@@ -8,6 +8,7 @@
 
 #include "console_command.h"
 #include "console_listing.h"
+#include "console_calc/error_info.h"
 #include "currency_rate_provider.h"
 #include "expression_environment.h"
 #include "console_calc/value.h"
@@ -39,6 +40,7 @@ struct ConsoleCommandEvent {
     ConsoleCommandEventKind kind = ConsoleCommandEventKind::text;
     std::optional<Value> value;
     std::string text;
+    std::optional<ErrorInfo> error;
     std::vector<StackEntryView> stack_entries;
     std::vector<DefinitionView> definitions;
     std::vector<ConstantView> constants;
