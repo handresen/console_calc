@@ -55,6 +55,7 @@ add_library(console_calc_app_lib
     apps/console_line_editor.cpp
     apps/console_mode.cpp
     apps/console_session.cpp
+    apps/console_session_engine.cpp
     apps/currency_definition_materializer.cpp
     apps/currency_rate_parser.cpp
     apps/currency_rate_provider.cpp

@@ -1,5 +1,4 @@
 #include <cstdlib>
-#include <cstdio>
 #include <deque>
 #include <sstream>
 #include <string_view>
