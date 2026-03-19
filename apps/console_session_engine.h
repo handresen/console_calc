@@ -16,7 +16,7 @@ namespace console_calc {
 
 class ExpressionParser;
 
-struct ConsoleSessionState {
+struct ConsoleSessionSnapshot {
     std::vector<StackEntryView> stack_entries;
     std::size_t max_stack_depth = 100;
     std::vector<DefinitionView> definitions;
@@ -25,7 +25,7 @@ struct ConsoleSessionState {
     IntegerDisplayMode display_mode = IntegerDisplayMode::decimal;
 };
 
-enum class ConsoleOutputEventKind {
+enum class ConsoleCommandEventKind {
     value,
     text,
     stack_listing,
@@ -35,8 +35,8 @@ enum class ConsoleOutputEventKind {
     error,
 };
 
-struct ConsoleOutputEvent {
-    ConsoleOutputEventKind kind = ConsoleOutputEventKind::text;
+struct ConsoleCommandEvent {
+    ConsoleCommandEventKind kind = ConsoleCommandEventKind::text;
     std::optional<Value> value;
     std::string text;
     std::vector<StackEntryView> stack_entries;
@@ -45,10 +45,10 @@ struct ConsoleOutputEvent {
     std::vector<FunctionView> functions;
 };
 
-struct ConsoleEngineCommandResult {
+struct ConsoleCommandResult {
     bool should_exit = false;
-    std::vector<ConsoleOutputEvent> events;
-    ConsoleSessionState state;
+    std::vector<ConsoleCommandEvent> events;
+    ConsoleSessionSnapshot state;
 };
 
 class ConsoleSessionEngine {
@@ -60,8 +60,8 @@ public:
                          bool auto_refresh_currency_rates = false);
 
     void initialize();
-    [[nodiscard]] ConsoleEngineCommandResult submit(std::string_view line);
-    [[nodiscard]] ConsoleSessionState state() const;
+    [[nodiscard]] ConsoleCommandResult submit(std::string_view line);
+    [[nodiscard]] ConsoleSessionSnapshot state() const;
 
     [[nodiscard]] std::size_t stack_depth() const;
     [[nodiscard]] IntegerDisplayMode display_mode() const;
@@ -72,11 +72,11 @@ public:
 private:
     void assign_definition(std::string_view name, std::string_view expression,
                            const std::optional<Value>& result_reference);
-    void refresh_currency_rates(bool report_errors, ConsoleEngineCommandResult& result);
+    void refresh_currency_rates(bool report_errors, ConsoleCommandResult& result);
     void push_result(Value result);
     [[nodiscard]] Value apply_stack_operator(char op);
     std::optional<Value> top_result() const;
-    [[nodiscard]] ConsoleEngineCommandResult make_result(bool should_exit = false) const;
+    [[nodiscard]] ConsoleCommandResult make_result(bool should_exit = false) const;
 
     const ExpressionParser& parser_;
     const ConstantTable& constants_;

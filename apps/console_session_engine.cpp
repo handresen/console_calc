@@ -60,15 +60,15 @@ void ConsoleSessionEngine::initialize() {
     initialized_ = true;
 
     if (auto_refresh_currency_rates_) {
-        ConsoleEngineCommandResult ignored = make_result();
+        ConsoleCommandResult ignored = make_result();
         refresh_currency_rates(false, ignored);
     }
 }
 
-ConsoleEngineCommandResult ConsoleSessionEngine::submit(std::string_view line) {
+ConsoleCommandResult ConsoleSessionEngine::submit(std::string_view line) {
     initialize();
 
-    ConsoleEngineCommandResult result = make_result();
+    ConsoleCommandResult result = make_result();
     const std::string trimmed = trim(line);
     if (trimmed.empty()) {
         return result;
@@ -88,22 +88,22 @@ ConsoleEngineCommandResult ConsoleSessionEngine::submit(std::string_view line) {
         }
 
         if (is_listing_command(command.kind)) {
-            ConsoleOutputEvent event;
+            ConsoleCommandEvent event;
             switch (command.kind) {
             case ConsoleCommandKind::list_stack:
-                event.kind = ConsoleOutputEventKind::stack_listing;
+                event.kind = ConsoleCommandEventKind::stack_listing;
                 event.stack_entries = stack_entry_views(result_stack_);
                 break;
             case ConsoleCommandKind::list_variables:
-                event.kind = ConsoleOutputEventKind::definition_listing;
+                event.kind = ConsoleCommandEventKind::definition_listing;
                 event.definitions = definition_views(definitions_);
                 break;
             case ConsoleCommandKind::list_constants:
-                event.kind = ConsoleOutputEventKind::constant_listing;
+                event.kind = ConsoleCommandEventKind::constant_listing;
                 event.constants = constant_views(constants_);
                 break;
             case ConsoleCommandKind::list_functions:
-                event.kind = ConsoleOutputEventKind::function_listing;
+                event.kind = ConsoleCommandEventKind::function_listing;
                 event.functions = builtin_function_views(builtin_functions());
                 break;
             default:
@@ -132,8 +132,8 @@ ConsoleEngineCommandResult ConsoleSessionEngine::submit(std::string_view line) {
 
         if (command.kind == ConsoleCommandKind::stack_operator) {
             const Value stack_result = apply_stack_operator(command.stack_operator);
-            result.events.push_back(ConsoleOutputEvent{
-                .kind = ConsoleOutputEventKind::value,
+            result.events.push_back(ConsoleCommandEvent{
+                .kind = ConsoleCommandEventKind::value,
                 .value = stack_result,
             });
             result.state = state();
@@ -156,13 +156,13 @@ ConsoleEngineCommandResult ConsoleSessionEngine::submit(std::string_view line) {
         const Value evaluation_result = evaluate_expanded_expression(
             parser_, trimmed, constants_, definitions_, result_reference);
         push_result(evaluation_result);
-        result.events.push_back(ConsoleOutputEvent{
-            .kind = ConsoleOutputEventKind::value,
+        result.events.push_back(ConsoleCommandEvent{
+            .kind = ConsoleCommandEventKind::value,
             .value = evaluation_result,
         });
     } catch (const std::exception& ex) {
-        result.events.push_back(ConsoleOutputEvent{
-            .kind = ConsoleOutputEventKind::error,
+        result.events.push_back(ConsoleCommandEvent{
+            .kind = ConsoleCommandEventKind::error,
             .text = ex.what(),
         });
     }
@@ -171,8 +171,8 @@ ConsoleEngineCommandResult ConsoleSessionEngine::submit(std::string_view line) {
     return result;
 }
 
-ConsoleSessionState ConsoleSessionEngine::state() const {
-    return ConsoleSessionState{
+ConsoleSessionSnapshot ConsoleSessionEngine::state() const {
+    return ConsoleSessionSnapshot{
         .stack_entries = stack_entry_views(result_stack_),
         .max_stack_depth = max_stack_depth_,
         .definitions = definition_views(definitions_),
@@ -192,8 +192,8 @@ const DefinitionTable& ConsoleSessionEngine::definitions() const { return defini
 
 const ConstantTable& ConsoleSessionEngine::constants() const { return constants_; }
 
-ConsoleEngineCommandResult ConsoleSessionEngine::make_result(bool should_exit) const {
-    return ConsoleEngineCommandResult{
+ConsoleCommandResult ConsoleSessionEngine::make_result(bool should_exit) const {
+    return ConsoleCommandResult{
         .should_exit = should_exit,
         .state = state(),
     };
@@ -211,7 +211,7 @@ void ConsoleSessionEngine::assign_definition(std::string_view name, std::string_
 }
 
 void ConsoleSessionEngine::refresh_currency_rates(bool report_errors,
-                                                  ConsoleEngineCommandResult&) {
+                                                  ConsoleCommandResult&) {
     if (currency_rate_provider_ == nullptr) {
         if (report_errors) {
             throw std::invalid_argument("currency refresh is unavailable");

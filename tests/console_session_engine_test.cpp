@@ -85,7 +85,7 @@ bool expect_engine_basic_flow() {
 
     const auto variable_result = engine.submit("x");
     return !variable_result.should_exit && variable_result.events.size() == 1 &&
-           variable_result.events[0].kind == console_calc::ConsoleOutputEventKind::value &&
+           variable_result.events[0].kind == console_calc::ConsoleCommandEventKind::value &&
            variable_result.events[0].value.has_value() &&
            std::holds_alternative<double>(*variable_result.events[0].value) &&
            std::get<double>(*variable_result.events[0].value) > 4.14159 &&

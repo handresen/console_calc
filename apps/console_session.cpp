@@ -70,14 +70,14 @@ int ConsoleSession::run() {
 }
 
 int ConsoleSession::handle_line(std::string_view line) {
-    const ConsoleEngineCommandResult result = engine_.submit(line);
+    const ConsoleCommandResult result = engine_.submit(line);
     for (const auto& event : result.events) {
-        if (event.kind == ConsoleOutputEventKind::value) {
+        if (event.kind == ConsoleCommandEventKind::value) {
             print_result(output_, *event.value, result.state.display_mode);
             continue;
         }
 
-        if (event.kind == ConsoleOutputEventKind::text) {
+        if (event.kind == ConsoleCommandEventKind::text) {
             if (event.text.empty()) {
                 continue;
             }
@@ -88,22 +88,22 @@ int ConsoleSession::handle_line(std::string_view line) {
             continue;
         }
 
-        if (event.kind == ConsoleOutputEventKind::stack_listing) {
+        if (event.kind == ConsoleCommandEventKind::stack_listing) {
             output_ << format_stack_listing(event.stack_entries, result.state.display_mode);
             continue;
         }
 
-        if (event.kind == ConsoleOutputEventKind::definition_listing) {
+        if (event.kind == ConsoleCommandEventKind::definition_listing) {
             output_ << format_definition_listing(event.definitions);
             continue;
         }
 
-        if (event.kind == ConsoleOutputEventKind::constant_listing) {
+        if (event.kind == ConsoleCommandEventKind::constant_listing) {
             output_ << format_constant_listing(event.constants);
             continue;
         }
 
-        if (event.kind == ConsoleOutputEventKind::function_listing) {
+        if (event.kind == ConsoleCommandEventKind::function_listing) {
             output_ << format_builtin_function_listing(event.functions);
             continue;
         }

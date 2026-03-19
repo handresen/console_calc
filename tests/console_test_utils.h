@@ -54,9 +54,9 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
 }
 
 [[nodiscard]] inline bool expect_single_value_event(std::string_view label,
-                                                    const ConsoleEngineCommandResult& result) {
+                                                    const ConsoleCommandResult& result) {
     if (result.events.size() == 1 &&
-        result.events[0].kind == ConsoleOutputEventKind::value &&
+        result.events[0].kind == ConsoleCommandEventKind::value &&
         result.events[0].value.has_value()) {
         return true;
     }
@@ -67,10 +67,10 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
 }
 
 [[nodiscard]] inline bool expect_single_text_event(std::string_view label,
-                                                   const ConsoleEngineCommandResult& result,
+                                                   const ConsoleCommandResult& result,
                                                    std::string_view expected_text) {
     if (result.events.size() == 1 &&
-        result.events[0].kind == ConsoleOutputEventKind::text &&
+        result.events[0].kind == ConsoleCommandEventKind::text &&
         result.events[0].text == expected_text) {
         return true;
     }
@@ -88,10 +88,10 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
 }
 
 [[nodiscard]] inline bool expect_single_error_event(std::string_view label,
-                                                    const ConsoleEngineCommandResult& result,
+                                                    const ConsoleCommandResult& result,
                                                     std::string_view expected_text) {
     if (result.events.size() == 1 &&
-        result.events[0].kind == ConsoleOutputEventKind::error &&
+        result.events[0].kind == ConsoleCommandEventKind::error &&
         result.events[0].text == expected_text) {
         return true;
     }
@@ -109,9 +109,9 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
 }
 
 [[nodiscard]] inline bool expect_single_stack_listing_event(
-    std::string_view label, const ConsoleEngineCommandResult& result) {
+    std::string_view label, const ConsoleCommandResult& result) {
     if (result.events.size() == 1 &&
-        result.events[0].kind == ConsoleOutputEventKind::stack_listing) {
+        result.events[0].kind == ConsoleCommandEventKind::stack_listing) {
         return true;
     }
 
@@ -121,9 +121,9 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
 }
 
 [[nodiscard]] inline bool expect_single_definition_listing_event(
-    std::string_view label, const ConsoleEngineCommandResult& result) {
+    std::string_view label, const ConsoleCommandResult& result) {
     if (result.events.size() == 1 &&
-        result.events[0].kind == ConsoleOutputEventKind::definition_listing) {
+        result.events[0].kind == ConsoleCommandEventKind::definition_listing) {
         return true;
     }
 
@@ -133,9 +133,9 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
 }
 
 [[nodiscard]] inline bool expect_single_constant_listing_event(
-    std::string_view label, const ConsoleEngineCommandResult& result) {
+    std::string_view label, const ConsoleCommandResult& result) {
     if (result.events.size() == 1 &&
-        result.events[0].kind == ConsoleOutputEventKind::constant_listing) {
+        result.events[0].kind == ConsoleCommandEventKind::constant_listing) {
         return true;
     }
 
@@ -145,9 +145,9 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
 }
 
 [[nodiscard]] inline bool expect_single_function_listing_event(
-    std::string_view label, const ConsoleEngineCommandResult& result) {
+    std::string_view label, const ConsoleCommandResult& result) {
     if (result.events.size() == 1 &&
-        result.events[0].kind == ConsoleOutputEventKind::function_listing) {
+        result.events[0].kind == ConsoleCommandEventKind::function_listing) {
         return true;
     }
 
