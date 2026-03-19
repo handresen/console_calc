@@ -59,6 +59,25 @@ namespace {
     return starts_primary_expression(kind) || kind == TokenKind::minus;
 }
 
+enum class SpecialForm {
+    map,
+    guard,
+    reduce,
+};
+
+[[nodiscard]] std::optional<SpecialForm> parse_special_form(std::string_view identifier) {
+    if (identifier == "map") {
+        return SpecialForm::map;
+    }
+    if (identifier == "guard") {
+        return SpecialForm::guard;
+    }
+    if (identifier == "reduce") {
+        return SpecialForm::reduce;
+    }
+    return std::nullopt;
+}
+
 class Parser {
 public:
     explicit Parser(std::string_view input)
@@ -211,14 +230,9 @@ private:
                 advance();
                 return Expression{PlaceholderExpression{}};
             }
-            if (current_.identifier_text == "map") {
-                return parse_map_call();
-            }
-            if (current_.identifier_text == "guard") {
-                return parse_guard_call();
-            }
-            if (current_.identifier_text == "reduce") {
-                return parse_reduce_call();
+            if (const auto special_form = parse_special_form(current_.identifier_text);
+                special_form.has_value()) {
+                return parse_special_form_call(*special_form);
             }
             return parse_function_call();
         }
@@ -245,6 +259,19 @@ private:
         Expression expression{NumberLiteral{.value = current_.number_value}};
         advance();
         return expression;
+    }
+
+    [[nodiscard]] Expression parse_special_form_call(SpecialForm form) {
+        switch (form) {
+        case SpecialForm::map:
+            return parse_map_call();
+        case SpecialForm::guard:
+            return parse_guard_call();
+        case SpecialForm::reduce:
+            return parse_reduce_call();
+        }
+
+        throw ParseError("unknown special form");
     }
 
     [[nodiscard]] Expression parse_function_call() {
