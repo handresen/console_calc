@@ -61,7 +61,8 @@ namespace {
 
 class Parser {
 public:
-    explicit Parser(std::string_view input) : tokenizer_(input), current_(tokenizer_.next()) {}
+    explicit Parser(std::string_view input)
+        : tokenizer_(input), current_(tokenizer_.next()), next_(tokenizer_.next()) {}
 
     [[nodiscard]] Expression parse() {
         if (!starts_operand_expression(current_.kind)) {
@@ -206,6 +207,10 @@ private:
 
     [[nodiscard]] Expression parse_primary_expression() {
         if (current_.kind == TokenKind::identifier) {
+            if (allow_map_placeholder_ && current_.identifier_text == "_") {
+                advance();
+                return Expression{PlaceholderExpression{}};
+            }
             if (current_.identifier_text == "map") {
                 return parse_map_call();
             }
@@ -299,16 +304,28 @@ private:
         }
 
         advance();
-        if (current_.kind != TokenKind::identifier) {
-            throw ParseError("expected builtin function name after ','");
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("expected expression after ','");
         }
 
-        const auto function = parse_builtin_function(current_.identifier_text);
-        if (!function.has_value()) {
-            throw ParseError("unknown function");
+        if (current_.kind == TokenKind::identifier) {
+            const auto function = parse_builtin_function(current_.identifier_text);
+            if (function.has_value() && next_.kind == TokenKind::right_paren) {
+                advance();
+                advance();
+                return Expression{
+                    MapCall{
+                        .list_argument = std::move(list_argument),
+                        .mapped_function = *function,
+                    }};
+            }
         }
 
-        advance();
+        const bool previous_allow_map_placeholder = allow_map_placeholder_;
+        allow_map_placeholder_ = true;
+        auto mapped_expression = make_expression(parse_bitwise_or_expression());
+        allow_map_placeholder_ = previous_allow_map_placeholder;
+
         if (current_.kind != TokenKind::right_paren) {
             throw ParseError("expected ')'");
         }
@@ -317,7 +334,7 @@ private:
         return Expression{
             MapCall{
                 .list_argument = std::move(list_argument),
-                .mapped_function = *function,
+                .mapped_expression = std::move(mapped_expression),
             }};
     }
 
@@ -388,11 +405,14 @@ private:
     }
 
     void advance() {
-        current_ = tokenizer_.next();
+        current_ = next_;
+        next_ = tokenizer_.next();
     }
 
     Tokenizer tokenizer_;
     Token current_;
+    Token next_;
+    bool allow_map_placeholder_ = false;
 };
 
 }  // namespace

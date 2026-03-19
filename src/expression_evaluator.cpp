@@ -466,46 +466,64 @@ template <typename Operation>
 
 }  // namespace
 
-Value evaluate_expression(const Expression& expression) {
+Value evaluate_expression_with_placeholder(const Expression& expression,
+                                           const std::optional<ScalarValue>& placeholder_value) {
     return std::visit(
-        [](const auto& node) -> Value {
+        [&](const auto& node) -> Value {
             using Node = std::decay_t<decltype(node)>;
 
             if constexpr (std::is_same_v<Node, NumberLiteral>) {
                 return to_value(node.value);
+            } else if constexpr (std::is_same_v<Node, PlaceholderExpression>) {
+                if (!placeholder_value.has_value()) {
+                    throw EvaluationError("map placeholder '_' can only be used inside map()");
+                }
+                return to_value(*placeholder_value);
             } else if constexpr (std::is_same_v<Node, UnaryExpression>) {
                 return to_value(negate_scalar(
-                    require_scalar_or_singleton_list_value(evaluate_expression(*node.operand))));
+                    require_scalar_or_singleton_list_value(
+                        evaluate_expression_with_placeholder(*node.operand, placeholder_value))));
             } else if constexpr (std::is_same_v<Node, ListLiteral>) {
                 ListValue values;
                 values.reserve(node.elements.size());
                 for (const auto& element : node.elements) {
-                    values.push_back(require_scalar_value(evaluate_expression(*element)));
+                    values.push_back(require_scalar_value(
+                        evaluate_expression_with_placeholder(*element, placeholder_value)));
                 }
                 return values;
             } else if constexpr (std::is_same_v<Node, FunctionCall>) {
                 std::vector<Value> arguments;
                 arguments.reserve(node.arguments.size());
                 for (const auto& argument : node.arguments) {
-                    arguments.push_back(evaluate_expression(*argument));
+                    arguments.push_back(
+                        evaluate_expression_with_placeholder(*argument, placeholder_value));
                 }
                 return evaluate_builtin_function(node.function, arguments);
             } else if constexpr (std::is_same_v<Node, MapCall>) {
-                if (!is_mappable_unary_scalar_function(node.mapped_function)) {
-                    throw EvaluationError("map() requires a unary scalar builtin function");
-                }
-
-                const ListValue input_values = require_list(evaluate_expression(*node.list_argument));
+                const ListValue input_values =
+                    require_list(evaluate_expression_with_placeholder(*node.list_argument,
+                                                                     placeholder_value));
                 ListValue mapped_values;
                 mapped_values.reserve(input_values.size());
                 for (const auto& value : input_values) {
-                    const Value scalar_value = to_value(value);
-                    mapped_values.push_back(require_scalar_value(
-                        evaluate_builtin_function(node.mapped_function, std::span{&scalar_value, 1})));
+                    if (node.mapped_function.has_value()) {
+                        if (!is_mappable_unary_scalar_function(*node.mapped_function)) {
+                            throw EvaluationError("map() requires a unary scalar builtin function");
+                        }
+
+                        const Value scalar_value = to_value(value);
+                        mapped_values.push_back(require_scalar_value(evaluate_builtin_function(
+                            *node.mapped_function, std::span{&scalar_value, 1})));
+                    } else {
+                        mapped_values.push_back(require_scalar_value(
+                            evaluate_expression_with_placeholder(*node.mapped_expression, value)));
+                    }
                 }
                 return mapped_values;
             } else if constexpr (std::is_same_v<Node, ReduceCall>) {
-                const ListValue input_values = require_list(evaluate_expression(*node.list_argument));
+                const ListValue input_values =
+                    require_list(evaluate_expression_with_placeholder(*node.list_argument,
+                                                                     placeholder_value));
                 if (input_values.empty()) {
                     throw EvaluationError("reduce() requires a non-empty list");
                 }
@@ -518,9 +536,11 @@ Value evaluate_expression(const Expression& expression) {
                 return to_value(reduced);
             } else {
                 const ScalarValue lhs =
-                    require_scalar_or_singleton_list_value(evaluate_expression(*node.left));
+                    require_scalar_or_singleton_list_value(
+                        evaluate_expression_with_placeholder(*node.left, placeholder_value));
                 const ScalarValue rhs =
-                    require_scalar_or_singleton_list_value(evaluate_expression(*node.right));
+                    require_scalar_or_singleton_list_value(
+                        evaluate_expression_with_placeholder(*node.right, placeholder_value));
 
                 switch (node.op) {
                 case BinaryOperator::add:
@@ -545,6 +565,10 @@ Value evaluate_expression(const Expression& expression) {
             }
         },
         expression.node);
+}
+
+Value evaluate_expression(const Expression& expression) {
+    return evaluate_expression_with_placeholder(expression, std::nullopt);
 }
 
 double evaluate_scalar_expression(const Expression& expression) {

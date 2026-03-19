@@ -490,6 +490,34 @@ bool expect_map_ast_shape(console_calc::ExpressionParser& parser) {
            almost_equal(second->value, 3.0);
 }
 
+bool expect_map_expression_ast_shape(console_calc::ExpressionParser& parser) {
+    using console_calc::BinaryExpression;
+    using console_calc::Expression;
+    using console_calc::ListLiteral;
+    using console_calc::MapCall;
+    using console_calc::NumberLiteral;
+    using console_calc::PlaceholderExpression;
+
+    const Expression ast = parser.parse("map({2, 3}, _ + 1)");
+    const auto* root = std::get_if<MapCall>(&ast.node);
+    if (root == nullptr || root->mapped_function.has_value() || root->mapped_expression == nullptr) {
+        return false;
+    }
+
+    const auto* list = std::get_if<ListLiteral>(&root->list_argument->node);
+    if (list == nullptr || list->elements.size() != 2) {
+        return false;
+    }
+
+    const auto* mapped = std::get_if<BinaryExpression>(&root->mapped_expression->node);
+    if (mapped == nullptr) {
+        return false;
+    }
+
+    return std::holds_alternative<PlaceholderExpression>(mapped->left->node) &&
+           std::holds_alternative<NumberLiteral>(mapped->right->node);
+}
+
 bool expect_reduce_ast_shape(console_calc::ExpressionParser& parser) {
     using console_calc::BinaryOperator;
     using console_calc::Expression;
@@ -681,6 +709,10 @@ int main() {
     }
 
     if (!expect_map_ast_shape(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_map_expression_ast_shape(parser)) {
         return EXIT_FAILURE;
     }
 

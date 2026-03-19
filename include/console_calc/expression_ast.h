@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <vector>
 #include <variant>
 
@@ -24,6 +25,8 @@ struct Expression;
 struct NumberLiteral {
     ScalarValue value = std::int64_t{0};
 };
+
+struct PlaceholderExpression {};
 
 struct UnaryExpression {
     std::unique_ptr<Expression> operand;
@@ -77,7 +80,8 @@ struct FunctionCall {
 
 struct MapCall {
     std::unique_ptr<Expression> list_argument;
-    Function mapped_function;
+    std::optional<Function> mapped_function;
+    std::unique_ptr<Expression> mapped_expression;
 };
 
 struct ReduceCall {
@@ -86,8 +90,8 @@ struct ReduceCall {
 };
 
 struct Expression {
-    std::variant<NumberLiteral, UnaryExpression, BinaryExpression, ListLiteral, FunctionCall,
-                 MapCall, ReduceCall>
+    std::variant<NumberLiteral, PlaceholderExpression, UnaryExpression, BinaryExpression,
+                 ListLiteral, FunctionCall, MapCall, ReduceCall>
         node;
 };
 

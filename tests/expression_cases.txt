@@ -63,6 +63,8 @@
 "sum(map({0, 1.5707963267948966}, sin))", 1.0
 "sum(map({0, 90}, sind))", 1.0
 "sum(map({2, 3, 4}, cos))", -2.0597829540111997
+"sum(map({1, 2, 3}, _ + 1))", 9.0
+"sum(map({1, 2, 3}, sin(_) + _))", 7.8918884196934453
 "sum(list_div({8, 9, 10}, {2, 3, 5}))", 9.0
 "sum(list_div(powers(-1, 4), range(1, 4, 2)))", 0.72380952380952379
 "reduce({2, 3, 4}, +)", 9.0
@@ -145,6 +147,8 @@
 "map({1, 2}, foo)", INVALID
 "map(1, sin)", INVALID
 "map({1, 2}, sin())", INVALID
+"map({1, 2}, _ + foo)", INVALID
+"_", INVALID
 "range(1)", INVALID
 "range(1, 2, 3, 4)", INVALID
 "range(1, -1)", INVALID

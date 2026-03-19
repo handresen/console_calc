@@ -230,6 +230,9 @@ bool expect_expression_identifier_expansion() {
                "map(vals, sin)", constants, definitions, std::nullopt) ==
                "map({1, 2, 3}, sin)" &&
            console_calc::expand_expression_identifiers(
+               "map(vals, sin(_) + _)", constants, definitions, std::nullopt) ==
+               "map({1, 2, 3}, sin(_) + _)" &&
+           console_calc::expand_expression_identifiers(
                "map({1, 2}, sind)", constants, definitions, std::nullopt) ==
                "map({1, 2}, sind)" &&
            console_calc::expand_expression_identifiers(

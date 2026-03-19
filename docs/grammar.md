@@ -32,6 +32,7 @@ Explicitly out of scope for this first version:
   - `,`
 - `identifier`
   - used for builtin function names
+  - `_` is reserved as the current-element placeholder inside `map(..., expr)`
 
 ## Grammar
 
@@ -45,7 +46,7 @@ unary      = [ "-" ] , power ;
 power      = primary , [ "^" , unary ] ;
 primary    = number | function_call | map_call | list | "(" , expression , ")" ;
 function_call = identifier , "(" , expression , { "," , expression } , ")" ;
-map_call   = "map" , "(" , expression , "," , identifier , ")" ;
+map_call   = "map" , "(" , expression , "," , ( identifier | expression ) , ")" ;
 list       = "{" , expression , { "," , expression } , "}" ;
 number     = mantissa , [ exponent ] ;
 mantissa   = digits , [ "." , [ digits ] ]
@@ -88,6 +89,7 @@ Builtin functions:
 - `list_mul(list_a, list_b)` multiplies list elements pairwise and requires equal list lengths
 - `reduce(list, op)` reduces a non-empty list left-to-right using a binary operator such as `+` or `*`
 - `map(list, func)` applies a unary scalar builtin function to each list item and returns a list of the same length
+- `map(list, expr)` evaluates `expr` once per list item with `_` bound to the current element
 - `range(start, count[, step])` generates a list beginning at `start`, with `count` elements, incrementing by `step` or by `1` when omitted
 - `geom(start, count[, ratio])` generates a geometric series beginning at `start`, multiplying by `ratio` or by `2` when omitted
 - `repeat(value, count)` repeats `value` `count` times
@@ -102,7 +104,7 @@ Integer-preserving behavior:
 - `sum(list)` and `product(list)` preserve integer results when all inputs remain integral
 - trig functions always return floating-point results
 
-For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, `func` must name a unary scalar builtin such as `sin` or `cosd`; list functions and multi-argument functions are rejected.
+For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, the second argument may either be a unary scalar builtin such as `sin` or `cosd`, or an expression that uses `_` as the current element placeholder. In builtin-name form, list functions and multi-argument functions are rejected. `_` is only valid inside `map(..., expr)`.
 
 Examples:
 - `2 + 3` => `5`
@@ -120,6 +122,8 @@ Examples:
 - `max({2, -1, 5})` => `5`
 - `sum({1, 2, 3})` => `6`
 - `sum(map({0, 90}, sind))` => `1`
+- `sum(map({1, 2, 3}, _ + 1))` => `9`
+- `sum(map({1, 2, 3}, sin(_) + _))` => `7.8918884196934453`
 - `sum(list_div(powers(-1, 4), range(1, 4, 2)))` => `0.72380952380952379`
 - `sum(list_mul({2, 3, 4}, {5, 6, 7}))` => `56`
 - `reduce({2, 3, 4}, *)` => `24`
@@ -160,6 +164,8 @@ Examples:
 - `list_mul({1, 2}, {3, 4})`
 - `reduce({2, 3, 4}, +)`
 - `map({0, 90}, sind)`
+- `map({1, 2, 3}, _ + 1)`
+- `map({1, 2, 3}, sin(_) + _)`
 - `range(10, 4)`
 - `range(1.5, 3, 0.5)`
 - `geom(2, 4)`
@@ -192,6 +198,8 @@ Examples:
 - `reduce({}, +)`
 - `map({1, 2}, sum)`
 - `map({1, 2}, pow)`
+- `map({1, 2}, _ + foo)`
+- `_`
 - `range(1)`
 - `range(1, 2, 3, 4)`
 - `range(1, -1)`

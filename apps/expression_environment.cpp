@@ -76,6 +76,17 @@ struct ExpansionFrame {
            frames.back().identifier == "map" && frames.back().argument_index == 1;
 }
 
+[[nodiscard]] bool is_inside_map_expression(const std::vector<ExpansionFrame>& frames) {
+    for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
+        if (it->kind == ExpansionFrameKind::call && it->identifier == "map" &&
+            it->argument_index == 1) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 }  // namespace
 
 bool is_identifier(std::string_view text) {
@@ -192,7 +203,10 @@ std::string expand_expression_identifiers_impl(
         const std::string identifier(expression.substr(index, end - index));
         const bool followed_by_call = is_followed_by_call(expression, end);
 
-        if (is_builtin_function_name(identifier) &&
+        if (identifier == "_" && is_inside_map_expression(frames)) {
+            expanded += identifier;
+            pending_call_identifier.reset();
+        } else if (is_builtin_function_name(identifier) &&
             (followed_by_call || is_map_function_argument(frames))) {
             expanded += identifier;
             pending_call_identifier = followed_by_call ? std::optional<std::string>(identifier)
