@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <exception>
+#include <string>
 #include <variant>
 
 #include "console_calc/expression_ast.h"
@@ -107,7 +108,8 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
         return false;
     }
 
-    const console_calc::Value mapped_list = parser.evaluate_value("map({0, 1.5707963267948966}, sin)");
+    const console_calc::Value mapped_list =
+        parser.evaluate_value("map({0, 1.5707963267948966}, sin(_))");
     const auto* mapped_values = std::get_if<console_calc::ListValue>(&mapped_list);
     if (mapped_values == nullptr || mapped_values->size() != 2 ||
         !almost_equal(console_calc::scalar_to_double((*mapped_values)[0]), 0.0) ||
@@ -466,16 +468,17 @@ bool expect_sum_ast_shape(console_calc::ExpressionParser& parser) {
     return true;
 }
 
-bool expect_map_ast_shape(console_calc::ExpressionParser& parser) {
+bool expect_map_expression_ast_shape(console_calc::ExpressionParser& parser) {
+    using console_calc::BinaryExpression;
     using console_calc::Expression;
-    using console_calc::Function;
     using console_calc::ListLiteral;
     using console_calc::MapCall;
     using console_calc::NumberLiteral;
+    using console_calc::PlaceholderExpression;
 
-    const Expression ast = parser.parse("map({2, 3}, sin)");
+    const Expression ast = parser.parse("map({2, 3}, _ + 1)");
     const auto* root = std::get_if<MapCall>(&ast.node);
-    if (root == nullptr || root->mapped_function != Function::sin) {
+    if (root == nullptr || root->mapped_expression == nullptr) {
         return false;
     }
 
@@ -484,10 +487,35 @@ bool expect_map_ast_shape(console_calc::ExpressionParser& parser) {
         return false;
     }
 
-    const auto* first = std::get_if<NumberLiteral>(&list->elements[0]->node);
-    const auto* second = std::get_if<NumberLiteral>(&list->elements[1]->node);
-    return first != nullptr && second != nullptr && almost_equal(first->value, 2.0) &&
-           almost_equal(second->value, 3.0);
+    const auto* mapped = std::get_if<BinaryExpression>(&root->mapped_expression->node);
+    if (mapped == nullptr) {
+        return false;
+    }
+
+    return std::holds_alternative<PlaceholderExpression>(mapped->left->node) &&
+           std::holds_alternative<NumberLiteral>(mapped->right->node);
+}
+
+bool expect_guard_ast_shape(console_calc::ExpressionParser& parser) {
+    using console_calc::BinaryExpression;
+    using console_calc::BinaryOperator;
+    using console_calc::Expression;
+    using console_calc::GuardCall;
+    using console_calc::NumberLiteral;
+
+    const Expression ast = parser.parse("guard(1 / 0, 5)");
+    const auto* root = std::get_if<GuardCall>(&ast.node);
+    if (root == nullptr) {
+        return false;
+    }
+
+    const auto* guarded = std::get_if<BinaryExpression>(&root->guarded_expression->node);
+    if (guarded == nullptr || guarded->op != BinaryOperator::divide) {
+        return false;
+    }
+
+    const auto* fallback = std::get_if<NumberLiteral>(&root->fallback_expression->node);
+    return fallback != nullptr && almost_equal(fallback->value, 5.0);
 }
 
 bool expect_reduce_ast_shape(console_calc::ExpressionParser& parser) {
@@ -635,6 +663,43 @@ bool expect_integer_semantics(console_calc::ExpressionParser& parser) {
            std::get<std::int64_t>(integer_length) == 3;
 }
 
+bool expect_function_signature_errors(console_calc::ExpressionParser& parser) {
+    try {
+        (void)parser.parse("pow(2)");
+        return false;
+    } catch (const std::invalid_argument& error) {
+        if (std::string(error.what()) != "function 'pow' expects pow(x, y)") {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.parse("range(1)");
+        return false;
+    } catch (const std::invalid_argument& error) {
+        if (std::string(error.what()) != "function 'range' expects range(start, count[, step])") {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.parse("guard(1 / 0)");
+        return false;
+    } catch (const std::invalid_argument& error) {
+        if (std::string(error.what()) != "function 'guard' expects guard(expr, fallback)") {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    return true;
+}
+
 }  // namespace
 
 int main() {
@@ -680,7 +745,11 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    if (!expect_map_ast_shape(parser)) {
+    if (!expect_map_expression_ast_shape(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_guard_ast_shape(parser)) {
         return EXIT_FAILURE;
     }
 
@@ -697,6 +766,10 @@ int main() {
     }
 
     if (!expect_integer_semantics(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_function_signature_errors(parser)) {
         return EXIT_FAILURE;
     }
 

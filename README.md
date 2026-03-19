@@ -8,6 +8,16 @@
 
 The project is intentionally compact and library-first. Parsing and evaluation live in the core library, while REPL behavior stays in the app layer.
 
+Current build layers:
+- `console_calc_lib`
+  core parser, evaluator, values, and builtin metadata
+- `console_calc_runtime_lib`
+  shared runtime/session logic, listings, environment expansion, and provider abstractions
+- `console_calc_host_lib`
+  host-facing binding facade over the runtime/session layer
+- `console_calc`
+  terminal application, built only when terminal-app support is enabled
+
 ## Quick Start
 
 Evaluate a single expression:
@@ -21,6 +31,33 @@ Start interactive console mode:
 ```bash
 ./build/default/console_calc
 ```
+
+Build the host-facing reusable slice without the terminal application:
+
+```bash
+cmake --preset host-only
+cmake --build --preset host-only
+ctest --preset host-only
+```
+
+This preset is the current “WASM-ready” build boundary. It keeps the core,
+runtime, and host-facing facade while excluding terminal-only code such as the
+line editor and console executable.
+
+Build the first Emscripten/WASM host artifact:
+
+```bash
+source ~/emsdk/emsdk_env.sh
+EM_CACHE="$PWD/build/emscripten-cache" cmake --preset emscripten-host
+EM_CACHE="$PWD/build/emscripten-cache" cmake --build --preset emscripten-host
+```
+
+This produces:
+- `build/emscripten-host/console_calc.mjs`
+- `build/emscripten-host/console_calc.wasm`
+
+The current wasm bridge exports a small C-facing session API for creating a
+session, submitting commands, and retrieving the last command result as JSON.
 
 ## Expression Language
 
@@ -71,7 +108,7 @@ Examples:
 10 % 3              => 1
 6 & 3 | 8           => 10
 first(1, {2, 3})+4  => 6
-sum(map({0, 90}, sind)) => 1
+sum(map({0, 90}, sind(_))) => 1
 ```
 
 ## Builtin Constants
@@ -100,6 +137,7 @@ pow(e, 1)
 - `cosd(x)`     cosine in degrees
 - `tand(x)`     tangent in degrees
 - `pow(x, y)`   power
+- `guard(expr, fallback)` evaluate `fallback` only if `expr` fails
 
 ### List Functions
 
@@ -111,10 +149,11 @@ pow(e, 1)
 - `max(list)`        maximum list element
 - `first(n, list)`   first `n` list elements
 - `drop(n, list)`    drop first `n` list elements
+- `guard(expr, fallback)` return fallback when expression evaluation fails
 - `list_div(a, b)`   divide matching list elements
 - `list_mul(a, b)`   multiply matching list elements
 - `reduce(list, op)` reduce a list with a binary operator
-- `map(list, func)`  map unary scalar builtin over list
+- `map(list, expr)`  map an inline expression using `_` as the current element
 
 ### List Generation Functions
 
@@ -132,8 +171,11 @@ Function notes:
 - `list_mul` requires both inputs to be lists of equal length
 - `reduce` requires a non-empty list
 - `reduce` uses existing binary operators such as `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
-- `map` only accepts unary scalar builtin functions such as `sin`, `cos`, `sind`, `tand`
+- `map` accepts an inline expression using `_` as the current element
 - `map({1, 2}, sum)` and `map({1, 2}, pow)` are invalid
+- `map({1, 2}, sin)` is invalid
+- `_` is only valid inside `map(..., expr)`
+- `guard` evaluates its fallback lazily and can be used inside `map`
 - `range` requires `count` to be a non-negative integer
 - `range(start, count)` uses a default step of `1`
 - `range` preserves integer list elements when `start` and `step` are integers
@@ -155,8 +197,12 @@ drop(1, {10, 20, 30})         => {20, 30}
 list_div({8, 9}, {2, 3})      => {4, 3}
 list_mul({2, 3}, {4, 5})      => {8, 15}
 reduce({2, 3, 4}, *)          => 24
-map({0, 90}, sind)            => {0, 1}
-sum(map({1, 2, 3}, sin))      => 1.89189...
+map({0, 90}, sind(_))         => {0, 1}
+map({1, 2, 3}, _ + 1)         => {2, 3, 4}
+map({1, 2, 3}, sin(_) + _)    => {1.84147..., 2.90929..., 3.14112...}
+guard(1 / 0, 0)               => 0
+map(range(-2, 5), guard(1 / _, 0))
+sum(map({1, 2, 3}, sin(_)))   => 1.89189...
 range(10, 4)                  => {10, 11, 12, 13}
 range(2, 4, 3)                => {2, 5, 8, 11}
 geom(2, 4)                    => {2, 4, 8, 16}
@@ -197,7 +243,7 @@ Prompt format:
 <stack depth>>
 ```
 
-The prompt is shown in green. Stack depth is capped at `9`.
+The prompt is shown in green. The stack currently keeps up to `100` values by default.
 
 Each successful expression pushes its result onto the stack.
 
@@ -304,7 +350,7 @@ Definitions can also hold list expressions:
 ```text
 vals:1,2,3,4
 sum(vals)
-map(vals, sin)
+map(vals, sin(_))
 ```
 
 Rules:
@@ -423,6 +469,22 @@ Run tests:
 
 ```bash
 ctest --preset default
+```
+
+Release build:
+
+```bash
+cmake --preset release
+cmake --build --preset release
+ctest --preset release
+```
+
+Host-only build:
+
+```bash
+cmake --preset host-only
+cmake --build --preset host-only
+ctest --preset host-only
 ```
 
 Executable path:

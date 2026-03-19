@@ -5,9 +5,9 @@
 #include <span>
 #include <string_view>
 
-namespace console_calc {
+#include "console_calc/currency_rate_provider.h"
 
-class CurrencyRateProvider;
+namespace console_calc {
 
 struct ConsoleCalcOptions {
     CurrencyRateProvider* currency_rate_provider = nullptr;

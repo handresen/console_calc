@@ -34,6 +34,32 @@
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
+    },
+    {
+      "name": "host-only",
+      "displayName": "Host Only",
+      "inherits": "default",
+      "binaryDir": "${sourceDir}/build/host-only",
+      "cacheVariables": {
+        "CONSOLE_CALC_BUILD_TERMINAL_APP": "OFF"
+      }
+    },
+    {
+      "name": "emscripten-host",
+      "displayName": "Emscripten Host",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/emscripten-host",
+      "environment": {
+        "EM_CACHE": "${sourceDir}/build/emscripten-cache"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "OFF",
+        "CMAKE_TOOLCHAIN_FILE": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+        "CONSOLE_CALC_BUILD_TERMINAL_APP": "OFF",
+        "CONSOLE_CALC_BUILD_TESTS": "OFF",
+        "CONSOLE_CALC_ENABLE_NATIVE_CURRENCY_PROVIDER": "OFF"
+      }
     }
   ],
   "buildPresets": [
@@ -48,6 +74,15 @@
     {
       "name": "clang-tidy",
       "configurePreset": "clang-tidy"
+    },
+    {
+      "name": "host-only",
+      "configurePreset": "host-only"
+    },
+    {
+      "name": "emscripten-host",
+      "configurePreset": "emscripten-host",
+      "inheritConfigureEnvironment": true
     }
   ],
   "testPresets": [
@@ -61,6 +96,13 @@
     {
       "name": "release",
       "configurePreset": "release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "host-only",
+      "configurePreset": "host-only",
       "output": {
         "outputOnFailure": true
       }

@@ -12,8 +12,9 @@ namespace {
 [[nodiscard]] std::optional<double> parse_rate(std::string_view body, std::string_view currency) {
     const std::regex pattern(
         "\"" + std::string(currency) + "\"\\s*:\\s*(-?[0-9]+(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?)");
-    std::cmatch match;
-    if (!std::regex_search(body.begin(), body.end(), match, pattern)) {
+    const std::string body_text(body);
+    std::smatch match;
+    if (!std::regex_search(body_text, match, pattern)) {
         return std::nullopt;
     }
 

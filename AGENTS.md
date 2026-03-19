@@ -76,6 +76,7 @@
 - Keep the expression test corpus in `tests/expression_cases.txt` using quoted expressions, a comma, and an expected result token per line, with `#` comments for section headers.
 - When parser behavior changes, update both `docs/grammar.md` and the externalized expression test data.
 - When console commands or builtin-function metadata change, update the focused command/listing tests in `tests/console_command_test.cpp` and the user-facing `README.md` when appropriate.
+- When adding or refactoring focused unit tests, prefer small reusable failure-diagnostics helpers over ad hoc temporary `printf` debugging. Leave targeted instrumentation in place when it materially improves future failure diagnosis without cluttering the tests.
 
 ## Near-Term Priorities
 1. Preserve correctness while extending the grammar in small, test-backed steps.
@@ -87,3 +88,4 @@
 - The current forward-looking extension plan for the project is documented in `docs/wasm_extension_plan.md`.
 - Treat that document as the canonical next-steps plan for preparing the calculator/runtime for a future browser and WebAssembly frontend.
 - Follow that plan by separating session semantics from terminal presentation before attempting any web UI or WASM binding work.
+- The current `users-ha-web_frontend` branch has already landed a transport-free session engine, structured session snapshots/events, and a binding-facing facade. Future work should extend that direction rather than reintroducing terminal-shaped APIs into reusable layers.

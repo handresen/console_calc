@@ -1,6 +1,8 @@
 #include "currency_rate_provider.h"
 
+#if CONSOLE_CALC_ENABLE_NATIVE_CURRENCY_PROVIDER
 #include <curl/curl.h>
+#endif
 
 #include <memory>
 #include <string>
@@ -12,6 +14,7 @@ namespace console_calc {
 
 namespace {
 
+#if CONSOLE_CALC_ENABLE_NATIVE_CURRENCY_PROVIDER
 constexpr std::string_view k_rates_endpoint = "https://api.frankfurter.app/latest?from=NOK&to=";
 
 class CurlHandle {
@@ -107,10 +110,16 @@ public:
     }
 };
 
+#endif
+
 }  // namespace
 
 std::unique_ptr<CurrencyRateProvider> make_default_currency_rate_provider() {
+#if CONSOLE_CALC_ENABLE_NATIVE_CURRENCY_PROVIDER
     return std::make_unique<FrankfurterCurrencyRateProvider>();
+#else
+    return nullptr;
+#endif
 }
 
 }  // namespace console_calc

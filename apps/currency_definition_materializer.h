@@ -1,6 +1,7 @@
 #pragma once
 
 #include "currency_rate_provider.h"
+#include "expression_environment.h"
 
 namespace console_calc {
 

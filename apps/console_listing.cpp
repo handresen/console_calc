@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "console_calc/value_format.h"
@@ -49,37 +48,34 @@ std::string format_console_list(const ListValue& values, IntegerDisplayMode mode
     return output;
 }
 
-template <typename Table, typename Formatter>
-std::string format_named_listing(const Table& table, Formatter formatter) {
-    std::vector<std::string> names;
-    names.reserve(table.size());
-    for (const auto& [name, _] : table) {
-        names.push_back(name);
-    }
-
-    std::sort(names.begin(), names.end());
-
-    std::string output;
-    for (const auto& name : names) {
-        output += formatter(name);
-        output += '\n';
-    }
-
-    return output;
-}
-
 }  // namespace
 
 std::string format_stack_listing(std::span<const Value> values) {
     return format_stack_listing(values, IntegerDisplayMode::decimal);
 }
 
-std::string format_stack_listing(std::span<const Value> values, IntegerDisplayMode mode) {
-    std::string output;
+std::vector<StackEntryView> stack_entry_views(std::span<const Value> values) {
+    std::vector<StackEntryView> entries;
+    entries.reserve(values.size());
     for (std::size_t index = 0; index < values.size(); ++index) {
-        output += std::to_string(index);
+        entries.push_back(StackEntryView{
+            .level = index,
+            .value = values[index],
+        });
+    }
+    return entries;
+}
+
+std::string format_stack_listing(std::span<const Value> values, IntegerDisplayMode mode) {
+    return format_stack_listing(stack_entry_views(values), mode);
+}
+
+std::string format_stack_listing(std::span<const StackEntryView> entries, IntegerDisplayMode mode) {
+    std::string output;
+    for (const auto& entry : entries) {
+        output += std::to_string(entry.level);
         output += ':';
-        output += format_console_value(values[index], mode);
+        output += format_console_value(entry.value, mode);
         output += '\n';
     }
 
@@ -94,58 +90,122 @@ std::string format_console_value(const Value& value, IntegerDisplayMode mode) {
     return format_value(value, mode);
 }
 
-std::string format_definition_listing(const DefinitionTable& definitions) {
-    return format_named_listing(definitions, [&](const std::string& name) {
-        return name + ':' + definitions.at(name).expression;
+std::vector<DefinitionView> definition_views(const DefinitionTable& definitions) {
+    std::vector<DefinitionView> views;
+    views.reserve(definitions.size());
+    for (const auto& [name, definition] : definitions) {
+        views.push_back(DefinitionView{
+            .name = name,
+            .expression = definition.expression,
+        });
+    }
+
+    std::sort(views.begin(), views.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.name < rhs.name;
     });
+    return views;
+}
+
+std::string format_definition_listing(const DefinitionTable& definitions) {
+    return format_definition_listing(definition_views(definitions));
+}
+
+std::string format_definition_listing(std::span<const DefinitionView> definitions) {
+    std::string output;
+    for (const auto& view : definitions) {
+        output += view.name;
+        output += ':';
+        output += view.expression;
+        output += '\n';
+    }
+    return output;
+}
+
+std::vector<ConstantView> constant_views(const ConstantTable& constants) {
+    std::vector<ConstantView> views;
+    views.reserve(constants.size());
+    for (const auto& [name, value] : constants) {
+        views.push_back(ConstantView{
+            .name = name,
+            .value = value,
+        });
+    }
+
+    std::sort(views.begin(), views.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.name < rhs.name;
+    });
+    return views;
 }
 
 std::string format_constant_listing(const ConstantTable& constants) {
-    return format_named_listing(constants, [&](const std::string& name) {
-        return name + ':' + format_scalar(constants.at(name));
+    return format_constant_listing(constant_views(constants));
+}
+
+std::string format_constant_listing(std::span<const ConstantView> constants) {
+    std::string output;
+    for (const auto& view : constants) {
+        output += view.name;
+        output += ':';
+        output += format_scalar(view.value);
+        output += '\n';
+    }
+    return output;
+}
+
+std::vector<FunctionView> builtin_function_views(std::span<const BuiltinFunctionInfo> functions) {
+    std::vector<FunctionView> views;
+    views.reserve(functions.size());
+    for (const auto& function : functions) {
+        views.push_back(FunctionView{
+            .name = std::string(function.name),
+            .signature = std::string(builtin_function_signature(function.function)),
+            .category = function.category,
+            .summary = std::string(function.summary),
+        });
+    }
+
+    std::sort(views.begin(), views.end(), [](const auto& lhs, const auto& rhs) {
+        if (lhs.category != rhs.category) {
+            return static_cast<int>(lhs.category) < static_cast<int>(rhs.category);
+        }
+        return lhs.name < rhs.name;
     });
+    return views;
 }
 
 std::string format_builtin_function_listing(std::span<const BuiltinFunctionInfo> functions) {
-    std::vector<std::pair<std::string, BuiltinFunctionInfo>> scalar_entries;
-    std::vector<std::pair<std::string, BuiltinFunctionInfo>> list_entries;
-    std::vector<std::pair<std::string, BuiltinFunctionInfo>> list_generation_entries;
-    scalar_entries.reserve(functions.size());
-    list_entries.reserve(functions.size());
-    list_generation_entries.reserve(functions.size());
+    return format_builtin_function_listing(builtin_function_views(functions));
+}
+
+std::string format_builtin_function_listing(std::span<const FunctionView> views) {
+    std::vector<FunctionView> scalar_entries;
+    std::vector<FunctionView> list_entries;
+    std::vector<FunctionView> list_generation_entries;
+    scalar_entries.reserve(views.size());
+    list_entries.reserve(views.size());
+    list_generation_entries.reserve(views.size());
     std::size_t label_width = 0;
 
-    for (const auto& function : functions) {
-        std::string label = std::string(function.name) + '/' + builtin_function_arity_label(function.function);
+    for (const auto& function : views) {
+        const std::string& label = function.signature;
         label_width = std::max(label_width, label.size());
         if (function.category == BuiltinFunctionCategory::list) {
-            list_entries.emplace_back(std::string(function.name), function);
+            list_entries.push_back(function);
         } else if (function.category == BuiltinFunctionCategory::list_generation) {
-            list_generation_entries.emplace_back(std::string(function.name), function);
+            list_generation_entries.push_back(function);
         } else {
-            scalar_entries.emplace_back(std::string(function.name), function);
+            scalar_entries.push_back(function);
         }
     }
 
-    auto sort_entries = [](auto& entries) {
-        std::sort(entries.begin(), entries.end(), [](const auto& lhs, const auto& rhs) {
-            return lhs.first < rhs.first;
-        });
-    };
-
-    sort_entries(scalar_entries);
-    sort_entries(list_entries);
-    sort_entries(list_generation_entries);
-
     auto append_entries = [&](std::string& output, const auto& entries) {
         for (const auto& entry : entries) {
-            const std::string label =
-                std::string(entry.second.name) + '/' + builtin_function_arity_label(entry.second.function);
+            const std::string& label = entry.signature;
             output += "  ";
             output += label;
             output.append(label_width - label.size(), ' ');
             output += "  ";
-            output += entry.second.summary;
+            output += entry.summary;
             output += '\n';
         }
     };

@@ -59,9 +59,29 @@ namespace {
     return starts_primary_expression(kind) || kind == TokenKind::minus;
 }
 
+enum class SpecialForm {
+    map,
+    guard,
+    reduce,
+};
+
+[[nodiscard]] std::optional<SpecialForm> parse_special_form(std::string_view identifier) {
+    if (identifier == "map") {
+        return SpecialForm::map;
+    }
+    if (identifier == "guard") {
+        return SpecialForm::guard;
+    }
+    if (identifier == "reduce") {
+        return SpecialForm::reduce;
+    }
+    return std::nullopt;
+}
+
 class Parser {
 public:
-    explicit Parser(std::string_view input) : tokenizer_(input), current_(tokenizer_.next()) {}
+    explicit Parser(std::string_view input)
+        : tokenizer_(input), current_(tokenizer_.next()), next_(tokenizer_.next()) {}
 
     [[nodiscard]] Expression parse() {
         if (!starts_operand_expression(current_.kind)) {
@@ -206,11 +226,13 @@ private:
 
     [[nodiscard]] Expression parse_primary_expression() {
         if (current_.kind == TokenKind::identifier) {
-            if (current_.identifier_text == "map") {
-                return parse_map_call();
+            if (allow_map_placeholder_ && current_.identifier_text == "_") {
+                advance();
+                return Expression{PlaceholderExpression{}};
             }
-            if (current_.identifier_text == "reduce") {
-                return parse_reduce_call();
+            if (const auto special_form = parse_special_form(current_.identifier_text);
+                special_form.has_value()) {
+                return parse_special_form_call(*special_form);
             }
             return parse_function_call();
         }
@@ -237,6 +259,19 @@ private:
         Expression expression{NumberLiteral{.value = current_.number_value}};
         advance();
         return expression;
+    }
+
+    [[nodiscard]] Expression parse_special_form_call(SpecialForm form) {
+        switch (form) {
+        case SpecialForm::map:
+            return parse_map_call();
+        case SpecialForm::guard:
+            return parse_guard_call();
+        case SpecialForm::reduce:
+            return parse_reduce_call();
+        }
+
+        throw ParseError("unknown special form");
     }
 
     [[nodiscard]] Expression parse_function_call() {
@@ -268,10 +303,9 @@ private:
         }
 
         if (!builtin_function_accepts_arity(*function, arguments.size())) {
-            const std::string arity_label = builtin_function_arity_label(*function);
             throw ParseError("function '" + std::string(builtin_function_name(*function)) +
-                             "' expects " + arity_label +
-                             ((arity_label == "1") ? " argument" : " arguments"));
+                             "' expects " +
+                             std::string(builtin_function_signature(*function)));
         }
 
         advance();
@@ -299,16 +333,15 @@ private:
         }
 
         advance();
-        if (current_.kind != TokenKind::identifier) {
-            throw ParseError("expected builtin function name after ','");
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("expected expression after ','");
         }
 
-        const auto function = parse_builtin_function(current_.identifier_text);
-        if (!function.has_value()) {
-            throw ParseError("unknown function");
-        }
+        const bool previous_allow_map_placeholder = allow_map_placeholder_;
+        allow_map_placeholder_ = true;
+        auto mapped_expression = make_expression(parse_bitwise_or_expression());
+        allow_map_placeholder_ = previous_allow_map_placeholder;
 
-        advance();
         if (current_.kind != TokenKind::right_paren) {
             throw ParseError("expected ')'");
         }
@@ -317,7 +350,42 @@ private:
         return Expression{
             MapCall{
                 .list_argument = std::move(list_argument),
-                .mapped_function = *function,
+                .mapped_expression = std::move(mapped_expression),
+            }};
+    }
+
+    [[nodiscard]] Expression parse_guard_call() {
+        const auto guard_signature = std::string(builtin_function_signature(Function::guard));
+        advance();
+        if (current_.kind != TokenKind::left_paren) {
+            throw ParseError("expected '(' after function name");
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("function 'guard' expects " + guard_signature);
+        }
+
+        auto guarded_expression = make_expression(parse_bitwise_or_expression());
+        if (current_.kind != TokenKind::comma) {
+            throw ParseError("function 'guard' expects " + guard_signature);
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("function 'guard' expects " + guard_signature);
+        }
+
+        auto fallback_expression = make_expression(parse_bitwise_or_expression());
+        if (current_.kind != TokenKind::right_paren) {
+            throw ParseError("function 'guard' expects " + guard_signature);
+        }
+
+        advance();
+        return Expression{
+            GuardCall{
+                .guarded_expression = std::move(guarded_expression),
+                .fallback_expression = std::move(fallback_expression),
             }};
     }
 
@@ -388,11 +456,14 @@ private:
     }
 
     void advance() {
-        current_ = tokenizer_.next();
+        current_ = next_;
+        next_ = tokenizer_.next();
     }
 
     Tokenizer tokenizer_;
     Token current_;
+    Token next_;
+    bool allow_map_placeholder_ = false;
 };
 
 }  // namespace

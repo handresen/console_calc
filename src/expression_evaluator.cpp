@@ -16,6 +16,9 @@
 
 namespace console_calc {
 
+[[nodiscard]] Value evaluate_expression_with_placeholder(
+    const Expression& expression, const std::optional<ScalarValue>& placeholder_value);
+
 namespace {
 
 [[nodiscard]] ScalarValue require_scalar_value(const Value& value) {
@@ -145,6 +148,7 @@ namespace {
     case Function::list_sub:
     case Function::list_div:
     case Function::list_mul:
+    case Function::guard:
     case Function::reduce:
     case Function::map:
     case Function::range:
@@ -213,6 +217,7 @@ template <typename Operation>
     case Function::list_sub:
     case Function::list_div:
     case Function::list_mul:
+    case Function::guard:
     case Function::reduce:
     case Function::map:
     case Function::range:
@@ -310,6 +315,7 @@ template <typename Operation>
         return evaluate_pairwise_list_builtin(arguments, "list_div", divide_scalars);
     case Function::list_mul:
         return evaluate_pairwise_list_builtin(arguments, "list_mul", multiply_scalars);
+    case Function::guard:
     case Function::map:
     case Function::reduce:
         break;
@@ -440,6 +446,7 @@ template <typename Operation>
     case Function::list_sub:
     case Function::list_div:
     case Function::list_mul:
+    case Function::guard:
     case Function::reduce:
     case Function::map:
         break;
@@ -464,87 +471,122 @@ template <typename Operation>
     throw EvaluationError("unknown function");
 }
 
+[[nodiscard]] Value evaluate_map_call(const MapCall& node,
+                                      const std::optional<ScalarValue>& placeholder_value) {
+    const ListValue input_values =
+        require_list(evaluate_expression_with_placeholder(*node.list_argument, placeholder_value));
+    ListValue mapped_values;
+    mapped_values.reserve(input_values.size());
+    for (const auto& value : input_values) {
+        mapped_values.push_back(require_scalar_value(
+            evaluate_expression_with_placeholder(*node.mapped_expression, value)));
+    }
+    return mapped_values;
+}
+
+[[nodiscard]] Value evaluate_guard_call(const GuardCall& node,
+                                        const std::optional<ScalarValue>& placeholder_value) {
+    try {
+        return evaluate_expression_with_placeholder(*node.guarded_expression, placeholder_value);
+    } catch (const std::invalid_argument&) {
+        return evaluate_expression_with_placeholder(*node.fallback_expression, placeholder_value);
+    }
+}
+
+[[nodiscard]] Value evaluate_reduce_call(const ReduceCall& node,
+                                         const std::optional<ScalarValue>& placeholder_value) {
+    const ListValue input_values =
+        require_list(evaluate_expression_with_placeholder(*node.list_argument, placeholder_value));
+    if (input_values.empty()) {
+        throw EvaluationError("reduce() requires a non-empty list");
+    }
+
+    ScalarValue reduced = input_values.front();
+    for (std::size_t index = 1; index < input_values.size(); ++index) {
+        reduced = apply_binary_operator(node.reduction_operator, reduced, input_values[index]);
+    }
+    return to_value(reduced);
+}
+
+[[nodiscard]] Value evaluate_binary_expression(const BinaryExpression& node,
+                                               const std::optional<ScalarValue>& placeholder_value) {
+    const ScalarValue lhs = require_scalar_or_singleton_list_value(
+        evaluate_expression_with_placeholder(*node.left, placeholder_value));
+    const ScalarValue rhs = require_scalar_or_singleton_list_value(
+        evaluate_expression_with_placeholder(*node.right, placeholder_value));
+
+    switch (node.op) {
+    case BinaryOperator::add:
+        return to_value(add_scalars(lhs, rhs));
+    case BinaryOperator::subtract:
+        return to_value(subtract_scalars(lhs, rhs));
+    case BinaryOperator::multiply:
+        return to_value(multiply_scalars(lhs, rhs));
+    case BinaryOperator::divide:
+        return to_value(divide_scalars(lhs, rhs));
+    case BinaryOperator::modulo:
+        return to_value(modulo_scalars(lhs, rhs));
+    case BinaryOperator::power:
+        return to_value(power_scalars(lhs, rhs));
+    case BinaryOperator::bitwise_and:
+        return require_integer_operand(lhs) & require_integer_operand(rhs);
+    case BinaryOperator::bitwise_or:
+        return require_integer_operand(lhs) | require_integer_operand(rhs);
+    }
+
+    throw EvaluationError("unknown binary operator");
+}
+
 }  // namespace
 
-Value evaluate_expression(const Expression& expression) {
+Value evaluate_expression_with_placeholder(const Expression& expression,
+                                           const std::optional<ScalarValue>& placeholder_value) {
     return std::visit(
-        [](const auto& node) -> Value {
+        [&](const auto& node) -> Value {
             using Node = std::decay_t<decltype(node)>;
 
             if constexpr (std::is_same_v<Node, NumberLiteral>) {
                 return to_value(node.value);
+            } else if constexpr (std::is_same_v<Node, PlaceholderExpression>) {
+                if (!placeholder_value.has_value()) {
+                    throw EvaluationError("map placeholder '_' can only be used inside map()");
+                }
+                return to_value(*placeholder_value);
             } else if constexpr (std::is_same_v<Node, UnaryExpression>) {
                 return to_value(negate_scalar(
-                    require_scalar_or_singleton_list_value(evaluate_expression(*node.operand))));
+                    require_scalar_or_singleton_list_value(
+                        evaluate_expression_with_placeholder(*node.operand, placeholder_value))));
             } else if constexpr (std::is_same_v<Node, ListLiteral>) {
                 ListValue values;
                 values.reserve(node.elements.size());
                 for (const auto& element : node.elements) {
-                    values.push_back(require_scalar_value(evaluate_expression(*element)));
+                    values.push_back(require_scalar_value(
+                        evaluate_expression_with_placeholder(*element, placeholder_value)));
                 }
                 return values;
             } else if constexpr (std::is_same_v<Node, FunctionCall>) {
                 std::vector<Value> arguments;
                 arguments.reserve(node.arguments.size());
                 for (const auto& argument : node.arguments) {
-                    arguments.push_back(evaluate_expression(*argument));
+                    arguments.push_back(
+                        evaluate_expression_with_placeholder(*argument, placeholder_value));
                 }
                 return evaluate_builtin_function(node.function, arguments);
             } else if constexpr (std::is_same_v<Node, MapCall>) {
-                if (!is_mappable_unary_scalar_function(node.mapped_function)) {
-                    throw EvaluationError("map() requires a unary scalar builtin function");
-                }
-
-                const ListValue input_values = require_list(evaluate_expression(*node.list_argument));
-                ListValue mapped_values;
-                mapped_values.reserve(input_values.size());
-                for (const auto& value : input_values) {
-                    const Value scalar_value = to_value(value);
-                    mapped_values.push_back(require_scalar_value(
-                        evaluate_builtin_function(node.mapped_function, std::span{&scalar_value, 1})));
-                }
-                return mapped_values;
+                return evaluate_map_call(node, placeholder_value);
+            } else if constexpr (std::is_same_v<Node, GuardCall>) {
+                return evaluate_guard_call(node, placeholder_value);
             } else if constexpr (std::is_same_v<Node, ReduceCall>) {
-                const ListValue input_values = require_list(evaluate_expression(*node.list_argument));
-                if (input_values.empty()) {
-                    throw EvaluationError("reduce() requires a non-empty list");
-                }
-
-                ScalarValue reduced = input_values.front();
-                for (std::size_t index = 1; index < input_values.size(); ++index) {
-                    reduced = apply_binary_operator(node.reduction_operator, reduced,
-                                                    input_values[index]);
-                }
-                return to_value(reduced);
+                return evaluate_reduce_call(node, placeholder_value);
             } else {
-                const ScalarValue lhs =
-                    require_scalar_or_singleton_list_value(evaluate_expression(*node.left));
-                const ScalarValue rhs =
-                    require_scalar_or_singleton_list_value(evaluate_expression(*node.right));
-
-                switch (node.op) {
-                case BinaryOperator::add:
-                    return to_value(add_scalars(lhs, rhs));
-                case BinaryOperator::subtract:
-                    return to_value(subtract_scalars(lhs, rhs));
-                case BinaryOperator::multiply:
-                    return to_value(multiply_scalars(lhs, rhs));
-                case BinaryOperator::divide:
-                    return to_value(divide_scalars(lhs, rhs));
-                case BinaryOperator::modulo:
-                    return to_value(modulo_scalars(lhs, rhs));
-                case BinaryOperator::power:
-                    return to_value(power_scalars(lhs, rhs));
-                case BinaryOperator::bitwise_and:
-                    return require_integer_operand(lhs) & require_integer_operand(rhs);
-                case BinaryOperator::bitwise_or:
-                    return require_integer_operand(lhs) | require_integer_operand(rhs);
-                }
-
-                throw EvaluationError("unknown binary operator");
+                return evaluate_binary_expression(node, placeholder_value);
             }
         },
         expression.node);
+}
+
+Value evaluate_expression(const Expression& expression) {
+    return evaluate_expression_with_placeholder(expression, std::nullopt);
 }
 
 double evaluate_scalar_expression(const Expression& expression) {

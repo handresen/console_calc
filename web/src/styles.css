@@ -1,0 +1,271 @@
+:root {
+  color-scheme: light;
+  font-family: "Iosevka Term", "SF Mono", "Menlo", monospace;
+  background:
+    radial-gradient(circle at top left, rgba(210, 229, 201, 0.85), transparent 30%),
+    linear-gradient(180deg, #f5f2e8 0%, #e6ddc8 100%);
+  color: #1d241c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(24rem, 1.5fr);
+  gap: 1.25rem;
+  height: 100vh;
+  min-height: 100vh;
+  padding: 1.25rem;
+}
+
+.console-column,
+.side-column {
+  border: 1px solid rgba(29, 36, 28, 0.15);
+  border-radius: 1rem;
+  background: rgba(250, 247, 239, 0.85);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 40px rgba(64, 53, 28, 0.08);
+  min-height: 0;
+}
+
+.console-column {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 0;
+}
+
+.side-column {
+  padding: 1rem;
+}
+
+.bridge-banner,
+.transcript-view,
+.prompt-view,
+.panes-view {
+  padding: 1rem 1.1rem;
+}
+
+.panes-view {
+  display: grid;
+  gap: 1rem;
+  padding: 0;
+}
+
+.info-panel,
+.plot-panel {
+  border: 1px solid rgba(29, 36, 28, 0.1);
+  border-radius: 0.9rem;
+  background: rgba(252, 248, 239, 0.7);
+  padding: 1rem 1.1rem;
+}
+
+.bridge-banner {
+  border-bottom: 1px solid rgba(29, 36, 28, 0.1);
+  font-size: 0.95rem;
+}
+
+.transcript-view {
+  min-height: 0;
+  border-bottom: 1px solid rgba(29, 36, 28, 0.1);
+  overflow: auto;
+}
+
+.transcript-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.transcript-line {
+  white-space: pre-wrap;
+}
+
+.transcript-line-command {
+  color: #2e5d31;
+}
+
+.transcript-line-value {
+  color: #1d241c;
+}
+
+.transcript-line-error {
+  color: #a1312f;
+}
+
+.transcript-line-listing,
+.transcript-line-text {
+  color: #5e5a4c;
+}
+
+.prompt-view {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.prompt-label {
+  color: #2e5d31;
+}
+
+.prompt-view input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.prompt-view input:disabled {
+  color: #7d7b73;
+}
+
+.pane-title {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  margin: 0 0 0.55rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.pane-title-label {
+  min-width: 0;
+}
+
+.pane-count {
+  color: #5e5a4c;
+  font-size: 0.85rem;
+}
+
+.pane-marker {
+  width: 1rem;
+  text-align: center;
+  color: #2e5d31;
+}
+
+.pane-status {
+  margin-bottom: 1rem;
+  font-size: 0.92rem;
+  color: #5e5a4c;
+}
+
+.pane {
+  margin-bottom: 1rem;
+}
+
+.pane:last-child {
+  margin-bottom: 0;
+}
+
+.pane-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.functions-pane-body {
+  max-height: 20rem;
+  overflow: auto;
+  padding-right: 0.2rem;
+}
+
+.pane-body[hidden] {
+  display: none;
+}
+
+.pane-line,
+.pane-empty {
+  font-size: 0.95rem;
+}
+
+.pane-empty {
+  color: #7d7b73;
+}
+
+.function-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.95rem;
+}
+
+.function-table td {
+  padding: 0.16rem 0;
+  vertical-align: top;
+}
+
+.function-signature {
+  width: 40%;
+  padding-right: 0.9rem;
+  color: #1d241c;
+  word-break: break-word;
+}
+
+.function-summary {
+  color: #5e5a4c;
+  word-break: break-word;
+}
+
+.plot-meta {
+  margin-bottom: 0.45rem;
+  color: #5e5a4c;
+  font-size: 0.85rem;
+}
+
+.plot-svg {
+  width: 100%;
+  height: 11rem;
+  border: 1px solid rgba(29, 36, 28, 0.12);
+  border-radius: 0.65rem;
+  background:
+    linear-gradient(180deg, rgba(220, 233, 211, 0.35) 0%, rgba(252, 248, 239, 0.92) 100%);
+}
+
+.plot-grid {
+  stroke: rgba(29, 36, 28, 0.18);
+  stroke-width: 1;
+  fill: none;
+}
+
+.plot-zero-axis {
+  stroke: rgba(161, 49, 47, 0.45);
+  stroke-width: 1.2;
+  fill: none;
+  stroke-dasharray: 4 4;
+}
+
+.plot-line {
+  stroke: #2e5d31;
+  stroke-width: 2.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+}

@@ -38,38 +38,39 @@ bool expect_command_classification() {
 bool expect_builtin_function_listing() {
     return console_calc::format_builtin_function_listing(console_calc::builtin_functions()) ==
            "Scalar functions\n"
-           "  abs/1       absolute value\n"
-           "  cos/1       cosine in radians\n"
-           "  cosd/1      cosine in degrees\n"
-           "  pow/2       power\n"
-           "  sin/1       sine in radians\n"
-           "  sind/1      sine in degrees\n"
-           "  sqrt/1      square root\n"
-           "  tan/1       tangent in radians\n"
-           "  tand/1      tangent in degrees\n"
+           "  abs(x)                            absolute value\n"
+           "  cos(x)                            cosine in radians\n"
+           "  cosd(x)                           cosine in degrees\n"
+           "  guard(expr, fallback)             use fallback when expr evaluation fails\n"
+           "  pow(x, y)                         power\n"
+           "  sin(x)                            sine in radians\n"
+           "  sind(x)                           sine in degrees\n"
+           "  sqrt(x)                           square root\n"
+           "  tan(x)                            tangent in radians\n"
+           "  tand(x)                           tangent in degrees\n"
            "\n"
            "List functions\n"
-           "  avg/1       average of list elements\n"
-           "  drop/2      drop first n list elements\n"
-           "  first/2     first n list elements\n"
-           "  len/1       list length\n"
-           "  list_add/2  add matching list elements\n"
-           "  list_div/2  divide matching list elements\n"
-           "  list_mul/2  multiply matching list elements\n"
-           "  list_sub/2  subtract matching list elements\n"
-           "  map/2       map unary scalar builtin over list\n"
-           "  max/1       maximum list element\n"
-           "  min/1       minimum list element\n"
-           "  product/1   product of list elements\n"
-           "  reduce/2    reduce list with binary operator\n"
-           "  sum/1       sum list elements\n"
+           "  avg(list)                         average of list elements\n"
+           "  drop(n, list)                     drop first n list elements\n"
+           "  first(n, list)                    first n list elements\n"
+           "  len(list)                         list length\n"
+           "  list_add(a, b)                    add matching list elements\n"
+           "  list_div(a, b)                    divide matching list elements\n"
+           "  list_mul(a, b)                    multiply matching list elements\n"
+           "  list_sub(a, b)                    subtract matching list elements\n"
+           "  map(list, func_or_expr)           map unary scalar builtin over list\n"
+           "  max(list)                         maximum list element\n"
+           "  min(list)                         minimum list element\n"
+           "  product(list)                     product of list elements\n"
+           "  reduce(list, op)                  reduce list with binary operator\n"
+           "  sum(list)                         sum list elements\n"
            "\n"
            "List generation functions\n"
-           "  geom/2-3    generate geometric series from start\n"
-           "  linspace/3  generate evenly spaced values over interval\n"
-           "  powers/2-3  generate successive integer powers\n"
-           "  range/2-3   generate linear series from start\n"
-           "  repeat/2    repeat value count times\n";
+           "  geom(start, count[, ratio])       generate geometric series from start\n"
+           "  linspace(start, stop, count)      generate evenly spaced values over interval\n"
+           "  powers(base, count[, start_exp])  generate successive integer powers\n"
+           "  range(start, count[, step])       generate linear series from start\n"
+           "  repeat(value, count)              repeat value count times\n";
 }
 
 bool expect_constant_and_definition_listing() {
@@ -94,6 +95,43 @@ bool expect_constant_and_definition_listing() {
                "x:pi+1\n";
 }
 
+bool expect_structured_listing_views() {
+    const console_calc::ConstantTable constants{
+        {"tau", 6.2831853071795862},
+        {"e", 2.7182818284590451},
+        {"pi", 3.1415926535897931},
+    };
+    const console_calc::DefinitionTable definitions{
+        {"sx", {"sin(x)"}},
+        {"vals", {"{1, 2, 3}"}},
+        {"x", {"pi+1"}},
+    };
+    const std::vector<console_calc::Value> stack{
+        std::int64_t{2},
+        console_calc::ListValue{console_calc::ScalarValue{1}, console_calc::ScalarValue{2}},
+    };
+
+    const auto stack_views = console_calc::stack_entry_views(stack);
+    const auto definition_list = console_calc::definition_views(definitions);
+    const auto constant_list = console_calc::constant_views(constants);
+    const auto function_list =
+        console_calc::builtin_function_views(console_calc::builtin_functions());
+
+    return stack_views.size() == 2 && stack_views[0].level == 0 &&
+           std::holds_alternative<std::int64_t>(stack_views[0].value) &&
+           std::get<std::int64_t>(stack_views[0].value) == 2 && stack_views[1].level == 1 &&
+           std::holds_alternative<console_calc::ListValue>(stack_views[1].value) &&
+           definition_list.size() == 3 && definition_list[0].name == "sx" &&
+           definition_list[0].expression == "sin(x)" && definition_list[2].name == "x" &&
+           constant_list.size() == 3 && constant_list[0].name == "e" &&
+           std::holds_alternative<double>(constant_list[0].value) &&
+           std::get<double>(constant_list[0].value) == 2.7182818284590451 &&
+           !function_list.empty() && function_list.front().name == "abs" &&
+           function_list.front().signature == "abs(x)" &&
+           function_list.front().category == console_calc::BuiltinFunctionCategory::scalar &&
+           function_list.front().summary == "absolute value";
+}
+
 bool expect_builtin_function_metadata() {
     const auto sum_info = console_calc::builtin_function_info(console_calc::Function::sum);
     const auto abs_info = console_calc::builtin_function_info(console_calc::Function::abs);
@@ -102,6 +140,7 @@ bool expect_builtin_function_metadata() {
     const auto list_div_info = console_calc::builtin_function_info(console_calc::Function::list_div);
     const auto list_mul_info = console_calc::builtin_function_info(console_calc::Function::list_mul);
     const auto list_sub_info = console_calc::builtin_function_info(console_calc::Function::list_sub);
+    const auto guard_info = console_calc::builtin_function_info(console_calc::Function::guard);
     const auto reduce_info = console_calc::builtin_function_info(console_calc::Function::reduce);
     const auto map_info = console_calc::builtin_function_info(console_calc::Function::map);
     const auto range_info = console_calc::builtin_function_info(console_calc::Function::range);
@@ -134,6 +173,11 @@ bool expect_builtin_function_metadata() {
            list_sub_info.max_arity == 2 &&
            list_sub_info.category == console_calc::BuiltinFunctionCategory::list &&
            list_sub_info.summary == "subtract matching list elements" &&
+           guard_info.name == "guard" && guard_info.min_arity == 2 &&
+           guard_info.max_arity == 2 &&
+           guard_info.category == console_calc::BuiltinFunctionCategory::scalar &&
+           guard_info.signature == "guard(expr, fallback)" &&
+           guard_info.summary == "use fallback when expr evaluation fails" &&
            reduce_info.name == "reduce" && reduce_info.min_arity == 2 &&
            reduce_info.max_arity == 2 &&
            reduce_info.category == console_calc::BuiltinFunctionCategory::list &&
@@ -144,7 +188,7 @@ bool expect_builtin_function_metadata() {
            range_info.name == "range" && range_info.min_arity == 2 && range_info.max_arity == 3 &&
            range_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
            range_info.summary == "generate linear series from start" &&
-           console_calc::builtin_function_arity_label(console_calc::Function::range) == "2-3" &&
+           range_info.signature == "range(start, count[, step])" &&
            geom_info.min_arity == 2 && geom_info.max_arity == 3 &&
            geom_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
            repeat_info.min_arity == 2 && repeat_info.max_arity == 2 &&
@@ -158,6 +202,7 @@ bool expect_builtin_function_metadata() {
 bool expect_builtin_function_helpers() {
     return console_calc::is_scalar_function(console_calc::Function::sin) &&
            console_calc::is_scalar_function(console_calc::Function::abs) &&
+           console_calc::is_scalar_function(console_calc::Function::guard) &&
            !console_calc::is_scalar_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::list_add) &&
@@ -190,11 +235,8 @@ bool expect_expression_identifier_expansion() {
                "sum(vals)", constants, definitions, std::nullopt) ==
                "sum({1, 2, 3})" &&
            console_calc::expand_expression_identifiers(
-               "map(vals, sin)", constants, definitions, std::nullopt) ==
-               "map({1, 2, 3}, sin)" &&
-           console_calc::expand_expression_identifiers(
-               "map({1, 2}, sind)", constants, definitions, std::nullopt) ==
-               "map({1, 2}, sind)" &&
+               "map(vals, sin(_) + _)", constants, definitions, std::nullopt) ==
+               "map({1, 2, 3}, sin(_) + _)" &&
            console_calc::expand_expression_identifiers(
                "0x10 + 5", constants, definitions, std::nullopt) ==
                "0x10 + 5" &&
@@ -215,6 +257,10 @@ int main() {
     }
 
     if (!expect_constant_and_definition_listing()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_structured_listing_views()) {
         return EXIT_FAILURE;
     }
 
