@@ -8,6 +8,16 @@
 
 The project is intentionally compact and library-first. Parsing and evaluation live in the core library, while REPL behavior stays in the app layer.
 
+Current build layers:
+- `console_calc_lib`
+  core parser, evaluator, values, and builtin metadata
+- `console_calc_runtime_lib`
+  shared runtime/session logic, listings, environment expansion, and provider abstractions
+- `console_calc_host_lib`
+  host-facing binding facade over the runtime/session layer
+- `console_calc`
+  terminal application, built only when terminal-app support is enabled
+
 ## Quick Start
 
 Evaluate a single expression:
@@ -21,6 +31,18 @@ Start interactive console mode:
 ```bash
 ./build/default/console_calc
 ```
+
+Build the host-facing reusable slice without the terminal application:
+
+```bash
+cmake --preset host-only
+cmake --build --preset host-only
+ctest --preset host-only
+```
+
+This preset is the current “WASM-ready” build boundary. It keeps the core,
+runtime, and host-facing facade while excluding terminal-only code such as the
+line editor and console executable.
 
 ## Expression Language
 
@@ -423,6 +445,22 @@ Run tests:
 
 ```bash
 ctest --preset default
+```
+
+Release build:
+
+```bash
+cmake --preset release
+cmake --build --preset release
+ctest --preset release
+```
+
+Host-only build:
+
+```bash
+cmake --preset host-only
+cmake --build --preset host-only
+ctest --preset host-only
 ```
 
 Executable path:

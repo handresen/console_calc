@@ -34,6 +34,15 @@
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
+    },
+    {
+      "name": "host-only",
+      "displayName": "Host Only",
+      "inherits": "default",
+      "binaryDir": "${sourceDir}/build/host-only",
+      "cacheVariables": {
+        "CONSOLE_CALC_BUILD_TERMINAL_APP": "OFF"
+      }
     }
   ],
   "buildPresets": [
@@ -48,6 +57,10 @@
     {
       "name": "clang-tidy",
       "configurePreset": "clang-tidy"
+    },
+    {
+      "name": "host-only",
+      "configurePreset": "host-only"
     }
   ],
   "testPresets": [
@@ -61,6 +74,13 @@
     {
       "name": "release",
       "configurePreset": "release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "host-only",
+      "configurePreset": "host-only",
       "output": {
         "outputOnFailure": true
       }

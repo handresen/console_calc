@@ -13,6 +13,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(CONSOLE_CALC_BUILD_TESTS "Build tests" ON)
 option(CONSOLE_CALC_ENABLE_CLANG_TIDY "Run clang-tidy during builds when available" OFF)
+option(CONSOLE_CALC_BUILD_TERMINAL_APP "Build the terminal console application" ON)
 
 find_package(CURL REQUIRED)
 
@@ -45,16 +46,11 @@ target_include_directories(console_calc_lib
 
 target_compile_features(console_calc_lib PUBLIC cxx_std_20)
 
-add_library(console_calc_app_lib
-    apps/console_calc_app.cpp
+add_library(console_calc_runtime_lib
     apps/console_assignment.cpp
     apps/console_command.cpp
     apps/console_command_executor.cpp
-    apps/console_history.cpp
     apps/console_listing.cpp
-    apps/console_line_editor.cpp
-    apps/console_mode.cpp
-    apps/console_session.cpp
     apps/console_session_engine.cpp
     apps/currency_definition_materializer.cpp
     apps/currency_rate_parser.cpp
@@ -62,7 +58,7 @@ add_library(console_calc_app_lib
     apps/expression_environment.cpp
 )
 
-target_include_directories(console_calc_app_lib
+target_include_directories(console_calc_runtime_lib
     PUBLIC
         ${PROJECT_SOURCE_DIR}/apps
         ${PROJECT_SOURCE_DIR}/include
@@ -70,13 +66,13 @@ target_include_directories(console_calc_app_lib
         ${PROJECT_SOURCE_DIR}/src
 )
 
-target_link_libraries(console_calc_app_lib
+target_link_libraries(console_calc_runtime_lib
     PRIVATE
         console_calc_lib
         CURL::libcurl
 )
 
-target_compile_features(console_calc_app_lib PUBLIC cxx_std_20)
+target_compile_features(console_calc_runtime_lib PUBLIC cxx_std_20)
 
 add_library(console_calc_host_lib
     src/console_binding_facade.cpp
@@ -92,19 +88,44 @@ target_include_directories(console_calc_host_lib
 
 target_link_libraries(console_calc_host_lib
     PRIVATE
-        console_calc_app_lib
+        console_calc_runtime_lib
 )
 
 target_compile_features(console_calc_host_lib PUBLIC cxx_std_20)
 
-add_executable(console_calc
-    apps/console_calc_main.cpp
-)
+if(CONSOLE_CALC_BUILD_TERMINAL_APP)
+    add_library(console_calc_app_lib
+        apps/console_calc_app.cpp
+        apps/console_history.cpp
+        apps/console_line_editor.cpp
+        apps/console_mode.cpp
+        apps/console_session.cpp
+    )
 
-target_link_libraries(console_calc
-    PRIVATE
-        console_calc_app_lib
-)
+    target_include_directories(console_calc_app_lib
+        PUBLIC
+            ${PROJECT_SOURCE_DIR}/apps
+            ${PROJECT_SOURCE_DIR}/include
+        PRIVATE
+            ${PROJECT_SOURCE_DIR}/src
+    )
+
+    target_link_libraries(console_calc_app_lib
+        PRIVATE
+            console_calc_runtime_lib
+    )
+
+    target_compile_features(console_calc_app_lib PUBLIC cxx_std_20)
+
+    add_executable(console_calc
+        apps/console_calc_main.cpp
+    )
+
+    target_link_libraries(console_calc
+        PRIVATE
+            console_calc_app_lib
+    )
+endif()
 
 if(CONSOLE_CALC_BUILD_TESTS)
     enable_testing()
