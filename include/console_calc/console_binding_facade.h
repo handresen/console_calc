@@ -32,7 +32,7 @@ struct BindingConstantEntry {
 
 struct BindingFunctionEntry {
     std::string name;
-    std::string arity_label;
+    std::string signature;
     std::string category;
     std::string summary;
 };

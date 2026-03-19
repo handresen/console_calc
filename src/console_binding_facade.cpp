@@ -114,7 +114,7 @@ std::vector<BindingFunctionEntry> to_binding_functions(std::span<const FunctionV
     for (const auto& function : functions) {
         output.push_back(BindingFunctionEntry{
             .name = function.name,
-            .arity_label = function.arity_label,
+            .signature = function.signature,
             .category = function_category_name(function.category),
             .summary = function.summary,
         });

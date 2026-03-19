@@ -30,7 +30,7 @@ struct ConstantView {
 
 struct FunctionView {
     std::string name;
-    std::string arity_label;
+    std::string signature;
     BuiltinFunctionCategory category = BuiltinFunctionCategory::scalar;
     std::string summary;
 };

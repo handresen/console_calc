@@ -158,7 +158,7 @@ std::vector<FunctionView> builtin_function_views(std::span<const BuiltinFunction
     for (const auto& function : functions) {
         views.push_back(FunctionView{
             .name = std::string(function.name),
-            .arity_label = builtin_function_arity_label(function.function),
+            .signature = std::string(builtin_function_signature(function.function)),
             .category = function.category,
             .summary = std::string(function.summary),
         });
@@ -187,7 +187,7 @@ std::string format_builtin_function_listing(std::span<const FunctionView> views)
     std::size_t label_width = 0;
 
     for (const auto& function : views) {
-        std::string label = function.name + '/' + function.arity_label;
+        const std::string& label = function.signature;
         label_width = std::max(label_width, label.size());
         if (function.category == BuiltinFunctionCategory::list) {
             list_entries.push_back(function);
@@ -200,7 +200,7 @@ std::string format_builtin_function_listing(std::span<const FunctionView> views)
 
     auto append_entries = [&](std::string& output, const auto& entries) {
         for (const auto& entry : entries) {
-            const std::string label = entry.name + '/' + entry.arity_label;
+            const std::string& label = entry.signature;
             output += "  ";
             output += label;
             output.append(label_width - label.size(), ' ');

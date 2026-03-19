@@ -53,7 +53,7 @@ function constantDisplay(entry: BindingConstantEntry): string {
 }
 
 function functionDisplay(entry: BindingFunctionEntry): string {
-  return `${entry.name}/${entry.arity_label} - ${entry.summary}`;
+  return `${entry.signature} - ${entry.summary}`;
 }
 
 function parsePlotSeries(entry: BindingStackEntry): PlotSeries | null {

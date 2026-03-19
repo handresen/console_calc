@@ -123,8 +123,8 @@ void append_functions_json(std::ostringstream& json,
             json << ',';
         }
         const auto& function = functions[index];
-        json << "{\"name\":\"" << json_escape(function.name) << "\",\"arity_label\":\""
-             << json_escape(function.arity_label) << "\",\"category\":\""
+        json << "{\"name\":\"" << json_escape(function.name) << "\",\"signature\":\""
+             << json_escape(function.signature) << "\",\"category\":\""
              << json_escape(function.category) << "\",\"summary\":\""
              << json_escape(function.summary) << "\"}";
     }

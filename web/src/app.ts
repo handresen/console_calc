@@ -57,13 +57,13 @@ export function createApp(root: HTMLElement): void {
             transcript.appendMessage(`${entry.name}:${entry.value}`, "listing");
           }
           break;
-        case "function_listing":
-          for (const entry of event.functions) {
-            transcript.appendMessage(
-              `${entry.name}/${entry.arity_label} - ${entry.summary}`,
-              "listing",
-            );
-          }
+            case "function_listing":
+              for (const entry of event.functions) {
+                transcript.appendMessage(
+                  `${entry.signature} - ${entry.summary}`,
+                  "listing",
+                );
+              }
           break;
         default:
           transcript.appendMessage(event.text, "text");

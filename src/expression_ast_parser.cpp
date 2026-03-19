@@ -273,10 +273,9 @@ private:
         }
 
         if (!builtin_function_accepts_arity(*function, arguments.size())) {
-            const std::string arity_label = builtin_function_arity_label(*function);
             throw ParseError("function '" + std::string(builtin_function_name(*function)) +
-                             "' expects " + arity_label +
-                             ((arity_label == "1") ? " argument" : " arguments"));
+                             "' expects " +
+                             std::string(builtin_function_signature(*function)));
         }
 
         advance();

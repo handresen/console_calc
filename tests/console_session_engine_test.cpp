@@ -192,7 +192,7 @@ bool expect_engine_listing_events() {
     return expect_single_function_listing_event("engine funcs", funcs_result) &&
            !funcs_result.events[0].functions.empty() &&
            funcs_result.events[0].functions.front().name == "abs" &&
-           funcs_result.events[0].functions.front().arity_label == "1" &&
+           funcs_result.events[0].functions.front().signature == "abs(x)" &&
            funcs_result.events[0].functions.front().category ==
                console_calc::BuiltinFunctionCategory::scalar &&
            funcs_result.events[0].functions.back().name == "repeat" &&

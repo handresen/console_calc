@@ -16,7 +16,7 @@ export interface BindingConstantEntry {
 
 export interface BindingFunctionEntry {
   name: string;
-  arity_label: string;
+  signature: string;
   category: string;
   summary: string;
 }

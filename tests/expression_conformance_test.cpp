@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <exception>
+#include <string>
 #include <variant>
 
 #include "console_calc/expression_ast.h"
@@ -663,6 +664,32 @@ bool expect_integer_semantics(console_calc::ExpressionParser& parser) {
            std::get<std::int64_t>(integer_length) == 3;
 }
 
+bool expect_function_signature_errors(console_calc::ExpressionParser& parser) {
+    try {
+        (void)parser.parse("pow(2)");
+        return false;
+    } catch (const std::invalid_argument& error) {
+        if (std::string(error.what()) != "function 'pow' expects pow(x, y)") {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.parse("range(1)");
+        return false;
+    } catch (const std::invalid_argument& error) {
+        if (std::string(error.what()) != "function 'range' expects range(start, count[, step])") {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    return true;
+}
+
 }  // namespace
 
 int main() {
@@ -729,6 +756,10 @@ int main() {
     }
 
     if (!expect_integer_semantics(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_function_signature_errors(parser)) {
         return EXIT_FAILURE;
     }
 

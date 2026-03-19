@@ -22,6 +22,7 @@ struct BuiltinFunctionInfo {
     std::size_t max_arity;
     BuiltinFunctionCategory category;
     bool mappable = false;
+    std::string_view signature;
     std::string_view summary;
 };
 
@@ -29,6 +30,7 @@ struct BuiltinFunctionInfo {
 [[nodiscard]] std::string_view builtin_function_name(Function function);
 [[nodiscard]] bool builtin_function_accepts_arity(Function function, std::size_t arity);
 [[nodiscard]] std::string builtin_function_arity_label(Function function);
+[[nodiscard]] std::string_view builtin_function_signature(Function function);
 [[nodiscard]] bool is_builtin_function_name(std::string_view name);
 [[nodiscard]] const BuiltinFunctionInfo& builtin_function_info(Function function);
 [[nodiscard]] std::span<const BuiltinFunctionInfo> builtin_functions();

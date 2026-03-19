@@ -38,38 +38,38 @@ bool expect_command_classification() {
 bool expect_builtin_function_listing() {
     return console_calc::format_builtin_function_listing(console_calc::builtin_functions()) ==
            "Scalar functions\n"
-           "  abs/1       absolute value\n"
-           "  cos/1       cosine in radians\n"
-           "  cosd/1      cosine in degrees\n"
-           "  pow/2       power\n"
-           "  sin/1       sine in radians\n"
-           "  sind/1      sine in degrees\n"
-           "  sqrt/1      square root\n"
-           "  tan/1       tangent in radians\n"
-           "  tand/1      tangent in degrees\n"
+           "  abs(x)                            absolute value\n"
+           "  cos(x)                            cosine in radians\n"
+           "  cosd(x)                           cosine in degrees\n"
+           "  pow(x, y)                         power\n"
+           "  sin(x)                            sine in radians\n"
+           "  sind(x)                           sine in degrees\n"
+           "  sqrt(x)                           square root\n"
+           "  tan(x)                            tangent in radians\n"
+           "  tand(x)                           tangent in degrees\n"
            "\n"
            "List functions\n"
-           "  avg/1       average of list elements\n"
-           "  drop/2      drop first n list elements\n"
-           "  first/2     first n list elements\n"
-           "  len/1       list length\n"
-           "  list_add/2  add matching list elements\n"
-           "  list_div/2  divide matching list elements\n"
-           "  list_mul/2  multiply matching list elements\n"
-           "  list_sub/2  subtract matching list elements\n"
-           "  map/2       map unary scalar builtin over list\n"
-           "  max/1       maximum list element\n"
-           "  min/1       minimum list element\n"
-           "  product/1   product of list elements\n"
-           "  reduce/2    reduce list with binary operator\n"
-           "  sum/1       sum list elements\n"
+           "  avg(list)                         average of list elements\n"
+           "  drop(n, list)                     drop first n list elements\n"
+           "  first(n, list)                    first n list elements\n"
+           "  len(list)                         list length\n"
+           "  list_add(a, b)                    add matching list elements\n"
+           "  list_div(a, b)                    divide matching list elements\n"
+           "  list_mul(a, b)                    multiply matching list elements\n"
+           "  list_sub(a, b)                    subtract matching list elements\n"
+           "  map(list, func_or_expr)           map unary scalar builtin over list\n"
+           "  max(list)                         maximum list element\n"
+           "  min(list)                         minimum list element\n"
+           "  product(list)                     product of list elements\n"
+           "  reduce(list, op)                  reduce list with binary operator\n"
+           "  sum(list)                         sum list elements\n"
            "\n"
            "List generation functions\n"
-           "  geom/2-3    generate geometric series from start\n"
-           "  linspace/3  generate evenly spaced values over interval\n"
-           "  powers/2-3  generate successive integer powers\n"
-           "  range/2-3   generate linear series from start\n"
-           "  repeat/2    repeat value count times\n";
+           "  geom(start, count[, ratio])       generate geometric series from start\n"
+           "  linspace(start, stop, count)      generate evenly spaced values over interval\n"
+           "  powers(base, count[, start_exp])  generate successive integer powers\n"
+           "  range(start, count[, step])       generate linear series from start\n"
+           "  repeat(value, count)              repeat value count times\n";
 }
 
 bool expect_constant_and_definition_listing() {
@@ -126,7 +126,7 @@ bool expect_structured_listing_views() {
            std::holds_alternative<double>(constant_list[0].value) &&
            std::get<double>(constant_list[0].value) == 2.7182818284590451 &&
            !function_list.empty() && function_list.front().name == "abs" &&
-           function_list.front().arity_label == "1" &&
+           function_list.front().signature == "abs(x)" &&
            function_list.front().category == console_calc::BuiltinFunctionCategory::scalar &&
            function_list.front().summary == "absolute value";
 }
@@ -181,7 +181,7 @@ bool expect_builtin_function_metadata() {
            range_info.name == "range" && range_info.min_arity == 2 && range_info.max_arity == 3 &&
            range_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
            range_info.summary == "generate linear series from start" &&
-           console_calc::builtin_function_arity_label(console_calc::Function::range) == "2-3" &&
+           range_info.signature == "range(start, count[, step])" &&
            geom_info.min_arity == 2 && geom_info.max_arity == 3 &&
            geom_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
            repeat_info.min_arity == 2 && repeat_info.max_arity == 2 &&
