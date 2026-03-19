@@ -108,7 +108,8 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
         return false;
     }
 
-    const console_calc::Value mapped_list = parser.evaluate_value("map({0, 1.5707963267948966}, sin)");
+    const console_calc::Value mapped_list =
+        parser.evaluate_value("map({0, 1.5707963267948966}, sin(_))");
     const auto* mapped_values = std::get_if<console_calc::ListValue>(&mapped_list);
     if (mapped_values == nullptr || mapped_values->size() != 2 ||
         !almost_equal(console_calc::scalar_to_double((*mapped_values)[0]), 0.0) ||
@@ -467,30 +468,6 @@ bool expect_sum_ast_shape(console_calc::ExpressionParser& parser) {
     return true;
 }
 
-bool expect_map_ast_shape(console_calc::ExpressionParser& parser) {
-    using console_calc::Expression;
-    using console_calc::Function;
-    using console_calc::ListLiteral;
-    using console_calc::MapCall;
-    using console_calc::NumberLiteral;
-
-    const Expression ast = parser.parse("map({2, 3}, sin)");
-    const auto* root = std::get_if<MapCall>(&ast.node);
-    if (root == nullptr || root->mapped_function != Function::sin) {
-        return false;
-    }
-
-    const auto* list = std::get_if<ListLiteral>(&root->list_argument->node);
-    if (list == nullptr || list->elements.size() != 2) {
-        return false;
-    }
-
-    const auto* first = std::get_if<NumberLiteral>(&list->elements[0]->node);
-    const auto* second = std::get_if<NumberLiteral>(&list->elements[1]->node);
-    return first != nullptr && second != nullptr && almost_equal(first->value, 2.0) &&
-           almost_equal(second->value, 3.0);
-}
-
 bool expect_map_expression_ast_shape(console_calc::ExpressionParser& parser) {
     using console_calc::BinaryExpression;
     using console_calc::Expression;
@@ -501,7 +478,7 @@ bool expect_map_expression_ast_shape(console_calc::ExpressionParser& parser) {
 
     const Expression ast = parser.parse("map({2, 3}, _ + 1)");
     const auto* root = std::get_if<MapCall>(&ast.node);
-    if (root == nullptr || root->mapped_function.has_value() || root->mapped_expression == nullptr) {
+    if (root == nullptr || root->mapped_expression == nullptr) {
         return false;
     }
 
@@ -765,10 +742,6 @@ int main() {
     }
 
     if (!expect_sum_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_map_ast_shape(parser)) {
         return EXIT_FAILURE;
     }
 

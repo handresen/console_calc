@@ -108,7 +108,7 @@ Examples:
 10 % 3              => 1
 6 & 3 | 8           => 10
 first(1, {2, 3})+4  => 6
-sum(map({0, 90}, sind)) => 1
+sum(map({0, 90}, sind(_))) => 1
 ```
 
 ## Builtin Constants
@@ -153,7 +153,6 @@ pow(e, 1)
 - `list_div(a, b)`   divide matching list elements
 - `list_mul(a, b)`   multiply matching list elements
 - `reduce(list, op)` reduce a list with a binary operator
-- `map(list, func)`  map unary scalar builtin over list
 - `map(list, expr)`  map an inline expression using `_` as the current element
 
 ### List Generation Functions
@@ -172,8 +171,9 @@ Function notes:
 - `list_mul` requires both inputs to be lists of equal length
 - `reduce` requires a non-empty list
 - `reduce` uses existing binary operators such as `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
-- `map` accepts either a unary scalar builtin such as `sin`, `cos`, `sind`, `tand`, or an inline expression using `_`
+- `map` accepts an inline expression using `_` as the current element
 - `map({1, 2}, sum)` and `map({1, 2}, pow)` are invalid
+- `map({1, 2}, sin)` is invalid
 - `_` is only valid inside `map(..., expr)`
 - `guard` evaluates its fallback lazily and can be used inside `map`
 - `range` requires `count` to be a non-negative integer
@@ -197,12 +197,12 @@ drop(1, {10, 20, 30})         => {20, 30}
 list_div({8, 9}, {2, 3})      => {4, 3}
 list_mul({2, 3}, {4, 5})      => {8, 15}
 reduce({2, 3, 4}, *)          => 24
-map({0, 90}, sind)            => {0, 1}
+map({0, 90}, sind(_))         => {0, 1}
 map({1, 2, 3}, _ + 1)         => {2, 3, 4}
 map({1, 2, 3}, sin(_) + _)    => {1.84147..., 2.90929..., 3.14112...}
 guard(1 / 0, 0)               => 0
 map(range(-2, 5), guard(1 / _, 0))
-sum(map({1, 2, 3}, sin))      => 1.89189...
+sum(map({1, 2, 3}, sin(_)))   => 1.89189...
 range(10, 4)                  => {10, 11, 12, 13}
 range(2, 4, 3)                => {2, 5, 8, 11}
 geom(2, 4)                    => {2, 4, 8, 16}
@@ -350,7 +350,7 @@ Definitions can also hold list expressions:
 ```text
 vals:1,2,3,4
 sum(vals)
-map(vals, sin)
+map(vals, sin(_))
 ```
 
 Rules:

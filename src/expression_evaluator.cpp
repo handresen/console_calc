@@ -478,18 +478,8 @@ template <typename Operation>
     ListValue mapped_values;
     mapped_values.reserve(input_values.size());
     for (const auto& value : input_values) {
-        if (node.mapped_function.has_value()) {
-            if (!is_mappable_unary_scalar_function(*node.mapped_function)) {
-                throw EvaluationError("map() requires a unary scalar builtin function");
-            }
-
-            const Value scalar_value = to_value(value);
-            mapped_values.push_back(require_scalar_value(
-                evaluate_builtin_function(*node.mapped_function, std::span{&scalar_value, 1})));
-        } else {
-            mapped_values.push_back(require_scalar_value(
-                evaluate_expression_with_placeholder(*node.mapped_expression, value)));
-        }
+        mapped_values.push_back(require_scalar_value(
+            evaluate_expression_with_placeholder(*node.mapped_expression, value)));
     }
     return mapped_values;
 }

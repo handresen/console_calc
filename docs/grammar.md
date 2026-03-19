@@ -90,7 +90,6 @@ Builtin functions:
 - `list_mul(list_a, list_b)` multiplies list elements pairwise and requires equal list lengths
 - `guard(expr, fallback)` returns `expr` when it evaluates successfully, otherwise evaluates and returns `fallback`
 - `reduce(list, op)` reduces a non-empty list left-to-right using a binary operator such as `+` or `*`
-- `map(list, func)` applies a unary scalar builtin function to each list item and returns a list of the same length
 - `map(list, expr)` evaluates `expr` once per list item with `_` bound to the current element
 - `range(start, count[, step])` generates a list beginning at `start`, with `count` elements, incrementing by `step` or by `1` when omitted
 - `geom(start, count[, ratio])` generates a geometric series beginning at `start`, multiplying by `ratio` or by `2` when omitted
@@ -123,7 +122,7 @@ Examples:
 - `min({2, -1, 5})` => `-1`
 - `max({2, -1, 5})` => `5`
 - `sum({1, 2, 3})` => `6`
-- `sum(map({0, 90}, sind))` => `1`
+- `sum(map({0, 90}, sind(_)))` => `1`
 - `sum(map({1, 2, 3}, _ + 1))` => `9`
 - `sum(map({1, 2, 3}, sin(_) + _))` => `7.8918884196934453`
 - `guard(1 / 0, 0)` => `0`
@@ -167,7 +166,7 @@ Examples:
 - `list_div({8, 9}, {2, 3})`
 - `list_mul({1, 2}, {3, 4})`
 - `reduce({2, 3, 4}, +)`
-- `map({0, 90}, sind)`
+- `map({0, 90}, sind(_))`
 - `map({1, 2, 3}, _ + 1)`
 - `map({1, 2, 3}, sin(_) + _)`
 - `guard(1 / 0, 0)`
@@ -203,6 +202,7 @@ Examples:
 - `reduce({}, +)`
 - `map({1, 2}, sum)`
 - `map({1, 2}, pow)`
+- `map({1, 2}, sin)`
 - `map({1, 2}, _ + foo)`
 - `guard(1 / 0)`
 - `_`

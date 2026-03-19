@@ -81,7 +81,6 @@ struct FunctionCall {
 
 struct MapCall {
     std::unique_ptr<Expression> list_argument;
-    std::optional<Function> mapped_function;
     std::unique_ptr<Expression> mapped_expression;
 };
 

@@ -59,10 +59,10 @@
 "avg({2, 4, 6})", 4.0
 "min({2, -1, 5})", -1.0
 "max({2, -1, 5})", 5.0
-"sum(map({}, sin))", 0.0
-"sum(map({0, 1.5707963267948966}, sin))", 1.0
-"sum(map({0, 90}, sind))", 1.0
-"sum(map({2, 3, 4}, cos))", -2.0597829540111997
+"sum(map({}, sin(_)))", 0.0
+"sum(map({0, 1.5707963267948966}, sin(_)))", 1.0
+"sum(map({0, 90}, sind(_)))", 1.0
+"sum(map({2, 3, 4}, cos(_)))", -2.0597829540111997
 "sum(map({1, 2, 3}, _ + 1))", 9.0
 "sum(map({1, 2, 3}, sin(_) + _))", 7.8918884196934453
 "guard(1 / 0, 0)", 0.0
@@ -148,7 +148,9 @@
 "map({1, 2}, sum)", INVALID
 "map({1, 2}, pow)", INVALID
 "map({1, 2}, foo)", INVALID
-"map(1, sin)", INVALID
+"map({1, 2}, sin)", INVALID
+"map({1, 2}, sind)", INVALID
+"map(1, sin(_))", INVALID
 "map({1, 2}, sin())", INVALID
 "map({1, 2}, _ + foo)", INVALID
 "_", INVALID

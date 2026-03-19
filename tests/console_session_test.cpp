@@ -287,9 +287,9 @@ bool expect_console_mode_long_list_stack_output() {
                                      output.str(), expected_output, error.str(), "");
 }
 
-bool expect_console_mode_map_builtin_identifier() {
+bool expect_console_mode_map_inline_expression() {
     const std::vector<std::string_view> args;
-    std::istringstream input("l:{1,2,3}\nmap(l,sin)\nsum(map({1,2,3},sin))\nq\n");
+    std::istringstream input("l:{1,2,3}\nmap(l,sin(_))\nsum(map({1,2,3},sin(_)))\nq\n");
     std::ostringstream output;
     std::ostringstream error;
 
@@ -299,7 +299,7 @@ bool expect_console_mode_map_builtin_identifier() {
         prompt(0) + "{0.8414709848078965, 0.90929742682568171, 0.14112000805986721}\n" +
         prompt(1) + "1.89189\n" +
         prompt(2);
-    return expect_console_transcript("console mode map builtin identifier", exit_code, 0,
+    return expect_console_transcript("console mode map inline expression", exit_code, 0,
                                      output.str(), expected_output, error.str(), "");
 }
 
@@ -617,7 +617,7 @@ int main() {
     if (!expect_console_mode_long_list_stack_output()) {
         return EXIT_FAILURE;
     }
-    if (!expect_console_mode_map_builtin_identifier()) {
+    if (!expect_console_mode_map_inline_expression()) {
         return EXIT_FAILURE;
     }
     if (!expect_console_mode_integer_display_modes()) {

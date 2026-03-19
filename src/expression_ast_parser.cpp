@@ -337,19 +337,6 @@ private:
             throw ParseError("expected expression after ','");
         }
 
-        if (current_.kind == TokenKind::identifier) {
-            const auto function = parse_builtin_function(current_.identifier_text);
-            if (function.has_value() && next_.kind == TokenKind::right_paren) {
-                advance();
-                advance();
-                return Expression{
-                    MapCall{
-                        .list_argument = std::move(list_argument),
-                        .mapped_function = *function,
-                    }};
-            }
-        }
-
         const bool previous_allow_map_placeholder = allow_map_placeholder_;
         allow_map_placeholder_ = true;
         auto mapped_expression = make_expression(parse_bitwise_or_expression());
