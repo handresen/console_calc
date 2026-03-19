@@ -11,8 +11,8 @@ Planned role:
 
 Current status:
 
-- directory scaffold only
-- no JS toolchain chosen yet
+- Vite + TypeScript scaffolded
+- no framework selected
 - the current wasm artifact is produced from the root build via the
   `emscripten-host` preset
 
