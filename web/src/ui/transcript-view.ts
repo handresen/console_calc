@@ -2,6 +2,8 @@ export interface TranscriptView {
   element: HTMLElement;
   appendCommand(input: string): void;
   appendMessage(text: string, kind?: string): void;
+  clear(): void;
+  scrollToBottom(): void;
 }
 
 function appendLine(container: HTMLElement, text: string, className: string): void {
@@ -27,6 +29,12 @@ export function createTranscriptView(): TranscriptView {
     },
     appendMessage(text, kind = "text") {
       appendLine(lines, text, `transcript-line transcript-line-${kind}`);
+    },
+    clear() {
+      lines.replaceChildren();
+    },
+    scrollToBottom() {
+      view.scrollTop = view.scrollHeight;
     },
   };
 }

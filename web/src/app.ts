@@ -24,7 +24,11 @@ export function createApp(root: HTMLElement): void {
   const bridge = new ConsoleWasmBridge();
 
   const renderResult = (result: BindingCommandResult, input?: string): void => {
+    prompt.setDepth(result.snapshot.stack.length);
+    let renderedEvent = false;
+
     for (const event of result.events) {
+      renderedEvent = true;
       switch (event.kind) {
         case "value":
           transcript.appendMessage(
@@ -67,10 +71,20 @@ export function createApp(root: HTMLElement): void {
       }
     }
 
+    if (!renderedEvent && input !== undefined && input.includes(":")) {
+      transcript.appendMessage(input, "text");
+    }
+
     panes.render(result.snapshot);
+    transcript.scrollToBottom();
   };
 
   const prompt = createPromptView(async (input) => {
+    if (input === "cls") {
+      transcript.clear();
+      return;
+    }
+
     try {
       const result = await bridge.submit(input);
       renderResult(result, input);

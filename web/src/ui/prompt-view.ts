@@ -1,11 +1,16 @@
 export interface PromptView {
   element: HTMLElement;
   setEnabled(enabled: boolean): void;
+  setDepth(depth: number): void;
   setPlaceholder(text: string): void;
   focus(): void;
 }
 
 export function createPromptView(onSubmit: (input: string) => void): PromptView {
+  const history: string[] = [];
+  let historyIndex = -1;
+  let draftInput = "";
+
   const wrapper = document.createElement("section");
   wrapper.className = "prompt-view";
 
@@ -19,6 +24,38 @@ export function createPromptView(onSubmit: (input: string) => void): PromptView 
   input.autocomplete = "off";
   input.spellcheck = false;
   input.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowUp") {
+      if (history.length === 0) {
+        return;
+      }
+
+      event.preventDefault();
+      if (historyIndex === -1) {
+        draftInput = input.value;
+        historyIndex = history.length - 1;
+      } else if (historyIndex > 0) {
+        historyIndex -= 1;
+      }
+
+      input.value = history[historyIndex] ?? "";
+      input.setSelectionRange(input.value.length, input.value.length);
+      return;
+    }
+
+    if (event.key === "ArrowDown" && historyIndex !== -1) {
+      event.preventDefault();
+      if (historyIndex < history.length - 1) {
+        historyIndex += 1;
+        input.value = history[historyIndex] ?? "";
+      } else {
+        historyIndex = -1;
+        input.value = draftInput;
+      }
+
+      input.setSelectionRange(input.value.length, input.value.length);
+      return;
+    }
+
     if (event.key !== "Enter") {
       return;
     }
@@ -28,6 +65,15 @@ export function createPromptView(onSubmit: (input: string) => void): PromptView 
       return;
     }
 
+    if (history.at(-1) !== value) {
+      history.push(value);
+      if (history.length > 100) {
+        history.shift();
+      }
+    }
+
+    historyIndex = -1;
+    draftInput = "";
     input.value = "";
     onSubmit(value);
   });
@@ -37,6 +83,9 @@ export function createPromptView(onSubmit: (input: string) => void): PromptView 
     element: wrapper,
     setEnabled(enabled) {
       input.disabled = !enabled;
+    },
+    setDepth(depth) {
+      promptLabel.textContent = `${depth}>`;
     },
     setPlaceholder(text) {
       input.placeholder = text;
