@@ -10,6 +10,7 @@
 
 namespace {
 
+using console_calc::test::expect_console_transcript;
 using console_calc::test::prompt;
 
 class FakeCurrencyRateProvider final : public console_calc::CurrencyRateProvider {
@@ -46,9 +47,8 @@ bool expect_console_mode_success() {
         prompt(2) + "21\n" +
         prompt(1) + "0:21\n" +
         prompt(1);
-    return exit_code == 0 &&
-           output.str() == expected_output &&
-           error.str().empty();
+    return expect_console_transcript("console mode success", exit_code, 0, output.str(),
+                                     expected_output, error.str(), "");
 }
 
 bool expect_console_mode_recovery_after_error() {
@@ -60,9 +60,10 @@ bool expect_console_mode_recovery_after_error() {
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
     const std::string expected_output =
         prompt(0) + prompt(0) + prompt(0) + prompt(0) + "2\n" + prompt(1);
-    return exit_code == 0 && output.str() == expected_output &&
-           error.str() ==
-               "error: stack requires at least two values\nerror: expected number after operator\n";
+    return expect_console_transcript("console mode recovery after error", exit_code, 0,
+                                     output.str(), expected_output, error.str(),
+                                     "error: stack requires at least two values\n"
+                                     "error: expected number after operator\n");
 }
 
 bool expect_console_mode_stack_limit() {
@@ -80,7 +81,8 @@ bool expect_console_mode_stack_limit() {
         prompt(4) + "5\n" +
         prompt(4) + "6\n" +
         prompt(4);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode stack limit", exit_code, 0, output.str(),
+                                     expected_output, error.str(), "");
 }
 
 bool expect_console_mode_stack_commands() {
@@ -102,7 +104,8 @@ bool expect_console_mode_stack_commands() {
         prompt(3) +
         prompt(0) +
         prompt(0);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode stack commands", exit_code, 0, output.str(),
+                                     expected_output, error.str(), "");
 }
 
 bool expect_console_mode_dynamic_stack_depth() {
@@ -125,7 +128,8 @@ bool expect_console_mode_dynamic_stack_depth() {
         prompt(6) +
         prompt(3) + "0:5\n1:6\n2:7\n" +
         prompt(3);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode dynamic stack depth", exit_code, 0,
+                                     output.str(), expected_output, error.str(), "");
 }
 
 bool expect_console_mode_stack_command_errors() {
@@ -136,11 +140,11 @@ bool expect_console_mode_stack_command_errors() {
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
     const std::string expected_output = prompt(0) + prompt(0) + prompt(0) + prompt(0);
-    return exit_code == 0 && output.str() == expected_output &&
-           error.str() ==
-               "error: stack requires at least one value\n"
-               "error: stack requires at least one value\n"
-               "error: stack requires at least two values\n";
+    return expect_console_transcript("console mode stack command errors", exit_code, 0,
+                                     output.str(), expected_output, error.str(),
+                                     "error: stack requires at least one value\n"
+                                     "error: stack requires at least one value\n"
+                                     "error: stack requires at least two values\n");
 }
 
 bool expect_console_mode_result_reference() {
@@ -155,7 +159,8 @@ bool expect_console_mode_result_reference() {
         prompt(1) + "6.28319\n" +
         prompt(2) + "9.00147\n" +
         prompt(3);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode result reference", exit_code, 0,
+                                     output.str(), expected_output, error.str(), "");
 }
 
 bool expect_console_mode_variables() {
@@ -171,7 +176,8 @@ bool expect_console_mode_variables() {
         prompt(1) +
         prompt(1) + "17.1416\n" +
         prompt(2);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode variables", exit_code, 0, output.str(),
+                                     expected_output, error.str(), "");
 }
 
 bool expect_console_mode_late_bound_variables() {
@@ -188,7 +194,8 @@ bool expect_console_mode_late_bound_variables() {
         prompt(1) +
         prompt(1) + "0\n" +
         prompt(2);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode late bound variables", exit_code, 0,
+                                     output.str(), expected_output, error.str(), "");
 }
 
 bool expect_console_mode_list_variables() {
@@ -204,7 +211,8 @@ bool expect_console_mode_list_variables() {
         prompt(1) +
         prompt(1) + "9\n" +
         prompt(2);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode list variables", exit_code, 0, output.str(),
+                                     expected_output, error.str(), "");
 }
 
 bool expect_console_mode_late_bound_list_variables() {
@@ -221,7 +229,8 @@ bool expect_console_mode_late_bound_list_variables() {
         prompt(1) +
         prompt(1) + "9\n" +
         prompt(2);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode late bound list variables", exit_code, 0,
+                                     output.str(), expected_output, error.str(), "");
 }
 
 bool expect_console_mode_list_stack_values() {
@@ -235,7 +244,8 @@ bool expect_console_mode_list_stack_values() {
         prompt(0) + "{1, 2, 3}\n" +
         prompt(1) + "0:{1, 2, 3}\n" +
         prompt(1);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode list stack values", exit_code, 0,
+                                     output.str(), expected_output, error.str(), "");
 }
 
 bool expect_console_mode_list_stack_operator_error() {
@@ -251,8 +261,9 @@ bool expect_console_mode_list_stack_operator_error() {
         prompt(2) +
         prompt(2) + "0:{1, 2, 3}\n1:4\n" +
         prompt(2);
-    return exit_code == 0 && output.str() == expected_output &&
-           error.str() == "error: stack operator requires scalar values\n";
+    return expect_console_transcript("console mode list stack operator error", exit_code, 0,
+                                     output.str(), expected_output, error.str(),
+                                     "error: stack operator requires scalar values\n");
 }
 
 bool expect_console_mode_list_result_reference() {
@@ -267,7 +278,8 @@ bool expect_console_mode_list_result_reference() {
         prompt(1) + "{1, 2, 3}\n" +
         prompt(2) + "6\n" +
         prompt(3);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode list result reference", exit_code, 0,
+                                     output.str(), expected_output, error.str(), "");
 }
 
 bool expect_console_mode_long_list_result_output() {
@@ -280,7 +292,8 @@ bool expect_console_mode_long_list_result_output() {
     const std::string expected_output =
         prompt(0) + "{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, <hiding 2 entries>}\n" +
         prompt(1);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode long list result output", exit_code, 0,
+                                     output.str(), expected_output, error.str(), "");
 }
 
 bool expect_console_mode_long_list_stack_output() {
@@ -294,7 +307,8 @@ bool expect_console_mode_long_list_stack_output() {
         prompt(0) + "{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, <hiding 2 entries>}\n" +
         prompt(1) + "0:{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, <hiding 2 entries>}\n" +
         prompt(1);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode long list stack output", exit_code, 0,
+                                     output.str(), expected_output, error.str(), "");
 }
 
 bool expect_console_mode_map_builtin_identifier() {
@@ -309,7 +323,8 @@ bool expect_console_mode_map_builtin_identifier() {
         prompt(0) + "{0.8414709848078965, 0.90929742682568171, 0.14112000805986721}\n" +
         prompt(1) + "1.89189\n" +
         prompt(2);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode map builtin identifier", exit_code, 0,
+                                     output.str(), expected_output, error.str(), "");
 }
 
 bool expect_console_mode_integer_display_modes() {
@@ -330,7 +345,8 @@ bool expect_console_mode_integer_display_modes() {
         prompt(2) +
         prompt(2) + "0:255\n1:1.5\n" +
         prompt(2);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode integer display modes", exit_code, 0,
+                                     output.str(), expected_output, error.str(), "");
 }
 
 bool expect_console_mode_radix_literals() {
@@ -344,7 +360,8 @@ bool expect_console_mode_radix_literals() {
         prompt(0) + "21\n" +
         prompt(1) + "11\n" +
         prompt(2);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode radix literals", exit_code, 0, output.str(),
+                                     expected_output, error.str(), "");
 }
 
 bool expect_console_mode_circular_reference_error() {
@@ -360,8 +377,9 @@ bool expect_console_mode_circular_reference_error() {
         prompt(0) +
         prompt(0) + "1\n" +
         prompt(1);
-    return exit_code == 0 && output.str() == expected_output &&
-           error.str() == "error: circular variable reference: b\n";
+    return expect_console_transcript("console mode circular reference error", exit_code, 0,
+                                     output.str(), expected_output, error.str(),
+                                     "error: circular variable reference: b\n");
 }
 
 bool expect_console_mode_self_circular_reference_error() {
@@ -372,10 +390,10 @@ bool expect_console_mode_self_circular_reference_error() {
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
     const std::string expected_output = prompt(0) + prompt(0) + prompt(0);
-    return exit_code == 0 && output.str() == expected_output &&
-           error.str() ==
-               "error: circular variable reference: a\n"
-               "error: unknown identifier: a\n";
+    return expect_console_transcript("console mode self circular reference error", exit_code, 0,
+                                     output.str(), expected_output, error.str(),
+                                     "error: circular variable reference: a\n"
+                                     "error: unknown identifier: a\n");
 }
 
 bool expect_console_mode_variable_constant_conflict() {
@@ -386,8 +404,9 @@ bool expect_console_mode_variable_constant_conflict() {
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
     const std::string expected_output = prompt(0) + prompt(0);
-    return exit_code == 0 && output.str() == expected_output &&
-           error.str() == "error: cannot redefine constant: pi\n";
+    return expect_console_transcript("console mode variable constant conflict", exit_code, 0,
+                                     output.str(), expected_output, error.str(),
+                                     "error: cannot redefine constant: pi\n");
 }
 
 bool expect_console_mode_result_reference_error() {
@@ -398,8 +417,9 @@ bool expect_console_mode_result_reference_error() {
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
     const std::string expected_output = prompt(0) + prompt(0);
-    return exit_code == 0 && output.str() == expected_output &&
-           error.str() == "error: result reference requires at least one value\n";
+    return expect_console_transcript("console mode result reference error", exit_code, 0,
+                                     output.str(), expected_output, error.str(),
+                                     "error: result reference requires at least one value\n");
 }
 
 bool expect_console_mode_unknown_identifier_error() {
@@ -410,8 +430,9 @@ bool expect_console_mode_unknown_identifier_error() {
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
     const std::string expected_output = prompt(0) + prompt(0);
-    return exit_code == 0 && output.str() == expected_output &&
-           error.str() == "error: unknown identifier: foo\n";
+    return expect_console_transcript("console mode unknown identifier error", exit_code, 0,
+                                     output.str(), expected_output, error.str(),
+                                     "error: unknown identifier: foo\n");
 }
 
 bool expect_console_mode_list_constants() {
@@ -427,7 +448,8 @@ bool expect_console_mode_list_constants() {
         "pi:3.1415926535897931\n"
         "tau:6.2831853071795862\n" +
         prompt(0);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode list constants", exit_code, 0, output.str(),
+                                     expected_output, error.str(), "");
 }
 
 bool expect_console_mode_list_variables_and_functions() {
@@ -479,7 +501,8 @@ bool expect_console_mode_list_variables_and_functions() {
         "  range/2-3   generate linear series from start\n"
         "  repeat/2    repeat value count times\n" +
         prompt(0);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode list variables and functions", exit_code, 0,
+                                     output.str(), expected_output, error.str(), "");
 }
 
 bool expect_console_mode_currency_refresh_on_launch() {
@@ -509,7 +532,8 @@ bool expect_console_mode_currency_refresh_on_launch() {
         prompt(0) + "0.1\n" +
         prompt(1) + "10\n" +
         prompt(2);
-    return exit_code == 0 && output.str() == expected_output && error.str().empty();
+    return expect_console_transcript("console mode currency refresh on launch", exit_code, 0,
+                                     output.str(), expected_output, error.str(), "");
 }
 
 bool expect_console_mode_currency_refresh_command() {
@@ -537,8 +561,9 @@ bool expect_console_mode_currency_refresh_command() {
                                        });
     const std::string expected_output =
         prompt(0) + prompt(0) + prompt(0) + "0.2\n" + prompt(1);
-    return exit_code == 0 && output.str() == expected_output &&
-           error.str() == "error: unknown identifier: nok2usd\n";
+    return expect_console_transcript("console mode currency refresh command", exit_code, 0,
+                                     output.str(), expected_output, error.str(),
+                                     "error: unknown identifier: nok2usd\n");
 }
 
 bool expect_console_mode_currency_refresh_offline() {
@@ -561,9 +586,10 @@ bool expect_console_mode_currency_refresh_offline() {
                                            .currency_rate_timeout = std::chrono::milliseconds{50},
                                        });
     const std::string expected_output = prompt(0) + prompt(0) + prompt(0);
-    return exit_code == 0 && output.str() == expected_output &&
-           error.str() ==
-               "error: unknown identifier: nok2usd\nerror: currency refresh failed: timeout\n";
+    return expect_console_transcript("console mode currency refresh offline", exit_code, 0,
+                                     output.str(), expected_output, error.str(),
+                                     "error: unknown identifier: nok2usd\n"
+                                     "error: currency refresh failed: timeout\n");
 }
 
 }  // namespace

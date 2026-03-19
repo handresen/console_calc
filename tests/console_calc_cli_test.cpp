@@ -6,8 +6,11 @@
 #include "expression_environment.h"
 #include "console_calc_app.h"
 #include "console_calc/expression_parser.h"
+#include "console_test_utils.h"
 
 namespace {
+
+using console_calc::test::expect_console_transcript;
 
 bool expect_expanded_expression_helper() {
     console_calc::ExpressionParser parser;
@@ -32,7 +35,8 @@ bool expect_argument_mode_success() {
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 0 && output.str() == "9\n" && error.str().empty();
+    return expect_console_transcript("argument mode success", exit_code, 0, output.str(), "9\n",
+                                     error.str(), "");
 }
 
 bool expect_argument_mode_failure() {
@@ -42,8 +46,9 @@ bool expect_argument_mode_failure() {
     std::ostringstream error;
 
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    return exit_code == 1 && output.str().empty() &&
-           error.str() == "error: unknown identifier: unknown_name\n";
+    return expect_console_transcript("argument mode failure", exit_code, 1, output.str(), "",
+                                     error.str(),
+                                     "error: unknown identifier: unknown_name\n");
 }
 
 }  // namespace
