@@ -48,6 +48,7 @@ target_compile_features(console_calc_lib PUBLIC cxx_std_20)
 add_library(console_calc_app_lib
     apps/console_calc_app.cpp
     apps/console_assignment.cpp
+    apps/console_binding_facade.cpp
     apps/console_command.cpp
     apps/console_command_executor.cpp
     apps/console_history.cpp
