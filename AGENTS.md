@@ -82,3 +82,8 @@
 2. Keep the core value model, builtin-function metadata, and evaluator semantics cohesive as list and integer features expand.
 3. Refine console-mode behavior and future result-stack semantics without coupling them to the parser core.
 4. Keep grammar notes, README examples, command/listing tests, and external test data synchronized with behavior.
+
+## Forward Plan
+- The current forward-looking extension plan for the project is documented in `docs/wasm_extension_plan.md`.
+- Treat that document as the canonical next-steps plan for preparing the calculator/runtime for a future browser and WebAssembly frontend.
+- Follow that plan by separating session semantics from terminal presentation before attempting any web UI or WASM binding work.
