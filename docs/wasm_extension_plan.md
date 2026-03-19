@@ -78,10 +78,12 @@ Create a transport-free session engine from the current console session layer.
 
 Status:
 
-- in progress
-- initial extraction is complete on the `users-ha-web_frontend` branch via
+- largely complete
+- extraction is implemented on the `users-ha-web_frontend` branch via
   `ConsoleSessionEngine`
 - terminal `ConsoleSession` now acts as an adapter over that engine
+- stack/config behavior that did not belong in terminal transport has been
+  moved into the engine/session model
 
 Target outcomes:
 
@@ -101,10 +103,11 @@ Introduce structured command results and output events.
 
 Status:
 
-- started
-- the engine already returns a structured `ConsoleEngineCommandResult`
-- results are still somewhat transitional: values are structured, but
-  informational output is still line-oriented text
+- in progress and materially advanced
+- the engine now returns structured `ConsoleCommandResult`,
+  `ConsoleCommandEvent`, and `ConsoleSessionSnapshot`
+- helper listings are now structured event payloads rather than formatted text
+- terminal formatting remains in the terminal adapter
 
 Suggested shapes:
 
@@ -134,10 +137,10 @@ Separate semantic state from transcript formatting.
 
 Status:
 
-- started
-- terminal formatting for evaluated values now happens in the terminal adapter
-- listing and informational output still need a cleaner split between semantic
-  data and adapter rendering
+- in progress and mostly in place for current functionality
+- terminal formatting for evaluated values happens in the terminal adapter
+- stack/definition/constant/function listings now have structured view types
+- the session snapshot is now view-shaped for UI consumers
 
 Keep the current formatting helpers, but use them from adapter layers instead of
 embedding formatting decisions in the engine.
@@ -158,10 +161,11 @@ comparison.
 
 Status:
 
-- started
-- `console_session_engine_test.cpp` now covers direct engine behavior
-- more state-oriented tests should be added once `SessionState` and richer
-  command-result types exist
+- in progress and healthy
+- `console_session_engine_test.cpp` covers direct engine behavior
+- `console_binding_facade_test.cpp` now covers a binding-facing facade layer
+- focused test helpers now provide failure diagnostics so engine/facade tests do
+  not require ad hoc `printf` patching as often
 
 Priority cases:
 
@@ -186,6 +190,25 @@ Requirements:
 
 This keeps native networking out of the future WASM-compatible engine surface.
 
+Status:
+
+- on track
+- the engine remains provider-based for currency refresh
+- the new binding-facing facade is layered above the engine without taking a
+  direct dependency on native transport concerns
+
+### Phase 5.5: Introduce A Binding-Facing Facade
+
+Add a thin facade that exposes host-friendly strings and flat view data without
+requiring a binding layer to understand internal engine/value types.
+
+Status:
+
+- started
+- `ConsoleBindingFacade` now exists and is covered by focused tests
+- this facade is a likely bridge for future JS/WASM bindings, though it may
+  still be promoted out of `apps/` into a more shared layer
+
 ### Phase 6: Introduce a WASM-Oriented Build Target
 
 Once the session engine is transport-free:
@@ -206,6 +229,16 @@ The likely non-WASM pieces are:
 - ANSI prompt rendering
 - libcurl-based currency transport
 
+Status:
+
+- started
+- `emscripten-host` now builds the host-facing slice without terminal code,
+  tests, or the native currency transport
+- a first `.mjs` + `.wasm` artifact now exists around the C-facing binding
+  bridge
+- the current bridge is intentionally minimal and returns the last command
+  result as JSON
+
 ## Suggested Types
 
 These types would make the engine easier to expose to a browser:
@@ -220,6 +253,14 @@ These types would make the engine easier to expose to a browser:
 
 The exact names can change. The important part is to expose structured state
 instead of raw console text.
+
+Current concrete branch types are now close to this target:
+
+- `ConsoleSessionEngine`
+- `ConsoleSessionSnapshot`
+- `ConsoleCommandResult`
+- `ConsoleCommandEvent`
+- `ConsoleBindingFacade`
 
 ## Suggested File Direction
 
@@ -255,8 +296,9 @@ These should not be done first:
 2. introduce explicit session-state and structured command-result types
 3. keep terminal mode as an adapter over that engine/state model
 4. add state-oriented tests
-5. keep currency/network behavior provider-based
-6. add a separate WASM build target
+5. add a binding-facing facade over the engine/session model
+6. keep currency/network behavior provider-based
+7. add a separate WASM build target
 
 ## Readiness Criteria
 

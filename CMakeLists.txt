@@ -14,8 +14,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(CONSOLE_CALC_BUILD_TESTS "Build tests" ON)
 option(CONSOLE_CALC_ENABLE_CLANG_TIDY "Run clang-tidy during builds when available" OFF)
 option(CONSOLE_CALC_BUILD_TERMINAL_APP "Build the terminal console application" ON)
+option(CONSOLE_CALC_ENABLE_NATIVE_CURRENCY_PROVIDER "Build the libcurl-backed native currency provider" ON)
 
-find_package(CURL REQUIRED)
+if(CONSOLE_CALC_ENABLE_NATIVE_CURRENCY_PROVIDER)
+    find_package(CURL REQUIRED)
+endif()
 
 if(CONSOLE_CALC_ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES clang-tidy)
@@ -69,13 +72,25 @@ target_include_directories(console_calc_runtime_lib
 target_link_libraries(console_calc_runtime_lib
     PRIVATE
         console_calc_lib
-        CURL::libcurl
 )
+
+if(CONSOLE_CALC_ENABLE_NATIVE_CURRENCY_PROVIDER)
+    target_link_libraries(console_calc_runtime_lib
+        PRIVATE
+            CURL::libcurl
+    )
+endif()
 
 target_compile_features(console_calc_runtime_lib PUBLIC cxx_std_20)
 
+target_compile_definitions(console_calc_runtime_lib
+    PUBLIC
+        CONSOLE_CALC_ENABLE_NATIVE_CURRENCY_PROVIDER=$<BOOL:${CONSOLE_CALC_ENABLE_NATIVE_CURRENCY_PROVIDER}>
+)
+
 add_library(console_calc_host_lib
     src/console_binding_facade.cpp
+    src/console_binding_c_api.cpp
 )
 
 target_include_directories(console_calc_host_lib
@@ -92,6 +107,36 @@ target_link_libraries(console_calc_host_lib
 )
 
 target_compile_features(console_calc_host_lib PUBLIC cxx_std_20)
+
+if(EMSCRIPTEN)
+    add_executable(console_calc_wasm
+        src/console_wasm_entry.cpp
+    )
+
+    target_link_libraries(console_calc_wasm
+        PRIVATE
+            console_calc_host_lib
+    )
+
+    target_compile_features(console_calc_wasm PUBLIC cxx_std_20)
+
+    set_target_properties(console_calc_wasm PROPERTIES
+        OUTPUT_NAME "console_calc"
+        SUFFIX ".mjs"
+    )
+
+    target_link_options(console_calc_wasm
+        PRIVATE
+            "--no-entry"
+            "-sALLOW_MEMORY_GROWTH=1"
+            "-sENVIRONMENT=web"
+            "-sEXPORT_ES6=1"
+            "-sFILESYSTEM=0"
+            "-sMODULARIZE=1"
+            "-sEXPORTED_FUNCTIONS=['_console_calc_binding_session_create','_console_calc_binding_session_destroy','_console_calc_binding_session_initialize','_console_calc_binding_session_submit','_console_calc_binding_session_last_result_json']"
+            "-sEXPORTED_RUNTIME_METHODS=['UTF8ToString']"
+        )
+endif()
 
 if(CONSOLE_CALC_BUILD_TERMINAL_APP)
     add_library(console_calc_app_lib

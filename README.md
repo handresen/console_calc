@@ -44,6 +44,21 @@ This preset is the current “WASM-ready” build boundary. It keeps the core,
 runtime, and host-facing facade while excluding terminal-only code such as the
 line editor and console executable.
 
+Build the first Emscripten/WASM host artifact:
+
+```bash
+source ~/emsdk/emsdk_env.sh
+EM_CACHE="$PWD/build/emscripten-cache" cmake --preset emscripten-host
+EM_CACHE="$PWD/build/emscripten-cache" cmake --build --preset emscripten-host
+```
+
+This produces:
+- `build/emscripten-host/console_calc.mjs`
+- `build/emscripten-host/console_calc.wasm`
+
+The current wasm bridge exports a small C-facing session API for creating a
+session, submitting commands, and retrieving the last command result as JSON.
+
 ## Expression Language
 
 Supported values:
