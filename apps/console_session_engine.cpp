@@ -173,9 +173,11 @@ ConsoleEngineCommandResult ConsoleSessionEngine::submit(std::string_view line) {
 
 ConsoleSessionState ConsoleSessionEngine::state() const {
     return ConsoleSessionState{
-        .stack = result_stack_,
+        .stack_entries = stack_entry_views(result_stack_),
         .max_stack_depth = max_stack_depth_,
-        .definitions = definitions_,
+        .definitions = definition_views(definitions_),
+        .constants = constant_views(constants_),
+        .functions = builtin_function_views(builtin_functions()),
         .display_mode = display_mode_,
     };
 }

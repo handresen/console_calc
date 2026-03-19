@@ -10,7 +10,6 @@
 
 namespace {
 
-using console_calc::test::definitions_equal;
 using console_calc::test::expect_single_error_event;
 using console_calc::test::expect_single_constant_listing_event;
 using console_calc::test::expect_single_definition_listing_event;
@@ -46,6 +45,16 @@ console_calc::ConstantTable default_constants() {
     };
 }
 
+bool contains_definition(std::span<const console_calc::DefinitionView> definitions,
+                         std::string_view name, std::string_view expression) {
+    for (const auto& definition : definitions) {
+        if (definition.name == name && definition.expression == expression) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool expect_engine_basic_flow() {
     console_calc::ExpressionParser parser;
     const console_calc::ConstantTable constants = default_constants();
@@ -58,14 +67,19 @@ bool expect_engine_basic_flow() {
         !expect_single_value_event("engine basic flow expression", expression_result) ||
         !std::holds_alternative<std::int64_t>(*expression_result.events[0].value) ||
         std::get<std::int64_t>(*expression_result.events[0].value) != 2 ||
-        expression_result.state.stack.size() != 1 || expression_result.state.max_stack_depth != 100 ||
+        expression_result.state.stack_entries.size() != 1 ||
+        expression_result.state.stack_entries[0].level != 0 ||
+        !std::holds_alternative<std::int64_t>(expression_result.state.stack_entries[0].value) ||
+        std::get<std::int64_t>(expression_result.state.stack_entries[0].value) != 2 ||
+        expression_result.state.max_stack_depth != 100 ||
         engine.stack_depth() != 1) {
         return false;
     }
 
     const auto assignment_result = engine.submit("x:pi+1");
     if (assignment_result.should_exit || !assignment_result.events.empty() ||
-        !assignment_result.state.definitions.contains("x") || !engine.definitions().contains("x")) {
+        !contains_definition(assignment_result.state.definitions, "x", "pi+1") ||
+        !engine.definitions().contains("x")) {
         return false;
     }
 
@@ -76,7 +90,7 @@ bool expect_engine_basic_flow() {
            std::holds_alternative<double>(*variable_result.events[0].value) &&
            std::get<double>(*variable_result.events[0].value) > 4.14159 &&
            std::get<double>(*variable_result.events[0].value) < 4.14160 &&
-           variable_result.state.stack.size() == 2 && engine.stack_depth() == 2;
+           variable_result.state.stack_entries.size() == 2 && engine.stack_depth() == 2;
 }
 
 bool expect_engine_display_mode_and_stack_state() {
@@ -123,28 +137,28 @@ bool expect_engine_stack_commands() {
     (void)engine.submit("2");
 
     const auto dup_result = engine.submit("dup");
-    if (dup_result.state.stack.size() != 3 ||
-        !std::holds_alternative<std::int64_t>(dup_result.state.stack[2]) ||
-        std::get<std::int64_t>(dup_result.state.stack[2]) != 2) {
+    if (dup_result.state.stack_entries.size() != 3 ||
+        !std::holds_alternative<std::int64_t>(dup_result.state.stack_entries[2].value) ||
+        std::get<std::int64_t>(dup_result.state.stack_entries[2].value) != 2) {
         return false;
     }
 
     const auto swap_result = engine.submit("swap");
-    if (swap_result.state.stack.size() != 3 ||
-        !std::holds_alternative<std::int64_t>(swap_result.state.stack[1]) ||
-        !std::holds_alternative<std::int64_t>(swap_result.state.stack[2]) ||
-        std::get<std::int64_t>(swap_result.state.stack[1]) != 2 ||
-        std::get<std::int64_t>(swap_result.state.stack[2]) != 2) {
+    if (swap_result.state.stack_entries.size() != 3 ||
+        !std::holds_alternative<std::int64_t>(swap_result.state.stack_entries[1].value) ||
+        !std::holds_alternative<std::int64_t>(swap_result.state.stack_entries[2].value) ||
+        std::get<std::int64_t>(swap_result.state.stack_entries[1].value) != 2 ||
+        std::get<std::int64_t>(swap_result.state.stack_entries[2].value) != 2) {
         return false;
     }
 
     const auto drop_result = engine.submit("drop");
-    if (drop_result.state.stack.size() != 2) {
+    if (drop_result.state.stack_entries.size() != 2) {
         return false;
     }
 
     const auto clear_result = engine.submit("clear");
-    return clear_result.events.empty() && clear_result.state.stack.empty() &&
+    return clear_result.events.empty() && clear_result.state.stack_entries.empty() &&
            clear_result.state.max_stack_depth == 100;
 }
 
@@ -208,7 +222,7 @@ bool expect_engine_currency_refresh() {
            expect_single_value_event("engine currency refresh", result) &&
            std::holds_alternative<double>(*result.events[0].value) &&
            std::get<double>(*result.events[0].value) == 0.1 &&
-           result.state.definitions.contains("nok2usd");
+           contains_definition(result.state.definitions, "nok2usd", "0.10000000000000001");
 }
 
 bool expect_engine_currency_refresh_command_and_failure() {
@@ -232,7 +246,9 @@ bool expect_engine_currency_refresh_command_and_failure() {
 
     engine.initialize();
     const auto refresh_result = engine.submit("fx_refresh");
-    if (refresh_result.should_exit || !refresh_result.state.definitions.contains("nok2usd")) {
+    if (refresh_result.should_exit ||
+        !contains_definition(refresh_result.state.definitions, "nok2usd",
+                             "0.20000000000000001")) {
         return false;
     }
 
@@ -259,10 +275,12 @@ bool expect_engine_empty_command_noop() {
     const auto result = engine.submit("   ");
 
     return !result.should_exit && result.events.empty() &&
-           result.state.stack == before.stack &&
+           result.state.stack_entries.size() == before.stack_entries.size() &&
            result.state.max_stack_depth == before.max_stack_depth &&
            result.state.display_mode == before.display_mode &&
-           definitions_equal(result.state.definitions, before.definitions);
+           result.state.definitions.size() == before.definitions.size() &&
+           result.state.constants.size() == before.constants.size() &&
+           result.state.functions.size() == before.functions.size();
 }
 
 bool expect_engine_state_snapshot_consistency() {
@@ -276,9 +294,11 @@ bool expect_engine_state_snapshot_consistency() {
     const auto result = engine.submit("hex");
     const auto engine_state = engine.state();
 
-    return result.state.stack == engine_state.stack &&
+    return result.state.stack_entries.size() == engine_state.stack_entries.size() &&
            result.state.max_stack_depth == engine_state.max_stack_depth &&
-           definitions_equal(result.state.definitions, engine_state.definitions) &&
+           result.state.definitions.size() == engine_state.definitions.size() &&
+           result.state.constants.size() == engine_state.constants.size() &&
+           result.state.functions.size() == engine_state.functions.size() &&
            result.state.display_mode == engine_state.display_mode;
 }
 

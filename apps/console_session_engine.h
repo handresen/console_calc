@@ -17,9 +17,11 @@ namespace console_calc {
 class ExpressionParser;
 
 struct ConsoleSessionState {
-    std::vector<Value> stack;
+    std::vector<StackEntryView> stack_entries;
     std::size_t max_stack_depth = 100;
-    DefinitionTable definitions;
+    std::vector<DefinitionView> definitions;
+    std::vector<ConstantView> constants;
+    std::vector<FunctionView> functions;
     IntegerDisplayMode display_mode = IntegerDisplayMode::decimal;
 };
 

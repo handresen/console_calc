@@ -1,12 +1,9 @@
 #pragma once
 
 #include <cstdio>
-#include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
-#include "expression_environment.h"
 #include "console_session_engine.h"
 
 namespace console_calc::test {
@@ -54,21 +51,6 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
     }
 
     return matches;
-}
-
-[[nodiscard]] inline bool definitions_equal(const DefinitionTable& lhs, const DefinitionTable& rhs) {
-    if (lhs.size() != rhs.size()) {
-        return false;
-    }
-
-    for (const auto& [name, definition] : lhs) {
-        const auto found = rhs.find(name);
-        if (found == rhs.end() || found->second.expression != definition.expression) {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 [[nodiscard]] inline bool expect_single_value_event(std::string_view label,
