@@ -67,6 +67,8 @@ std::string function_category_name(BuiltinFunctionCategory category) {
     switch (category) {
     case BuiltinFunctionCategory::scalar:
         return "scalar";
+    case BuiltinFunctionCategory::position:
+        return "position";
     case BuiltinFunctionCategory::list:
         return "list";
     case BuiltinFunctionCategory::list_generation:

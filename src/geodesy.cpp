@@ -16,6 +16,17 @@ constexpr double k_wgs84_b = (1.0 - k_wgs84_f) * k_wgs84_a;
 constexpr int k_max_iterations = 200;
 constexpr double k_convergence_epsilon = 1e-12;
 
+// The geo builtins currently use Vincenty's ellipsoidal formulas on WGS84:
+// - wgs84_inverse(): inverse problem (distance + initial bearing)
+// - wgs84_direct(): direct problem (destination from start/bearing/range)
+//
+// This keeps the implementation dependency-free while providing practical
+// geodetic accuracy for normal calculator use. When the iterations converge,
+// Vincenty's method is typically accurate to around millimeter scale on WGS84;
+// in practice, floating-point rounding and the ellipsoid model dominate before
+// the formulas themselves do. The known tradeoff is that some near-antipodal
+// cases can fail to converge, in which case we surface an explicit error.
+
 [[nodiscard]] double degrees_to_radians(double value) {
     return value * std::numbers::pi_v<double> / 180.0;
 }
@@ -59,6 +70,9 @@ PositionValue normalize_position(double latitude_deg, double longitude_deg) {
 }
 
 GeodesicInverseResult wgs84_inverse(const PositionValue& start, const PositionValue& end) {
+    // Vincenty inverse formula on the WGS84 ellipsoid. Inputs are geodetic
+    // latitude/longitude in degrees; altitude and terrain are intentionally
+    // ignored, so the result is the surface geodesic distance and forward azimuth.
     const double phi1 = degrees_to_radians(start.latitude_deg);
     const double phi2 = degrees_to_radians(end.latitude_deg);
     const double L = degrees_to_radians(
@@ -149,6 +163,10 @@ PositionValue wgs84_direct(const PositionValue& start, double bearing_deg, doubl
         return start;
     }
 
+    // Vincenty direct formula on the WGS84 ellipsoid. Bearing is interpreted as
+    // degrees clockwise from true north, and distance is an ellipsoidal surface
+    // range in meters. The destination longitude is normalized back to the
+    // calculator's standard [-180, 180) degree range.
     const double alpha1 = degrees_to_radians(normalize_bearing_degrees(bearing_deg));
     const double phi1 = degrees_to_radians(start.latitude_deg);
     const double lambda1 = degrees_to_radians(start.longitude_deg);

@@ -16,6 +16,8 @@ std::string category_heading(BuiltinFunctionCategory category) {
     switch (category) {
     case BuiltinFunctionCategory::scalar:
         return "Scalar functions";
+    case BuiltinFunctionCategory::position:
+        return "Position functions";
     case BuiltinFunctionCategory::list:
         return "List functions";
     case BuiltinFunctionCategory::list_generation:
@@ -179,9 +181,11 @@ std::string format_builtin_function_listing(std::span<const BuiltinFunctionInfo>
 
 std::string format_builtin_function_listing(std::span<const FunctionView> views) {
     std::vector<FunctionView> scalar_entries;
+    std::vector<FunctionView> position_entries;
     std::vector<FunctionView> list_entries;
     std::vector<FunctionView> list_generation_entries;
     scalar_entries.reserve(views.size());
+    position_entries.reserve(views.size());
     list_entries.reserve(views.size());
     list_generation_entries.reserve(views.size());
     std::size_t label_width = 0;
@@ -189,7 +193,9 @@ std::string format_builtin_function_listing(std::span<const FunctionView> views)
     for (const auto& function : views) {
         const std::string& label = function.signature;
         label_width = std::max(label_width, label.size());
-        if (function.category == BuiltinFunctionCategory::list) {
+        if (function.category == BuiltinFunctionCategory::position) {
+            position_entries.push_back(function);
+        } else if (function.category == BuiltinFunctionCategory::list) {
             list_entries.push_back(function);
         } else if (function.category == BuiltinFunctionCategory::list_generation) {
             list_generation_entries.push_back(function);
@@ -212,6 +218,10 @@ std::string format_builtin_function_listing(std::span<const FunctionView> views)
 
     std::string output = category_heading(BuiltinFunctionCategory::scalar) + '\n';
     append_entries(output, scalar_entries);
+    output += '\n';
+    output += category_heading(BuiltinFunctionCategory::position);
+    output += '\n';
+    append_entries(output, position_entries);
     output += '\n';
     output += category_heading(BuiltinFunctionCategory::list);
     output += '\n';

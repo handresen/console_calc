@@ -509,15 +509,18 @@ template <typename Operation>
 }
 
 [[nodiscard]] Value evaluate_builtin_function(Function function, std::span<const Value> arguments) {
-    if (is_scalar_function(function)) {
+    const auto category = builtin_function_info(function).category;
+
+    if (category == BuiltinFunctionCategory::scalar ||
+        category == BuiltinFunctionCategory::position) {
         return evaluate_scalar_builtin(function, arguments);
     }
 
-    if (builtin_function_info(function).category == BuiltinFunctionCategory::list) {
+    if (category == BuiltinFunctionCategory::list) {
         return evaluate_list_builtin(function, arguments);
     }
 
-    if (builtin_function_info(function).category == BuiltinFunctionCategory::list_generation) {
+    if (category == BuiltinFunctionCategory::list_generation) {
         return evaluate_list_generation_builtin(function, arguments);
     }
 

@@ -18,12 +18,12 @@ constexpr std::array<BuiltinFunctionInfo, 35> k_builtin_functions = {{
     {Function::tand, "tand", 1, 1, BuiltinFunctionCategory::scalar, true, true, "tand(x)", "tangent in degrees"},
     {Function::sqrt, "sqrt", 1, 1, BuiltinFunctionCategory::scalar, true, true, "sqrt(x)", "square root"},
     {Function::pow, "pow", 2, 2, BuiltinFunctionCategory::scalar, true, false, "pow(x, y)", "power"},
-    {Function::pos, "pos", 2, 2, BuiltinFunctionCategory::scalar, true, false, "pos(lat, lon)", "construct WGS84 position in degrees"},
-    {Function::lat, "lat", 1, 1, BuiltinFunctionCategory::scalar, false, false, "lat(pos)", "extract latitude in degrees"},
-    {Function::lon, "lon", 1, 1, BuiltinFunctionCategory::scalar, false, false, "lon(pos)", "extract longitude in degrees"},
-    {Function::dist, "dist", 2, 2, BuiltinFunctionCategory::scalar, false, false, "dist(pos1, pos2)", "WGS84 ellipsoid distance in meters"},
-    {Function::bearing, "bearing", 2, 2, BuiltinFunctionCategory::scalar, false, false, "bearing(pos1, pos2)", "initial WGS84 bearing in degrees"},
-    {Function::br_to_pos, "br_to_pos", 3, 3, BuiltinFunctionCategory::scalar, false, false, "br_to_pos(pos, bearing_deg, range_m)", "destination position from bearing and range"},
+    {Function::pos, "pos", 2, 2, BuiltinFunctionCategory::position, true, false, "pos(lat, lon)", "construct WGS84 position in degrees"},
+    {Function::lat, "lat", 1, 1, BuiltinFunctionCategory::position, false, false, "lat(pos)", "extract latitude in degrees"},
+    {Function::lon, "lon", 1, 1, BuiltinFunctionCategory::position, false, false, "lon(pos)", "extract longitude in degrees"},
+    {Function::dist, "dist", 2, 2, BuiltinFunctionCategory::position, false, false, "dist(pos1, pos2)", "WGS84 ellipsoid distance in meters"},
+    {Function::bearing, "bearing", 2, 2, BuiltinFunctionCategory::position, false, false, "bearing(pos1, pos2)", "initial WGS84 bearing in degrees"},
+    {Function::br_to_pos, "br_to_pos", 3, 3, BuiltinFunctionCategory::position, false, false, "br_to_pos(pos, bearing_deg, range_m)", "destination position from bearing and range"},
     {Function::sum, "sum", 1, 1, BuiltinFunctionCategory::list, true, false, "sum(list)", "sum list elements"},
     {Function::len, "len", 1, 1, BuiltinFunctionCategory::list, true, false, "len(list)", "list length"},
     {Function::product, "product", 1, 1, BuiltinFunctionCategory::list, true, false, "product(list)", "product of list elements"},
@@ -113,7 +113,9 @@ bool is_scalar_function(Function function) {
 }
 
 bool is_list_function(Function function) {
-    return builtin_function_info(function).category != BuiltinFunctionCategory::scalar;
+    const auto category = builtin_function_info(function).category;
+    return category == BuiltinFunctionCategory::list ||
+           category == BuiltinFunctionCategory::list_generation;
 }
 
 bool is_unary_scalar_function(Function function) {

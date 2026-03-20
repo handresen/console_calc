@@ -11,6 +11,7 @@ namespace console_calc {
 
 enum class BuiltinFunctionCategory {
     scalar,
+    position,
     list,
     list_generation,
 };

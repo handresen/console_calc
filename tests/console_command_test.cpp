@@ -39,21 +39,23 @@ bool expect_builtin_function_listing() {
     return console_calc::format_builtin_function_listing(console_calc::builtin_functions()) ==
            "Scalar functions\n"
            "  abs(x)                                absolute value\n"
-           "  bearing(pos1, pos2)                   initial WGS84 bearing in degrees\n"
-           "  br_to_pos(pos, bearing_deg, range_m)  destination position from bearing and range\n"
            "  cos(x)                                cosine in radians\n"
            "  cosd(x)                               cosine in degrees\n"
-           "  dist(pos1, pos2)                      WGS84 ellipsoid distance in meters\n"
            "  guard(expr, fallback)                 use fallback when expr evaluation fails\n"
-           "  lat(pos)                              extract latitude in degrees\n"
-           "  lon(pos)                              extract longitude in degrees\n"
-           "  pos(lat, lon)                         construct WGS84 position in degrees\n"
            "  pow(x, y)                             power\n"
            "  sin(x)                                sine in radians\n"
            "  sind(x)                               sine in degrees\n"
            "  sqrt(x)                               square root\n"
            "  tan(x)                                tangent in radians\n"
            "  tand(x)                               tangent in degrees\n"
+           "\n"
+           "Position functions\n"
+           "  bearing(pos1, pos2)                   initial WGS84 bearing in degrees\n"
+           "  br_to_pos(pos, bearing_deg, range_m)  destination position from bearing and range\n"
+           "  dist(pos1, pos2)                      WGS84 ellipsoid distance in meters\n"
+           "  lat(pos)                              extract latitude in degrees\n"
+           "  lon(pos)                              extract longitude in degrees\n"
+           "  pos(lat, lon)                         construct WGS84 position in degrees\n"
            "\n"
            "List functions\n"
            "  avg(list)                             average of list elements\n"
@@ -191,17 +193,25 @@ bool expect_builtin_function_metadata() {
            guard_info.signature == "guard(expr, fallback)" &&
            guard_info.summary == "use fallback when expr evaluation fails" &&
            pos_info.name == "pos" && pos_info.min_arity == 2 && pos_info.max_arity == 2 &&
+           pos_info.category == console_calc::BuiltinFunctionCategory::position &&
            pos_info.signature == "pos(lat, lon)" && pos_info.scalar_arguments &&
            lat_info.name == "lat" && lat_info.min_arity == 1 && lat_info.max_arity == 1 &&
+           lat_info.category == console_calc::BuiltinFunctionCategory::position &&
            lat_info.signature == "lat(pos)" && !lat_info.scalar_arguments &&
-           lon_info.name == "lon" && lon_info.signature == "lon(pos)" &&
+           lon_info.name == "lon" &&
+           lon_info.category == console_calc::BuiltinFunctionCategory::position &&
+           lon_info.signature == "lon(pos)" &&
            !lon_info.scalar_arguments &&
-           dist_info.name == "dist" && dist_info.signature == "dist(pos1, pos2)" &&
+           dist_info.name == "dist" &&
+           dist_info.category == console_calc::BuiltinFunctionCategory::position &&
+           dist_info.signature == "dist(pos1, pos2)" &&
            !dist_info.scalar_arguments &&
            bearing_info.name == "bearing" &&
+           bearing_info.category == console_calc::BuiltinFunctionCategory::position &&
            bearing_info.signature == "bearing(pos1, pos2)" &&
            !bearing_info.scalar_arguments &&
            br_to_pos_info.name == "br_to_pos" &&
+           br_to_pos_info.category == console_calc::BuiltinFunctionCategory::position &&
            br_to_pos_info.signature == "br_to_pos(pos, bearing_deg, range_m)" &&
            !br_to_pos_info.scalar_arguments &&
            reduce_info.name == "reduce" && reduce_info.min_arity == 2 &&
@@ -230,11 +240,12 @@ bool expect_builtin_function_helpers() {
     return console_calc::is_scalar_function(console_calc::Function::sin) &&
            console_calc::is_scalar_function(console_calc::Function::abs) &&
            console_calc::is_scalar_function(console_calc::Function::guard) &&
-           console_calc::is_scalar_function(console_calc::Function::pos) &&
+           !console_calc::is_scalar_function(console_calc::Function::pos) &&
            !console_calc::is_scalar_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::list_add) &&
            console_calc::is_list_function(console_calc::Function::range) &&
+           !console_calc::is_list_function(console_calc::Function::pos) &&
            !console_calc::is_list_function(console_calc::Function::pow) &&
            console_calc::is_unary_scalar_function(console_calc::Function::sin) &&
            console_calc::is_unary_scalar_function(console_calc::Function::abs) &&
