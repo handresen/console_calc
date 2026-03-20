@@ -482,6 +482,7 @@ bool expect_console_mode_list_variables_and_functions() {
         "  sum(list)                             sum list elements\n"
         "\n"
         "List generation functions\n"
+        "  fill(expr, count)                     evaluate expr count times into a list\n"
         "  geom(start, count[, ratio])           generate geometric series from start\n"
         "  linspace(start, stop, count)          generate evenly spaced values over interval\n"
         "  powers(base, count[, start_exp])      generate successive integer powers\n"

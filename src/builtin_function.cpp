@@ -131,7 +131,9 @@ bool is_scalar_function(Function function) {
 
 bool is_list_function(Function function) {
     if (is_special_form(function)) {
-        return special_form_info(function).category == BuiltinFunctionCategory::list;
+        const auto category = special_form_info(function).category;
+        return category == BuiltinFunctionCategory::list ||
+               category == BuiltinFunctionCategory::list_generation;
     }
     const auto category = builtin_function_info(function).category;
     return category == BuiltinFunctionCategory::list ||

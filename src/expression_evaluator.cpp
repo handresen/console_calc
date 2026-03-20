@@ -177,6 +177,7 @@ namespace {
     case Function::guard:
     case Function::reduce:
     case Function::timed_loop:
+    case Function::fill:
     case Function::map:
     case Function::range:
     case Function::geom:
@@ -277,6 +278,7 @@ template <typename Operation>
     case Function::guard:
     case Function::reduce:
     case Function::timed_loop:
+    case Function::fill:
     case Function::map:
     case Function::range:
     case Function::geom:
@@ -405,6 +407,7 @@ template <typename Operation>
     case Function::map:
     case Function::reduce:
     case Function::timed_loop:
+    case Function::fill:
         break;
     case Function::pos:
     case Function::lat:
@@ -550,6 +553,7 @@ template <typename Operation>
     case Function::guard:
     case Function::reduce:
     case Function::timed_loop:
+    case Function::fill:
     case Function::map:
         break;
     }
@@ -631,6 +635,21 @@ template <typename Operation>
     return require_finite_result(elapsed);
 }
 
+[[nodiscard]] Value evaluate_fill_call(const FillCall& node,
+                                       const std::optional<ScalarValue>& placeholder_value) {
+    const std::size_t iteration_count = require_list_index(
+        require_scalar_or_singleton_list_value(
+            evaluate_expression_with_placeholder(*node.iteration_count, placeholder_value)));
+
+    ListValue values;
+    values.reserve(iteration_count);
+    for (std::size_t index = 0; index < iteration_count; ++index) {
+        values.push_back(require_scalar_value(
+            evaluate_expression_with_placeholder(*node.fill_expression, placeholder_value)));
+    }
+    return values;
+}
+
 [[nodiscard]] Value evaluate_binary_expression(const BinaryExpression& node,
                                                const std::optional<ScalarValue>& placeholder_value) {
     const ScalarValue lhs = require_scalar_or_singleton_list_value(
@@ -703,6 +722,8 @@ Value evaluate_expression_with_placeholder(const Expression& expression,
                 return evaluate_reduce_call(node, placeholder_value);
             } else if constexpr (std::is_same_v<Node, TimedLoopCall>) {
                 return evaluate_timed_loop_call(node, placeholder_value);
+            } else if constexpr (std::is_same_v<Node, FillCall>) {
+                return evaluate_fill_call(node, placeholder_value);
             } else {
                 return evaluate_binary_expression(node, placeholder_value);
             }

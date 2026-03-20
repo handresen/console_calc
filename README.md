@@ -146,6 +146,7 @@ pow(e, 1)
 - `br_to_pos(pos, bearing_deg, range_m)` destination position from bearing and range
 - `guard(expr, fallback)` evaluate `fallback` only if `expr` fails
 - `timed_loop(expr, count)` evaluate `expr` `count` times and return elapsed seconds
+- `fill(expr, count)` evaluate `expr` `count` times into a list
 
 ### List Functions
 
@@ -166,6 +167,7 @@ pow(e, 1)
 
 - `range(start, count[, step])` generate `count` values starting at `start`
 - `geom(start, count[, ratio])` generate a geometric series
+- `fill(expr, count)` generate a list by repeatedly evaluating an expression
 - `repeat(value, count)` repeat a value `count` times
 - `linspace(start, stop, count)` generate evenly spaced values over an interval
 - `powers(base, count[, start_exp])` generate successive powers of a base
@@ -187,6 +189,8 @@ Function notes:
 - `guard` evaluates its fallback lazily and can be used inside `map`
 - `timed_loop` evaluates its expression lazily for each iteration
 - `timed_loop` requires `count` to be a non-negative integer
+- `fill` evaluates its expression lazily for each element
+- `fill` requires `count` to be a non-negative integer
 - `rand()` returns a value in `[0, 1)`
 - `rand(max)` returns a value in `[0, max)`
 - `rand(min, max)` returns a value in `[min, max)`
@@ -217,6 +221,7 @@ map({1, 2, 3}, _ + 1)         => {2, 3, 4}
 map({1, 2, 3}, sin(_) + _)    => {1.84147..., 2.90929..., 3.14112...}
 guard(1 / 0, 0)               => 0
 timed_loop(sin(pi / 3), 1000) => 0.00...
+fill(rand(), 3)               => {0.42..., 0.13..., 0.91...}
 rand()                        => 0.42...
 rand(10, 20)                  => 13.7...
 map(range(-2, 5), guard(1 / _, 0))

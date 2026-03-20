@@ -96,11 +96,13 @@ Builtin functions:
 - `list_mul(list_a, list_b)` multiplies list elements pairwise and requires equal list lengths
 - `guard(expr, fallback)` returns `expr` when it evaluates successfully, otherwise evaluates and returns `fallback`
 - `timed_loop(expr, count)` evaluates `expr` `count` times and returns elapsed seconds as a floating-point value
+- `fill(expr, count)` evaluates `expr` `count` times and returns the collected results as a list
 - `reduce(list, op)` reduces a non-empty list left-to-right using a binary operator such as `+` or `*`
 - `map(list, expr)` evaluates `expr` once per list item with `_` bound to the current element
 - `range(start, count[, step])` generates a list beginning at `start`, with `count` elements, incrementing by `step` or by `1` when omitted
 - `geom(start, count[, ratio])` generates a geometric series beginning at `start`, multiplying by `ratio` or by `2` when omitted
 - `repeat(value, count)` repeats `value` `count` times
+- `fill(expr, count)` repeatedly evaluates `expr` `count` times and returns the results as a list
 - `linspace(start, stop, count)` generates `count` evenly spaced values from `start` to `stop`
 - `powers(base, count[, start_exp])` generates successive powers of `base`, starting at exponent `start_exp` or `0`
 
@@ -112,7 +114,7 @@ Integer-preserving behavior:
 - `sum(list)` and `product(list)` preserve integer results when all inputs remain integral
 - trig functions always return floating-point results
 
-For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, the second argument is an expression that uses `_` as the current element placeholder. `_` is only valid inside `map(..., expr)`. For `timed_loop`, `count` must be a non-negative integer. For `rand`, `rand()` uses `[0, 1)`, `rand(max)` uses `[0, max)`, and `rand(min, max)` uses `[min, max)` with finite bounds and `min < max`.
+For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, the second argument is an expression that uses `_` as the current element placeholder. `_` is only valid inside `map(..., expr)`. For `timed_loop` and `fill`, `count` must be a non-negative integer. For `rand`, `rand()` uses `[0, 1)`, `rand(max)` uses `[0, max)`, and `rand(min, max)` uses `[min, max)` with finite bounds and `min < max`.
 
 Geo positions are a dedicated value type, separate from scalars and lists. They use the `(lat, lon)` convention in degrees. Only the geo-specific functions accept position values.
 
@@ -141,6 +143,7 @@ Examples:
 - `sum(map({1, 2, 3}, sin(_) + _))` => `7.8918884196934453`
 - `guard(1 / 0, 0)` => `0`
 - `timed_loop(sin(pi / 3), 1000)` => a non-negative elapsed time in seconds
+- `fill(1 + 2, 3)` => `{3, 3, 3}`
 - `rand()` => a value in `[0, 1)`
 - `sum(map(range(-2, 5), guard(1 / _, 0)))` => `0`
 - `sum(list_div(powers(-1, 4), range(1, 4, 2)))` => `0.72380952380952379`
@@ -190,6 +193,7 @@ Examples:
 - `map({1, 2, 3}, sin(_) + _)`
 - `guard(1 / 0, 0)`
 - `timed_loop(1 + 2, 3)`
+- `fill(rand(), 3)`
 - `rand(10, 20)`
 - `range(10, 4)`
 - `range(1.5, 3, 0.5)`
@@ -231,6 +235,7 @@ Examples:
 - `map({1, 2}, _ + foo)`
 - `guard(1 / 0)`
 - `timed_loop(1 + 2)`
+- `fill(1)`
 - `rand(1, 2, 3)`
 - `_`
 - `range(1)`

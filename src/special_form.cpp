@@ -7,13 +7,15 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<SpecialFormInfo, 4> k_special_forms = {{
+constexpr std::array<SpecialFormInfo, 5> k_special_forms = {{
     {Function::guard, "guard", 2, 2, BuiltinFunctionCategory::scalar, "guard(expr, fallback)",
      "use fallback when expr evaluation fails"},
     {Function::reduce, "reduce", 2, 2, BuiltinFunctionCategory::list, "reduce(list, op)",
      "reduce list with binary operator"},
     {Function::timed_loop, "timed_loop", 2, 2, BuiltinFunctionCategory::scalar,
      "timed_loop(expr, count)", "evaluate expr count times and return elapsed seconds"},
+    {Function::fill, "fill", 2, 2, BuiltinFunctionCategory::list_generation, "fill(expr, count)",
+     "evaluate expr count times into a list"},
     {Function::map, "map", 2, 2, BuiltinFunctionCategory::list, "map(list, expr)",
      "map inline expression over list"},
 }};
@@ -35,7 +37,8 @@ bool is_special_form_name(std::string_view name) {
 
 bool is_special_form(Function function) {
     return function == Function::guard || function == Function::reduce ||
-           function == Function::timed_loop || function == Function::map;
+           function == Function::timed_loop || function == Function::fill ||
+           function == Function::map;
 }
 
 const SpecialFormInfo& special_form_info(Function function) {
@@ -57,6 +60,11 @@ bool special_form_accepts_arity(Function function, std::size_t arity) {
 
 std::string_view special_form_signature(Function function) {
     return special_form_info(function).signature;
+}
+
+bool is_list_generation_special_form(Function function) {
+    return is_special_form(function) &&
+           special_form_info(function).category == BuiltinFunctionCategory::list_generation;
 }
 
 }  // namespace console_calc

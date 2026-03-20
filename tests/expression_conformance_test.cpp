@@ -590,6 +590,22 @@ bool expect_timed_loop_ast_shape(console_calc::ExpressionParser& parser) {
            almost_equal(iteration_count->value, 3.0);
 }
 
+bool expect_fill_ast_shape(console_calc::ExpressionParser& parser) {
+    using console_calc::Expression;
+    using console_calc::FillCall;
+    using console_calc::NumberLiteral;
+
+    const Expression ast = parser.parse("fill(1 + 2, 3)");
+    const auto* root = std::get_if<FillCall>(&ast.node);
+    if (root == nullptr) {
+        return false;
+    }
+
+    const auto* iteration_count = std::get_if<NumberLiteral>(&root->iteration_count->node);
+    return root->fill_expression != nullptr && iteration_count != nullptr &&
+           almost_equal(iteration_count->value, 3.0);
+}
+
 bool expect_range_ast_shape(console_calc::ExpressionParser& parser) {
     using console_calc::Expression;
     using console_calc::Function;
@@ -735,6 +751,25 @@ bool expect_timed_loop_behavior(console_calc::ExpressionParser& parser) {
     return true;
 }
 
+bool expect_fill_behavior(console_calc::ExpressionParser& parser) {
+    const console_calc::Value filled = parser.evaluate_value("fill(1 + 2, 3)");
+    if (!std::holds_alternative<console_calc::ListValue>(filled)) {
+        return false;
+    }
+
+    const auto& values = std::get<console_calc::ListValue>(filled);
+    if (values.size() != 3) {
+        return false;
+    }
+
+    return std::holds_alternative<std::int64_t>(values[0]) &&
+           std::get<std::int64_t>(values[0]) == 3 &&
+           std::holds_alternative<std::int64_t>(values[1]) &&
+           std::get<std::int64_t>(values[1]) == 3 &&
+           std::holds_alternative<std::int64_t>(values[2]) &&
+           std::get<std::int64_t>(values[2]) == 3;
+}
+
 bool expect_rand_behavior(console_calc::ExpressionParser& parser) {
     const console_calc::Value default_random = parser.evaluate_value("rand()");
     if (!std::holds_alternative<double>(default_random) ||
@@ -823,6 +858,17 @@ bool expect_function_signature_errors(console_calc::ExpressionParser& parser) {
     }
 
     try {
+        (void)parser.parse("fill(1)");
+        return false;
+    } catch (const std::invalid_argument& error) {
+        if (std::string(error.what()) != "function 'fill' expects fill(expr, count)") {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
         (void)parser.parse("rand(1, 2, 3)");
         return false;
     } catch (const std::invalid_argument& error) {
@@ -897,6 +943,10 @@ int main() {
         return EXIT_FAILURE;
     }
 
+    if (!expect_fill_ast_shape(parser)) {
+        return EXIT_FAILURE;
+    }
+
     if (!expect_range_ast_shape(parser)) {
         return EXIT_FAILURE;
     }
@@ -910,6 +960,10 @@ int main() {
     }
 
     if (!expect_timed_loop_behavior(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_fill_behavior(parser)) {
         return EXIT_FAILURE;
     }
 

@@ -26,5 +26,6 @@ struct SpecialFormInfo {
 [[nodiscard]] std::span<const SpecialFormInfo> special_forms();
 [[nodiscard]] bool special_form_accepts_arity(Function function, std::size_t arity);
 [[nodiscard]] std::string_view special_form_signature(Function function);
+[[nodiscard]] bool is_list_generation_special_form(Function function);
 
 }  // namespace console_calc

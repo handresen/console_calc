@@ -78,6 +78,7 @@ bool expect_builtin_function_listing() {
            "  sum(list)                             sum list elements\n"
            "\n"
            "List generation functions\n"
+           "  fill(expr, count)                     evaluate expr count times into a list\n"
            "  geom(start, count[, ratio])           generate geometric series from start\n"
            "  linspace(start, stop, count)          generate evenly spaced values over interval\n"
            "  powers(base, count[, start_exp])      generate successive integer powers\n"
@@ -163,6 +164,7 @@ bool expect_builtin_function_metadata() {
     const auto reduce_info = console_calc::special_form_info(console_calc::Function::reduce);
     const auto timed_loop_info =
         console_calc::special_form_info(console_calc::Function::timed_loop);
+    const auto fill_info = console_calc::special_form_info(console_calc::Function::fill);
     const auto map_info = console_calc::special_form_info(console_calc::Function::map);
     const auto range_info = console_calc::builtin_function_info(console_calc::Function::range);
     const auto geom_info = console_calc::builtin_function_info(console_calc::Function::geom);
@@ -235,6 +237,10 @@ bool expect_builtin_function_metadata() {
            timed_loop_info.signature == "timed_loop(expr, count)" &&
            timed_loop_info.summary ==
                "evaluate expr count times and return elapsed seconds" &&
+           fill_info.name == "fill" && fill_info.min_arity == 2 && fill_info.max_arity == 2 &&
+           fill_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
+           fill_info.signature == "fill(expr, count)" &&
+           fill_info.summary == "evaluate expr count times into a list" &&
            map_info.name == "map" && map_info.min_arity == 2 && map_info.max_arity == 2 &&
            map_info.category == console_calc::BuiltinFunctionCategory::list &&
            map_info.signature == "map(list, expr)" &&
@@ -263,6 +269,7 @@ bool expect_builtin_function_helpers() {
            !console_calc::is_scalar_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::list_add) &&
+           console_calc::is_list_function(console_calc::Function::fill) &&
            console_calc::is_list_function(console_calc::Function::range) &&
            !console_calc::is_list_function(console_calc::Function::pos) &&
            !console_calc::is_list_function(console_calc::Function::pow) &&

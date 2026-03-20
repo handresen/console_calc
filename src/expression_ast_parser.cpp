@@ -249,6 +249,8 @@ private:
             return parse_reduce_call();
         case Function::timed_loop:
             return parse_timed_loop_call();
+        case Function::fill:
+            return parse_fill_call();
         default:
             break;
         }
@@ -449,6 +451,41 @@ private:
         return Expression{
             TimedLoopCall{
                 .loop_expression = std::move(loop_expression),
+                .iteration_count = std::move(iteration_count),
+            }};
+    }
+
+    [[nodiscard]] Expression parse_fill_call() {
+        const auto fill_signature = std::string(special_form_signature(Function::fill));
+        advance();
+        if (current_.kind != TokenKind::left_paren) {
+            throw ParseError("expected '(' after function name");
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("function 'fill' expects " + fill_signature);
+        }
+
+        auto fill_expression = make_expression(parse_bitwise_or_expression());
+        if (current_.kind != TokenKind::comma) {
+            throw ParseError("function 'fill' expects " + fill_signature);
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("expected expression after ','");
+        }
+
+        auto iteration_count = make_expression(parse_bitwise_or_expression());
+        if (current_.kind != TokenKind::right_paren) {
+            throw ParseError("expected ')'");
+        }
+
+        advance();
+        return Expression{
+            FillCall{
+                .fill_expression = std::move(fill_expression),
                 .iteration_count = std::move(iteration_count),
             }};
     }

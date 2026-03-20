@@ -58,6 +58,7 @@ enum class Function {
     guard,
     reduce,
     timed_loop,
+    fill,
     map,
     range,
     geom,
@@ -107,9 +108,15 @@ struct TimedLoopCall {
     std::unique_ptr<Expression> iteration_count;
 };
 
+struct FillCall {
+    std::unique_ptr<Expression> fill_expression;
+    std::unique_ptr<Expression> iteration_count;
+};
+
 struct Expression {
     std::variant<NumberLiteral, PlaceholderExpression, UnaryExpression, BinaryExpression,
-                 ListLiteral, FunctionCall, MapCall, GuardCall, ReduceCall, TimedLoopCall>
+                 ListLiteral, FunctionCall, MapCall, GuardCall, ReduceCall, TimedLoopCall,
+                 FillCall>
         node;
 };
 
