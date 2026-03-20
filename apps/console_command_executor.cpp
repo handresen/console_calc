@@ -7,6 +7,7 @@
 
 #include "console_listing.h"
 #include "console_calc/builtin_function.h"
+#include "console_calc/special_form.h"
 
 namespace console_calc {
 
@@ -48,7 +49,7 @@ void execute_non_evaluating_console_command(
         context.output << format_constant_listing(context.constants);
         return;
     case ConsoleCommandKind::list_functions:
-        context.output << format_builtin_function_listing(builtin_functions());
+        context.output << format_function_listing(builtin_functions(), special_forms());
         return;
     case ConsoleCommandKind::display_decimal:
         context.display_mode = IntegerDisplayMode::decimal;
@@ -109,7 +110,8 @@ void execute_non_evaluating_console_command(
         context.output_lines.push_back(format_constant_listing(context.constants));
         return;
     case ConsoleCommandKind::list_functions:
-        context.output_lines.push_back(format_builtin_function_listing(builtin_functions()));
+        context.output_lines.push_back(
+            format_function_listing(builtin_functions(), special_forms()));
         return;
     case ConsoleCommandKind::display_decimal:
         context.display_mode = IntegerDisplayMode::decimal;

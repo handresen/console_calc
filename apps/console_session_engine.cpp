@@ -14,6 +14,7 @@
 #include "console_calc/error_info.h"
 #include "console_calc/expression_parser.h"
 #include "console_calc/scalar_value.h"
+#include "console_calc/special_form.h"
 #include "scalar_math.h"
 
 namespace console_calc {
@@ -105,7 +106,7 @@ ConsoleCommandResult ConsoleSessionEngine::submit(std::string_view line) {
                 break;
             case ConsoleCommandKind::list_functions:
                 event.kind = ConsoleCommandEventKind::function_listing;
-                event.functions = builtin_function_views(builtin_functions());
+                event.functions = function_views(builtin_functions(), special_forms());
                 break;
             default:
                 break;
@@ -180,7 +181,7 @@ ConsoleSessionSnapshot ConsoleSessionEngine::state() const {
         .max_stack_depth = max_stack_depth_,
         .definitions = definition_views(definitions_),
         .constants = constant_views(constants_),
-        .functions = builtin_function_views(builtin_functions()),
+        .functions = function_views(builtin_functions(), special_forms()),
         .display_mode = display_mode_,
     };
 }

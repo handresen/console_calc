@@ -41,6 +41,7 @@ add_library(console_calc_lib
     src/geodesy.cpp
     src/scalar_math.cpp
     src/scalar_value.cpp
+    src/special_form.cpp
     src/value_format.cpp
 )
 

@@ -84,6 +84,12 @@
 - When parser behavior changes, update both `docs/grammar.md` and the externalized expression test data.
 - When console commands or builtin-function metadata change, update the focused command/listing tests in `tests/console_command_test.cpp` and the user-facing `README.md` when appropriate.
 - When adding or refactoring focused unit tests, prefer small reusable failure-diagnostics helpers over ad hoc temporary `printf` debugging. Leave targeted instrumentation in place when it materially improves future failure diagnosis without cluttering the tests.
+- After refactor-focused passes, include a short churn summary in the close-out:
+  - net lines added/deleted
+  - count of files touched
+  - count of new files
+  - count of deleted files
+  - whether the refactor was useful or should be reverted
 
 ## Near-Term Priorities
 1. Preserve correctness while extending the grammar in small, test-backed steps.

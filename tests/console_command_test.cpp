@@ -5,6 +5,7 @@
 #include "console_listing.h"
 #include "expression_environment.h"
 #include "console_calc/builtin_function.h"
+#include "console_calc/special_form.h"
 
 namespace {
 
@@ -36,7 +37,8 @@ bool expect_command_classification() {
 }
 
 bool expect_builtin_function_listing() {
-    return console_calc::format_builtin_function_listing(console_calc::builtin_functions()) ==
+    return console_calc::format_function_listing(console_calc::builtin_functions(),
+                                                 console_calc::special_forms()) ==
            "Scalar functions\n"
            "  abs(x)                                absolute value\n"
            "  cos(x)                                cosine in radians\n"
@@ -124,8 +126,8 @@ bool expect_structured_listing_views() {
     const auto stack_views = console_calc::stack_entry_views(stack);
     const auto definition_list = console_calc::definition_views(definitions);
     const auto constant_list = console_calc::constant_views(constants);
-    const auto function_list =
-        console_calc::builtin_function_views(console_calc::builtin_functions());
+    const auto function_list = console_calc::function_views(console_calc::builtin_functions(),
+                                                            console_calc::special_forms());
 
     return stack_views.size() == 2 && stack_views[0].level == 0 &&
            std::holds_alternative<std::int64_t>(stack_views[0].value) &&
@@ -151,17 +153,17 @@ bool expect_builtin_function_metadata() {
     const auto list_div_info = console_calc::builtin_function_info(console_calc::Function::list_div);
     const auto list_mul_info = console_calc::builtin_function_info(console_calc::Function::list_mul);
     const auto list_sub_info = console_calc::builtin_function_info(console_calc::Function::list_sub);
-    const auto guard_info = console_calc::builtin_function_info(console_calc::Function::guard);
+    const auto guard_info = console_calc::special_form_info(console_calc::Function::guard);
     const auto pos_info = console_calc::builtin_function_info(console_calc::Function::pos);
     const auto lat_info = console_calc::builtin_function_info(console_calc::Function::lat);
     const auto lon_info = console_calc::builtin_function_info(console_calc::Function::lon);
     const auto dist_info = console_calc::builtin_function_info(console_calc::Function::dist);
     const auto bearing_info = console_calc::builtin_function_info(console_calc::Function::bearing);
     const auto br_to_pos_info = console_calc::builtin_function_info(console_calc::Function::br_to_pos);
-    const auto reduce_info = console_calc::builtin_function_info(console_calc::Function::reduce);
+    const auto reduce_info = console_calc::special_form_info(console_calc::Function::reduce);
     const auto timed_loop_info =
-        console_calc::builtin_function_info(console_calc::Function::timed_loop);
-    const auto map_info = console_calc::builtin_function_info(console_calc::Function::map);
+        console_calc::special_form_info(console_calc::Function::timed_loop);
+    const auto map_info = console_calc::special_form_info(console_calc::Function::map);
     const auto range_info = console_calc::builtin_function_info(console_calc::Function::range);
     const auto geom_info = console_calc::builtin_function_info(console_calc::Function::geom);
     const auto repeat_info = console_calc::builtin_function_info(console_calc::Function::repeat);
@@ -236,7 +238,7 @@ bool expect_builtin_function_metadata() {
            map_info.name == "map" && map_info.min_arity == 2 && map_info.max_arity == 2 &&
            map_info.category == console_calc::BuiltinFunctionCategory::list &&
            map_info.signature == "map(list, expr)" &&
-           map_info.summary == "map inline expression over list" && !map_info.mappable &&
+           map_info.summary == "map inline expression over list" &&
            range_info.name == "range" && range_info.min_arity == 2 && range_info.max_arity == 3 &&
            range_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
            range_info.summary == "generate linear series from start" &&

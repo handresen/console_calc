@@ -3,6 +3,7 @@
 #include "console_calc/builtin_function.h"
 #include "console_calc/expression_error.h"
 #include "console_calc/scalar_value.h"
+#include "console_calc/special_form.h"
 
 #include <cmath>
 #include <cstdint>
@@ -256,24 +257,11 @@ template <typename Operation>
         return std::uniform_real_distribution<double>(minimum, maximum)(generator);
     }
     case Function::pos:
-        return normalize_position(
-            scalar_to_double(require_scalar_or_singleton_list_value(arguments[0])),
-            scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])));
     case Function::lat:
-        return require_position(arguments[0]).latitude_deg;
     case Function::lon:
-        return require_position(arguments[0]).longitude_deg;
     case Function::dist:
-        return wgs84_inverse(require_position(arguments[0]), require_position(arguments[1]))
-            .distance_m;
     case Function::bearing:
-        return wgs84_inverse(require_position(arguments[0]), require_position(arguments[1]))
-            .initial_bearing_deg;
     case Function::br_to_pos:
-        return wgs84_direct(
-            require_position(arguments[0]),
-            scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])),
-            scalar_to_double(require_scalar_or_singleton_list_value(arguments[2])));
     case Function::sum:
     case Function::len:
     case Function::product:
@@ -299,6 +287,34 @@ template <typename Operation>
     }
 
     throw EvaluationError("unknown scalar builtin");
+}
+
+[[nodiscard]] Value evaluate_position_builtin(Function function, std::span<const Value> arguments) {
+    switch (function) {
+    case Function::pos:
+        return normalize_position(
+            scalar_to_double(require_scalar_or_singleton_list_value(arguments[0])),
+            scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])));
+    case Function::lat:
+        return require_position(arguments[0]).latitude_deg;
+    case Function::lon:
+        return require_position(arguments[0]).longitude_deg;
+    case Function::dist:
+        return wgs84_inverse(require_position(arguments[0]), require_position(arguments[1]))
+            .distance_m;
+    case Function::bearing:
+        return wgs84_inverse(require_position(arguments[0]), require_position(arguments[1]))
+            .initial_bearing_deg;
+    case Function::br_to_pos:
+        return wgs84_direct(
+            require_position(arguments[0]),
+            scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])),
+            scalar_to_double(require_scalar_or_singleton_list_value(arguments[2])));
+    default:
+        break;
+    }
+
+    throw EvaluationError("unknown position builtin");
 }
 
 [[nodiscard]] Value evaluate_list_builtin(Function function, std::span<const Value> arguments) {
@@ -544,9 +560,12 @@ template <typename Operation>
 [[nodiscard]] Value evaluate_builtin_function(Function function, std::span<const Value> arguments) {
     const auto category = builtin_function_info(function).category;
 
-    if (category == BuiltinFunctionCategory::scalar ||
-        category == BuiltinFunctionCategory::position) {
+    if (category == BuiltinFunctionCategory::scalar) {
         return evaluate_scalar_builtin(function, arguments);
+    }
+
+    if (category == BuiltinFunctionCategory::position) {
+        return evaluate_position_builtin(function, arguments);
     }
 
     if (category == BuiltinFunctionCategory::list) {

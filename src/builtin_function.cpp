@@ -4,11 +4,13 @@
 #include <string>
 #include <stdexcept>
 
+#include "console_calc/special_form.h"
+
 namespace console_calc {
 
 namespace {
 
-constexpr std::array<BuiltinFunctionInfo, 37> k_builtin_functions = {{
+constexpr std::array<BuiltinFunctionInfo, 33> k_builtin_functions = {{
     {Function::abs, "abs", 1, 1, BuiltinFunctionCategory::scalar, true, true, "abs(x)", "absolute value"},
     {Function::sin, "sin", 1, 1, BuiltinFunctionCategory::scalar, true, true, "sin(x)", "sine in radians"},
     {Function::cos, "cos", 1, 1, BuiltinFunctionCategory::scalar, true, true, "cos(x)", "cosine in radians"},
@@ -41,13 +43,6 @@ constexpr std::array<BuiltinFunctionInfo, 37> k_builtin_functions = {{
      "list_div(a, b)", "divide matching list elements"},
     {Function::list_mul, "list_mul", 2, 2, BuiltinFunctionCategory::list, true, false,
      "list_mul(a, b)", "multiply matching list elements"},
-    {Function::guard, "guard", 2, 2, BuiltinFunctionCategory::scalar, true, false,
-     "guard(expr, fallback)", "use fallback when expr evaluation fails"},
-    {Function::reduce, "reduce", 2, 2, BuiltinFunctionCategory::list, true, false,
-     "reduce(list, op)", "reduce list with binary operator"},
-    {Function::timed_loop, "timed_loop", 2, 2, BuiltinFunctionCategory::scalar, true, false,
-     "timed_loop(expr, count)", "evaluate expr count times and return elapsed seconds"},
-    {Function::map, "map", 2, 2, BuiltinFunctionCategory::list, true, false, "map(list, expr)", "map inline expression over list"},
     {Function::range, "range", 2, 3, BuiltinFunctionCategory::list_generation, true, false,
      "range(start, count[, step])", "generate linear series from start"},
     {Function::geom, "geom", 2, 3, BuiltinFunctionCategory::list_generation, true, false,
@@ -83,15 +78,28 @@ const BuiltinFunctionInfo& builtin_function_info(Function function) {
 }
 
 std::string_view builtin_function_name(Function function) {
+    if (is_special_form(function)) {
+        return special_form_info(function).name;
+    }
     return builtin_function_info(function).name;
 }
 
 bool builtin_function_accepts_arity(Function function, std::size_t arity) {
+    if (is_special_form(function)) {
+        return special_form_accepts_arity(function, arity);
+    }
     const auto& info = builtin_function_info(function);
     return arity >= info.min_arity && arity <= info.max_arity;
 }
 
 std::string builtin_function_arity_label(Function function) {
+    if (is_special_form(function)) {
+        const auto& info = special_form_info(function);
+        if (info.min_arity == info.max_arity) {
+            return std::to_string(info.min_arity);
+        }
+        return std::to_string(info.min_arity) + "-" + std::to_string(info.max_arity);
+    }
     const auto& info = builtin_function_info(function);
     if (info.min_arity == info.max_arity) {
         return std::to_string(info.min_arity);
@@ -100,6 +108,9 @@ std::string builtin_function_arity_label(Function function) {
 }
 
 std::string_view builtin_function_signature(Function function) {
+    if (is_special_form(function)) {
+        return special_form_signature(function);
+    }
     return builtin_function_info(function).signature;
 }
 
@@ -112,16 +123,25 @@ std::span<const BuiltinFunctionInfo> builtin_functions() {
 }
 
 bool is_scalar_function(Function function) {
+    if (is_special_form(function)) {
+        return special_form_info(function).category == BuiltinFunctionCategory::scalar;
+    }
     return builtin_function_info(function).category == BuiltinFunctionCategory::scalar;
 }
 
 bool is_list_function(Function function) {
+    if (is_special_form(function)) {
+        return special_form_info(function).category == BuiltinFunctionCategory::list;
+    }
     const auto category = builtin_function_info(function).category;
     return category == BuiltinFunctionCategory::list ||
            category == BuiltinFunctionCategory::list_generation;
 }
 
 bool is_unary_scalar_function(Function function) {
+    if (is_special_form(function)) {
+        return false;
+    }
     const auto& info = builtin_function_info(function);
     return info.category == BuiltinFunctionCategory::scalar && info.scalar_arguments &&
            info.min_arity == 1 &&
@@ -129,6 +149,9 @@ bool is_unary_scalar_function(Function function) {
 }
 
 bool is_mappable_unary_scalar_function(Function function) {
+    if (is_special_form(function)) {
+        return false;
+    }
     const auto& info = builtin_function_info(function);
     return info.category == BuiltinFunctionCategory::scalar && info.scalar_arguments &&
            info.min_arity == 1 &&

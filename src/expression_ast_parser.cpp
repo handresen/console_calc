@@ -2,6 +2,7 @@
 
 #include "console_calc/builtin_function.h"
 #include "console_calc/expression_error.h"
+#include "console_calc/special_form.h"
 
 #include <memory>
 #include <string>
@@ -57,29 +58,6 @@ namespace {
 
 [[nodiscard]] bool starts_operand_expression(TokenKind kind) {
     return starts_primary_expression(kind) || kind == TokenKind::minus;
-}
-
-enum class SpecialForm {
-    map,
-    guard,
-    reduce,
-    timed_loop,
-};
-
-[[nodiscard]] std::optional<SpecialForm> parse_special_form(std::string_view identifier) {
-    if (identifier == "map") {
-        return SpecialForm::map;
-    }
-    if (identifier == "guard") {
-        return SpecialForm::guard;
-    }
-    if (identifier == "reduce") {
-        return SpecialForm::reduce;
-    }
-    if (identifier == "timed_loop") {
-        return SpecialForm::timed_loop;
-    }
-    return std::nullopt;
 }
 
 class Parser {
@@ -234,10 +212,6 @@ private:
                 advance();
                 return Expression{PlaceholderExpression{}};
             }
-            if (const auto special_form = parse_special_form(current_.identifier_text);
-                special_form.has_value()) {
-                return parse_special_form_call(*special_form);
-            }
             return parse_function_call();
         }
 
@@ -265,22 +239,29 @@ private:
         return expression;
     }
 
-    [[nodiscard]] Expression parse_special_form_call(SpecialForm form) {
+    [[nodiscard]] Expression parse_special_form_call(Function form) {
         switch (form) {
-        case SpecialForm::map:
+        case Function::map:
             return parse_map_call();
-        case SpecialForm::guard:
+        case Function::guard:
             return parse_guard_call();
-        case SpecialForm::reduce:
+        case Function::reduce:
             return parse_reduce_call();
-        case SpecialForm::timed_loop:
+        case Function::timed_loop:
             return parse_timed_loop_call();
+        default:
+            break;
         }
 
         throw ParseError("unknown special form");
     }
 
     [[nodiscard]] Expression parse_function_call() {
+        if (const auto special_form = parse_special_form_function(current_.identifier_text);
+            special_form.has_value()) {
+            return parse_special_form_call(*special_form);
+        }
+
         const auto function = parse_builtin_function(current_.identifier_text);
         if (!function.has_value()) {
             throw ParseError("unknown function");
@@ -361,7 +342,7 @@ private:
     }
 
     [[nodiscard]] Expression parse_guard_call() {
-        const auto guard_signature = std::string(builtin_function_signature(Function::guard));
+        const auto guard_signature = std::string(special_form_signature(Function::guard));
         advance();
         if (current_.kind != TokenKind::left_paren) {
             throw ParseError("expected '(' after function name");
@@ -442,13 +423,15 @@ private:
 
         advance();
         if (!starts_operand_expression(current_.kind)) {
-            throw ParseError("function 'timed_loop' expects timed_loop(expr, count)");
+            throw ParseError("function 'timed_loop' expects " +
+                             std::string(special_form_signature(Function::timed_loop)));
         }
 
         auto loop_expression = make_expression(parse_bitwise_or_expression());
 
         if (current_.kind != TokenKind::comma) {
-            throw ParseError("function 'timed_loop' expects timed_loop(expr, count)");
+            throw ParseError("function 'timed_loop' expects " +
+                             std::string(special_form_signature(Function::timed_loop)));
         }
 
         advance();

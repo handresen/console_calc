@@ -175,8 +175,35 @@ std::vector<FunctionView> builtin_function_views(std::span<const BuiltinFunction
     return views;
 }
 
+std::vector<FunctionView> function_views(std::span<const BuiltinFunctionInfo> functions,
+                                         std::span<const SpecialFormInfo> special_forms) {
+    std::vector<FunctionView> views = builtin_function_views(functions);
+    views.reserve(views.size() + special_forms.size());
+    for (const auto& form : special_forms) {
+        views.push_back(FunctionView{
+            .name = std::string(form.name),
+            .signature = std::string(form.signature),
+            .category = form.category,
+            .summary = std::string(form.summary),
+        });
+    }
+
+    std::sort(views.begin(), views.end(), [](const auto& lhs, const auto& rhs) {
+        if (lhs.category != rhs.category) {
+            return static_cast<int>(lhs.category) < static_cast<int>(rhs.category);
+        }
+        return lhs.name < rhs.name;
+    });
+    return views;
+}
+
 std::string format_builtin_function_listing(std::span<const BuiltinFunctionInfo> functions) {
     return format_builtin_function_listing(builtin_function_views(functions));
+}
+
+std::string format_function_listing(std::span<const BuiltinFunctionInfo> functions,
+                                    std::span<const SpecialFormInfo> special_forms) {
+    return format_builtin_function_listing(function_views(functions, special_forms));
 }
 
 std::string format_builtin_function_listing(std::span<const FunctionView> views) {
