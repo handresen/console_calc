@@ -101,6 +101,7 @@ Builtin functions:
 - `fill(expr, count)` evaluates `expr` `count` times and returns the collected results as a list
 - `reduce(list, op)` reduces a non-empty list left-to-right using a binary operator such as `+` or `*`
 - `map(list, expr[, start[, step[, count]]])` evaluates `expr` over a list slice with `_` bound to the current element
+- `map_at(list, expr[, start[, step[, count]]])` evaluates `expr` at selected list positions and preserves list length
 - `range(start, count[, step])` generates a list beginning at `start`, with `count` elements, incrementing by `step` or by `1` when omitted
 - `geom(start, count[, ratio])` generates a geometric series beginning at `start`, multiplying by `ratio` or by `2` when omitted
 - `repeat(value, count)` repeats `value` `count` times
@@ -116,7 +117,7 @@ Integer-preserving behavior:
 - `sum(list)` and `product(list)` preserve integer results when all inputs remain integral
 - trig functions always return floating-point results
 
-For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, the second argument is an expression that uses `_` as the current element placeholder. `_` is only valid inside `map(..., expr)`. Optional `start`, `step`, and `count` arguments use zero-based `start`; `step = 1` by default; and when `count` is omitted, mapping continues over all remaining matching elements. `step` must be a positive integer. For `timed_loop` and `fill`, `count` must be a non-negative integer. For `rand`, `rand()` uses `[0, 1)`, `rand(max)` uses `[0, max)`, and `rand(min, max)` uses `[min, max)` with finite bounds and `min < max`.
+For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map` and `map_at`, the second argument is an expression that uses `_` as the current element placeholder. `_` is only valid inside these mapping forms. Optional `start`, `step`, and `count` arguments use zero-based `start`; `step = 1` by default; and when `count` is omitted, mapping continues over all remaining matching elements. `step` must be a positive integer. `map` returns only mapped elements, while `map_at` preserves original list length and copies untouched elements through. For `timed_loop` and `fill`, `count` must be a non-negative integer. For `rand`, `rand()` uses `[0, 1)`, `rand(max)` uses `[0, max)`, and `rand(min, max)` uses `[min, max)` with finite bounds and `min < max`.
 
 Geo positions are a dedicated value type, separate from scalars and lists. They use the `(lat, lon)` convention in degrees. Only the geo-specific functions accept position values.
 
@@ -153,6 +154,7 @@ Examples:
 - `sum({1, 2, 3})` => `6`
 - `sum(map({0, 90}, sind(_)))` => `1`
 - `map({10, 20, 30, 40, 50}, _ + 1, 1, 2, 2)` => `{21, 41}`
+- `map_at({10, 20, 30, 40, 50}, _ + 1, 1, 2, 2)` => `{10, 21, 30, 41, 50}`
 - `sum(map({1, 2, 3}, _ + 1))` => `9`
 - `sum(map({1, 2, 3}, sin(_) + _))` => `7.8918884196934453`
 - `guard(1 / 0, 0)` => `0`

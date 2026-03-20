@@ -60,6 +60,7 @@ enum class Function {
     timed_loop,
     fill,
     map,
+    map_at,
     range,
     geom,
     repeat,
@@ -96,6 +97,7 @@ struct MapCall {
     std::unique_ptr<Expression> start_argument;
     std::unique_ptr<Expression> step_argument;
     std::unique_ptr<Expression> count_argument;
+    bool preserve_unmapped = false;
 };
 
 struct GuardCall {

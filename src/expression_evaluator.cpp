@@ -206,6 +206,7 @@ namespace {
     case Function::timed_loop:
     case Function::fill:
     case Function::map:
+    case Function::map_at:
     case Function::range:
     case Function::geom:
     case Function::repeat:
@@ -352,6 +353,7 @@ template <typename Operation>
     case Function::timed_loop:
     case Function::fill:
     case Function::map:
+    case Function::map_at:
     case Function::range:
     case Function::geom:
     case Function::repeat:
@@ -504,6 +506,7 @@ template <typename Operation>
         return evaluate_pairwise_list_builtin(arguments, "list_mul", multiply_scalars);
     case Function::guard:
     case Function::map:
+    case Function::map_at:
     case Function::reduce:
     case Function::timed_loop:
     case Function::fill:
@@ -658,6 +661,7 @@ template <typename Operation>
     case Function::timed_loop:
     case Function::fill:
     case Function::map:
+    case Function::map_at:
         break;
     }
 
@@ -709,14 +713,16 @@ template <typename Operation>
 
     start = std::min(start, input_values.size());
     if (start >= input_values.size() || (count.has_value() && *count == 0U)) {
-        return ListValue{};
+        return node.preserve_unmapped ? Value{input_values} : Value{ListValue{}};
     }
 
-    ListValue mapped_values;
-    if (count.has_value()) {
-        mapped_values.reserve(*count);
-    } else {
-        mapped_values.reserve(((input_values.size() - start) + step - 1U) / step);
+    ListValue mapped_values = node.preserve_unmapped ? input_values : ListValue{};
+    if (!node.preserve_unmapped) {
+        if (count.has_value()) {
+            mapped_values.reserve(*count);
+        } else {
+            mapped_values.reserve(((input_values.size() - start) + step - 1U) / step);
+        }
     }
 
     std::size_t emitted = 0;
@@ -724,9 +730,13 @@ template <typename Operation>
         if (count.has_value() && emitted >= *count) {
             break;
         }
-        const auto& value = input_values[index];
-        mapped_values.push_back(require_scalar_value(
-            evaluate_expression_with_placeholder(*node.mapped_expression, value)));
+        const ScalarValue mapped_value = require_scalar_value(
+            evaluate_expression_with_placeholder(*node.mapped_expression, input_values[index]));
+        if (node.preserve_unmapped) {
+            mapped_values[index] = mapped_value;
+        } else {
+            mapped_values.push_back(mapped_value);
+        }
         ++emitted;
     }
     return mapped_values;

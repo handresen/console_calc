@@ -278,6 +278,18 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
         return false;
     }
 
+    const console_calc::Value ranged_map_at =
+        parser.evaluate_value("map_at({10, 20, 30, 40, 50}, _ + 1, 1, 2, 2)");
+    const auto* ranged_map_at_values = std::get_if<console_calc::ListValue>(&ranged_map_at);
+    if (ranged_map_at_values == nullptr || ranged_map_at_values->size() != 5 ||
+        !almost_equal(console_calc::scalar_to_double((*ranged_map_at_values)[0]), 10.0) ||
+        !almost_equal(console_calc::scalar_to_double((*ranged_map_at_values)[1]), 21.0) ||
+        !almost_equal(console_calc::scalar_to_double((*ranged_map_at_values)[2]), 30.0) ||
+        !almost_equal(console_calc::scalar_to_double((*ranged_map_at_values)[3]), 41.0) ||
+        !almost_equal(console_calc::scalar_to_double((*ranged_map_at_values)[4]), 50.0)) {
+        return false;
+    }
+
     const console_calc::Value paired_positions =
         parser.evaluate_value("to_poslist({60, 10, 61, 11})");
     const auto* paired_values =
@@ -628,11 +640,11 @@ bool expect_map_expression_ast_shape(console_calc::ExpressionParser& parser) {
     using console_calc::NumberLiteral;
     using console_calc::PlaceholderExpression;
 
-    const Expression ast = parser.parse("map({2, 3, 4, 5}, _ + 1, 1, 2, 4)");
+    const Expression ast = parser.parse("map_at({2, 3, 4, 5}, _ + 1, 1, 2, 4)");
     const auto* root = std::get_if<MapCall>(&ast.node);
     if (root == nullptr || root->mapped_expression == nullptr ||
         root->start_argument == nullptr || root->step_argument == nullptr ||
-        root->count_argument == nullptr) {
+        root->count_argument == nullptr || !root->preserve_unmapped) {
         return false;
     }
 
@@ -993,6 +1005,18 @@ bool expect_function_signature_errors(console_calc::ExpressionParser& parser) {
         return false;
     } catch (const std::invalid_argument& error) {
         if (std::string(error.what()) != "function 'fill' expects fill(expr, count)") {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.parse("map_at({1, 2}, _ + 1, 0, 2, 4, 5)");
+        return false;
+    } catch (const std::invalid_argument& error) {
+        if (std::string(error.what()) !=
+            "function 'map_at' expects map_at(list, expr[, start[, step[, count]]])") {
             return false;
         }
     } catch (const std::exception&) {

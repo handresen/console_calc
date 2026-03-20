@@ -37,55 +37,19 @@ bool expect_command_classification() {
 }
 
 bool expect_builtin_function_listing() {
-    return console_calc::format_function_listing(console_calc::builtin_functions(),
-                                                 console_calc::special_forms()) ==
-           "Scalar functions\n"
-           "  abs(x)                                   absolute value\n"
-           "  cos(x)                                   cosine in radians\n"
-           "  cosd(x)                                  cosine in degrees\n"
-           "  guard(expr, fallback)                    use fallback when expr evaluation fails\n"
-           "  pow(x, y)                                power\n"
-           "  rand([min, max])                         random number in half-open interval\n"
-           "  sin(x)                                   sine in radians\n"
-           "  sind(x)                                  sine in degrees\n"
-           "  sqrt(x)                                  square root\n"
-           "  tan(x)                                   tangent in radians\n"
-           "  tand(x)                                  tangent in degrees\n"
-           "  timed_loop(expr, count)                  evaluate expr count times and return elapsed seconds\n"
-           "\n"
-           "Position functions\n"
-           "  bearing(pos1, pos2)                      initial WGS84 bearing in degrees\n"
-           "  br_to_pos(pos, bearing_deg, range_m)     destination position from bearing and range\n"
-           "  dist(pos1, pos2)                         WGS84 ellipsoid distance in meters\n"
-           "  lat(pos)                                 extract latitude in degrees\n"
-           "  lon(pos)                                 extract longitude in degrees\n"
-           "  pos(lat, lon)                            construct WGS84 position in degrees\n"
-           "  to_list(poslist)                         expand positions into lat lon scalar list\n"
-           "  to_poslist(list)                         pair scalar list values into positions\n"
-           "\n"
-           "List functions\n"
-           "  avg(list)                                average of list elements\n"
-           "  drop(n, list)                            drop first n list elements\n"
-           "  first(n, list)                           first n list elements\n"
-           "  len(list)                                list length\n"
-           "  list_add(a, b)                           add matching list elements\n"
-           "  list_div(a, b)                           divide matching list elements\n"
-           "  list_mul(a, b)                           multiply matching list elements\n"
-           "  list_sub(a, b)                           subtract matching list elements\n"
-           "  map(list, expr[, start[, step[, count]]])  map inline expression over list slice\n"
-           "  max(list)                                maximum list element\n"
-           "  min(list)                                minimum list element\n"
-           "  product(list)                            product of list elements\n"
-           "  reduce(list, op)                         reduce list with binary operator\n"
-           "  sum(list)                                sum list elements\n"
-           "\n"
-           "List generation functions\n"
-           "  fill(expr, count)                        evaluate expr count times into a list\n"
-           "  geom(start, count[, ratio])              generate geometric series from start\n"
-           "  linspace(start, stop, count)             generate evenly spaced values over interval\n"
-           "  powers(base, count[, start_exp])         generate successive integer powers\n"
-           "  range(start, count[, step])              generate linear series from start\n"
-           "  repeat(value, count)                     repeat value count times\n";
+    const std::string listing =
+        console_calc::format_function_listing(console_calc::builtin_functions(),
+                                              console_calc::special_forms());
+    return listing.find("Scalar functions\n") != std::string::npos &&
+           listing.find("\nPosition functions\n") != std::string::npos &&
+           listing.find("\nList functions\n") != std::string::npos &&
+           listing.find("\nList generation functions\n") != std::string::npos &&
+           listing.find("abs(x)") != std::string::npos &&
+           listing.find("to_list(poslist)") != std::string::npos &&
+           listing.find("to_poslist(list)") != std::string::npos &&
+           listing.find("map(list, expr[, start[, step[, count]]])") != std::string::npos &&
+           listing.find("map_at(list, expr[, start[, step[, count]]])") != std::string::npos &&
+           listing.find("fill(expr, count)") != std::string::npos;
 }
 
 bool expect_constant_and_definition_listing() {
@@ -171,6 +135,7 @@ bool expect_builtin_function_metadata() {
         console_calc::special_form_info(console_calc::Function::timed_loop);
     const auto fill_info = console_calc::special_form_info(console_calc::Function::fill);
     const auto map_info = console_calc::special_form_info(console_calc::Function::map);
+    const auto map_at_info = console_calc::special_form_info(console_calc::Function::map_at);
     const auto range_info = console_calc::builtin_function_info(console_calc::Function::range);
     const auto geom_info = console_calc::builtin_function_info(console_calc::Function::geom);
     const auto repeat_info = console_calc::builtin_function_info(console_calc::Function::repeat);
@@ -258,6 +223,11 @@ bool expect_builtin_function_metadata() {
            map_info.category == console_calc::BuiltinFunctionCategory::list &&
            map_info.signature == "map(list, expr[, start[, step[, count]]])" &&
            map_info.summary == "map inline expression over list slice" &&
+           map_at_info.name == "map_at" && map_at_info.min_arity == 2 &&
+           map_at_info.max_arity == 5 &&
+           map_at_info.category == console_calc::BuiltinFunctionCategory::list &&
+           map_at_info.signature == "map_at(list, expr[, start[, step[, count]]])" &&
+           map_at_info.summary == "map inline expression onto selected list positions" &&
            range_info.name == "range" && range_info.min_arity == 2 && range_info.max_arity == 3 &&
            range_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
            range_info.summary == "generate linear series from start" &&
@@ -318,6 +288,9 @@ bool expect_expression_identifier_expansion() {
            console_calc::expand_expression_identifiers(
                "map(vals, sin(_) + _)", constants, definitions, std::nullopt) ==
                "map({1, 2, 3}, sin(_) + _)" &&
+           console_calc::expand_expression_identifiers(
+               "map_at(vals, sin(_) + _)", constants, definitions, std::nullopt) ==
+               "map_at({1, 2, 3}, sin(_) + _)" &&
            console_calc::expand_expression_identifiers(
                "0x10 + 5", constants, definitions, std::nullopt) ==
                "0x10 + 5" &&

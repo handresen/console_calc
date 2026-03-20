@@ -74,7 +74,8 @@ struct ExpansionFrame {
 
 [[nodiscard]] bool is_inside_map_expression(const std::vector<ExpansionFrame>& frames) {
     for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
-        if (it->kind == ExpansionFrameKind::call && it->identifier == "map" &&
+        if (it->kind == ExpansionFrameKind::call &&
+            (it->identifier == "map" || it->identifier == "map_at") &&
             it->argument_index == 1) {
             return true;
         }

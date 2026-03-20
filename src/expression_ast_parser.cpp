@@ -242,6 +242,7 @@ private:
     [[nodiscard]] Expression parse_special_form_call(Function form) {
         switch (form) {
         case Function::map:
+        case Function::map_at:
             return parse_map_call();
         case Function::guard:
             return parse_guard_call();
@@ -306,7 +307,9 @@ private:
     }
 
     [[nodiscard]] Expression parse_map_call() {
-        const auto map_signature = std::string(special_form_signature(Function::map));
+        const auto map_function = parse_special_form_function(current_.identifier_text).value();
+        const auto map_name = std::string(builtin_function_name(map_function));
+        const auto map_signature = std::string(special_form_signature(map_function));
         advance();
         if (current_.kind != TokenKind::left_paren) {
             throw ParseError("expected '(' after function name");
@@ -314,17 +317,17 @@ private:
 
         advance();
         if (!starts_operand_expression(current_.kind)) {
-            throw ParseError("function 'map' expects " + map_signature);
+            throw ParseError("function '" + map_name + "' expects " + map_signature);
         }
 
         auto list_argument = make_expression(parse_bitwise_or_expression());
         if (current_.kind != TokenKind::comma) {
-            throw ParseError("function 'map' expects " + map_signature);
+            throw ParseError("function '" + map_name + "' expects " + map_signature);
         }
 
         advance();
         if (!starts_operand_expression(current_.kind)) {
-            throw ParseError("function 'map' expects " + map_signature);
+            throw ParseError("function '" + map_name + "' expects " + map_signature);
         }
 
         const bool previous_allow_map_placeholder = allow_map_placeholder_;
@@ -338,27 +341,27 @@ private:
         if (current_.kind == TokenKind::comma) {
             advance();
             if (!starts_operand_expression(current_.kind)) {
-                throw ParseError("function 'map' expects " + map_signature);
+                throw ParseError("function '" + map_name + "' expects " + map_signature);
             }
             start_argument = make_expression(parse_bitwise_or_expression());
         }
         if (current_.kind == TokenKind::comma) {
             advance();
             if (!starts_operand_expression(current_.kind)) {
-                throw ParseError("function 'map' expects " + map_signature);
+                throw ParseError("function '" + map_name + "' expects " + map_signature);
             }
             step_argument = make_expression(parse_bitwise_or_expression());
         }
         if (current_.kind == TokenKind::comma) {
             advance();
             if (!starts_operand_expression(current_.kind)) {
-                throw ParseError("function 'map' expects " + map_signature);
+                throw ParseError("function '" + map_name + "' expects " + map_signature);
             }
             count_argument = make_expression(parse_bitwise_or_expression());
         }
 
         if (current_.kind != TokenKind::right_paren) {
-            throw ParseError("function 'map' expects " + map_signature);
+            throw ParseError("function '" + map_name + "' expects " + map_signature);
         }
 
         advance();
@@ -369,6 +372,7 @@ private:
                 .start_argument = std::move(start_argument),
                 .step_argument = std::move(step_argument),
                 .count_argument = std::move(count_argument),
+                .preserve_unmapped = (map_function == Function::map_at),
             }};
     }
 

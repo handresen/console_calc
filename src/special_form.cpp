@@ -7,7 +7,7 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<SpecialFormInfo, 5> k_special_forms = {{
+constexpr std::array<SpecialFormInfo, 6> k_special_forms = {{
     {Function::guard, "guard", 2, 2, BuiltinFunctionCategory::scalar, "guard(expr, fallback)",
      "use fallback when expr evaluation fails"},
     {Function::reduce, "reduce", 2, 2, BuiltinFunctionCategory::list, "reduce(list, op)",
@@ -19,6 +19,9 @@ constexpr std::array<SpecialFormInfo, 5> k_special_forms = {{
     {Function::map, "map", 2, 5, BuiltinFunctionCategory::list,
      "map(list, expr[, start[, step[, count]]])",
      "map inline expression over list slice"},
+    {Function::map_at, "map_at", 2, 5, BuiltinFunctionCategory::list,
+     "map_at(list, expr[, start[, step[, count]]])",
+     "map inline expression onto selected list positions"},
 }};
 
 }  // namespace
@@ -39,7 +42,7 @@ bool is_special_form_name(std::string_view name) {
 bool is_special_form(Function function) {
     return function == Function::guard || function == Function::reduce ||
            function == Function::timed_loop || function == Function::fill ||
-           function == Function::map;
+           function == Function::map || function == Function::map_at;
 }
 
 const SpecialFormInfo& special_form_info(Function function) {
