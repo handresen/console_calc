@@ -2,9 +2,10 @@
 
 ## Purpose
 
-This document captures the next architectural steps required to use the current
+This document captures the architectural steps that were required to use the
 calculator/runtime as the engine for a browser-based console application,
-including a future WebAssembly target.
+including a WebAssembly target, and the remaining cleanup direction after that
+foundation landed.
 
 The goal is not to replace the terminal application. The goal is to separate
 session semantics from terminal presentation so the same engine can support:
@@ -78,9 +79,8 @@ Create a transport-free session engine from the current console session layer.
 
 Status:
 
-- largely complete
-- extraction is implemented on the `users-ha-web_frontend` branch via
-  `ConsoleSessionEngine`
+- complete enough for the current architecture
+- extraction is implemented on `main` via `ConsoleSessionEngine`
 - terminal `ConsoleSession` now acts as an adapter over that engine
 - stack/config behavior that did not belong in terminal transport has been
   moved into the engine/session model
@@ -204,10 +204,10 @@ requiring a binding layer to understand internal engine/value types.
 
 Status:
 
-- started
+- complete enough for the first wasm/web target
 - `ConsoleBindingFacade` now exists and is covered by focused tests
-- this facade is a likely bridge for future JS/WASM bindings, though it may
-  still be promoted out of `apps/` into a more shared layer
+- this facade now lives in the shared/public host-facing layer rather than
+  under `apps/`
 
 ### Phase 6: Introduce a WASM-Oriented Build Target
 
@@ -254,7 +254,7 @@ These types would make the engine easier to expose to a browser:
 The exact names can change. The important part is to expose structured state
 instead of raw console text.
 
-Current concrete branch types are now close to this target:
+Current concrete types are now close to this target:
 
 - `ConsoleSessionEngine`
 - `ConsoleSessionSnapshot`
@@ -264,7 +264,7 @@ Current concrete branch types are now close to this target:
 
 ## Suggested File Direction
 
-Probable future structure:
+Current structure:
 
 - `src/`
   - core evaluator/parser/value logic
@@ -272,6 +272,11 @@ Probable future structure:
 - `apps/`
   - terminal adapter
   - provider implementations
+
+- `bindings/`
+  - binding facade
+  - C API bridge
+  - wasm entrypoint
 
 - future session files, either in `apps/` or a new shared layer:
   - `session_state.*`
@@ -292,6 +297,8 @@ These should not be done first:
 
 ## Recommended Order
 
+The original recommended order has largely been executed:
+
 1. extract transport-free session engine
 2. introduce explicit session-state and structured command-result types
 3. keep terminal mode as an adapter over that engine/state model
@@ -300,9 +307,12 @@ These should not be done first:
 6. keep currency/network behavior provider-based
 7. add a separate WASM build target
 
+Current follow-on work should focus on improving the host/web experience
+without regressing the layer boundaries above.
+
 ## Readiness Criteria
 
-The project is ready for a WebAssembly proof-of-concept when:
+The project was ready for a WebAssembly proof-of-concept once:
 
 - command execution no longer depends on streams
 - terminal formatting is adapter-only
@@ -310,5 +320,6 @@ The project is ready for a WebAssembly proof-of-concept when:
 - currency refresh is optional and provider-based
 - terminal-only code is excluded from the reusable session layer
 
-At that point, the browser UI becomes a frontend problem instead of a core
-architecture problem.
+That threshold has now been crossed: the browser UI exists and works through the
+wasm host bridge, so further work is primarily frontend behavior and feature
+surface rather than foundational runtime architecture.

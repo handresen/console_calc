@@ -44,7 +44,7 @@
 
 ## Current Language Scope
 - The CLI supports both one-shot evaluation from command-line arguments and an interactive console mode when started with no arguments.
-- Scalar values are intrinsic `int64` or floating-point values. List values are first-class and currently flat.
+- Scalar values are intrinsic `int64` or floating-point values. List values are first-class and currently flat. Geographic positions are a first-class intrinsic value type using the `(lat, lon)` convention in degrees.
 - Supported binary operators are `+`, `-`, `*`, `/`, `%`, `^`, `&`, and `|`.
 - Unary `-` is supported.
 - Parentheses and list literals are supported for grouping and list construction.
@@ -54,11 +54,15 @@
 - `%` preserves integer results for integer operands and otherwise uses floating-point modulo semantics.
 - `&` and `|` require integer-valued operands and should reject non-integer inputs.
 - Builtin constants include `pi`, `e`, and `tau`.
-- Builtin scalar functions include `abs`, `sqrt`, trig functions, and `pow`.
+- Builtin scalar functions include `abs`, `sqrt`, trig functions, `pow`, `rand([min, max])`, and `timed_loop(expr, count)`.
+- Builtin position functions include `pos`, `lat`, `lon`, `dist`, `bearing`, and `br_to_pos`.
 - Builtin list functions include aggregation (`sum`, `product`, `avg`, `min`, `max`, `len`), slicing (`first`, `drop`), pairwise operations (`list_add`, `list_sub`, `list_mul`, `list_div`), `map`, and `reduce`.
 - Builtin list generation functions include `range`, `geom`, `repeat`, `linspace`, and `powers`.
+- Special forms currently include `map(list, expr)`, `reduce(list, op)`, `guard(expr, fallback)`, and `timed_loop(expr, count)`.
 - The console supports late-bound user definitions, result-stack semantics, integer display modes (`dec`, `hex`, `bin`), and console-native commands such as `s`, `vars`, `consts`, and `funcs`.
+- Console mode also supports best-effort currency-rate refresh in the app layer.
 - The app layer is responsible for console-only syntax and identifier expansion, including `r` result references and late-bound definitions.
+- The web frontend is active on `main`, consumes the wasm host bridge, and provides transcript, helper panes, samples, and plotting without reimplementing calculator semantics in TypeScript.
 
 ## Working Rules For Agents
 - Follow the existing CMake and `vcpkg` structure unless the user asks to replace it.
@@ -91,4 +95,4 @@
 - The current forward-looking extension plan for the project is documented in `docs/wasm_extension_plan.md`.
 - Treat that document as the canonical next-steps plan for preparing the calculator/runtime for a future browser and WebAssembly frontend.
 - Follow that plan by separating session semantics from terminal presentation before attempting any web UI or WASM binding work.
-- The current `users-ha-web_frontend` branch has already landed a transport-free session engine, structured session snapshots/events, and a binding-facing facade. Future work should extend that direction rather than reintroducing terminal-shaped APIs into reusable layers.
+- That separation is now largely in place on `main`: transport-free session handling, structured snapshots/events, a binding-facing facade, a C API, and a working wasm/web frontend already exist. Future work should extend that direction rather than reintroducing terminal-shaped APIs into reusable layers.

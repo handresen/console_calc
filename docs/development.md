@@ -46,6 +46,18 @@ The `host-only` preset is the current build-level guardrail for “WASM-ready”
 work. If a new dependency or source change accidentally pulls terminal-only code
 into the host layer, this preset should catch it.
 
+## Dependencies
+
+The project uses `vcpkg` in manifest mode. Current non-test dependencies include:
+
+- `curl`
+  for native console-side currency refresh
+- `geographiclib`
+  for WGS84 geodesic calculations behind the intrinsic position functions
+
+Native presets and the `emscripten-host` preset are configured to use the
+manifest through `~/vcpkg/scripts/buildsystems/vcpkg.cmake`.
+
 ## Emscripten Host Build
 
 The first browser-oriented build target is `emscripten-host`. It produces a
@@ -56,6 +68,7 @@ Prerequisites:
 
 - `emsdk` installed
 - `source ~/emsdk/emsdk_env.sh` available in the shell used for configure/build
+- `vcpkg` installed at `~/vcpkg`
 
 Build with a repo-local Emscripten cache to avoid writing under the global
 `emsdk` cache during sandboxed or restricted runs:
@@ -71,6 +84,9 @@ Outputs:
 - `build/emscripten-host/console_calc.mjs`
 - `build/emscripten-host/console_calc.wasm`
 
+The Emscripten preset uses `vcpkg` with `VCPKG_CHAINLOAD_TOOLCHAIN_FILE` so the
+wasm build consumes the same manifest dependencies as the native builds.
+
 ## Formatting
 
 This repository uses `clang-format` with the root configuration in `.clang-format`.
@@ -78,7 +94,12 @@ This repository uses `clang-format` with the root configuration in `.clang-forma
 Format the codebase with:
 
 ```bash
-clang-format -i apps/*.cpp src/*.cpp tests/*.cpp include/console_calc/*.h
+clang-format -i \
+  apps/*.cpp \
+  bindings/**/*.cpp \
+  src/*.cpp \
+  tests/*.cpp \
+  include/console_calc/*.h
 ```
 
 ## Linting
@@ -97,10 +118,13 @@ Direct invocation is also possible once `compile_commands.json` has been generat
 ```bash
 clang-tidy -p build/default \
   apps/console_calc_main.cpp \
+  bindings/c_api/console_binding_c_api.cpp \
+  bindings/facade/console_binding_facade.cpp \
   src/expression_parser.cpp \
   src/expression_ast_parser.cpp \
   src/expression_evaluator.cpp \
   src/expression_tokenizer.cpp \
+  src/geodesy.cpp \
   tests/expression_conformance_test.cpp \
   tests/expression_case_loader.cpp
 ```
@@ -122,3 +146,22 @@ On macOS with Homebrew:
 ```bash
 brew install clang-format clang-tidy
 ```
+
+## Web Frontend
+
+The browser frontend lives in `web/` and consumes the wasm host bridge rather
+than reimplementing calculator semantics locally.
+
+Typical development flow:
+
+```bash
+source ~/emsdk/emsdk_env.sh
+EM_CACHE="$PWD/build/emscripten-cache" cmake --preset emscripten-host
+EM_CACHE="$PWD/build/emscripten-cache" cmake --build --preset emscripten-host
+cd web
+npm install
+npm run dev
+```
+
+The frontend expects the wasm artifacts from `build/emscripten-host/` and the
+Vite config serves them during development.
