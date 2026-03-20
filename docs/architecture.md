@@ -8,7 +8,7 @@ responsibilities:
 1. `console_calc_lib`
    - Core language and value system
    - Tokenization, parsing, AST, evaluation, builtin metadata, scalar/list/position math
-   - Intrinsic value types currently include integers, floating-point scalars, flat lists, and geographic positions
+   - Intrinsic value types currently include integers, floating-point scalars, flat scalar lists, geographic positions, and homogeneous position lists
    - Geodesic calculations are implemented behind the core geo functions using `GeographicLib`
    - No terminal, browser, or transport-specific behavior
 

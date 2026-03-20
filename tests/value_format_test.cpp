@@ -46,6 +46,18 @@ bool expect_list_display_modes() {
                "{0b1111, 1.5, -0b10}";
 }
 
+bool expect_position_list_display() {
+    using console_calc::PositionListValue;
+
+    const PositionListValue values{
+        {.latitude_deg = 60.0, .longitude_deg = 10.0},
+        {.latitude_deg = 61.0, .longitude_deg = 11.0},
+    };
+
+    return console_calc::format_position_list(values) ==
+           "{pos(60, 10), pos(61, 11)}";
+}
+
 }  // namespace
 
 int main() {
@@ -58,6 +70,10 @@ int main() {
     }
 
     if (!expect_list_display_modes()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_position_list_display()) {
         return EXIT_FAILURE;
     }
 

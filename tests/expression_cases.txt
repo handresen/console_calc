@@ -159,10 +159,12 @@
 "map(1, sin(_))", INVALID
 "map({1, 2}, sin())", INVALID
 "map({1, 2}, _ + foo)", INVALID
+"{1, pos(60, 10)}", INVALID
 "pos(100, 0)", INVALID
 "lat(1)", INVALID
 "lon({1})", INVALID
 "dist(pos(0, 0), 1)", INVALID
+"sum({pos(60, 10), pos(61, 11)})", INVALID
 "bearing(1, pos(0, 0))", INVALID
 "br_to_pos(pos(0, 0), 90, -1)", INVALID
 "_", INVALID

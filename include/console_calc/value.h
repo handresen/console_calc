@@ -13,6 +13,8 @@ struct PositionValue {
 
 using ScalarValue = std::variant<std::int64_t, double>;
 using ListValue = std::vector<ScalarValue>;
-using Value = std::variant<std::int64_t, double, ListValue, PositionValue>;
+using PositionListValue = std::vector<PositionValue>;
+using Value =
+    std::variant<std::int64_t, double, ListValue, PositionValue, PositionListValue>;
 
 }  // namespace console_calc

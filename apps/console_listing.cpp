@@ -50,6 +50,29 @@ std::string format_console_list(const ListValue& values, IntegerDisplayMode mode
     return output;
 }
 
+std::string format_console_position_list(const PositionListValue& values) {
+    std::string output = "{";
+    const std::size_t shown = std::min(values.size(), k_max_console_list_entries);
+    for (std::size_t index = 0; index < shown; ++index) {
+        if (index != 0) {
+            output += ", ";
+        }
+        output += format_position(values[index]);
+    }
+
+    if (values.size() > k_max_console_list_entries) {
+        if (shown != 0) {
+            output += ", ";
+        }
+        output += "<hiding ";
+        output += std::to_string(values.size() - k_max_console_list_entries);
+        output += " entries>";
+    }
+
+    output += '}';
+    return output;
+}
+
 }  // namespace
 
 std::string format_stack_listing(std::span<const Value> values) {
@@ -87,6 +110,9 @@ std::string format_stack_listing(std::span<const StackEntryView> entries, Intege
 std::string format_console_value(const Value& value, IntegerDisplayMode mode) {
     if (const auto* list = std::get_if<ListValue>(&value)) {
         return format_console_list(*list, mode);
+    }
+    if (const auto* positions = std::get_if<PositionListValue>(&value)) {
+        return format_console_position_list(*positions);
     }
 
     return format_value(value, mode);

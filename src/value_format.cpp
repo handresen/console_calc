@@ -67,6 +67,18 @@ std::string format_list(const ListValue& values, IntegerDisplayMode mode) {
     return result;
 }
 
+std::string format_position_list(const PositionListValue& values) {
+    std::string result = "{";
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        if (index != 0) {
+            result += ", ";
+        }
+        result += format_position(values[index]);
+    }
+    result += '}';
+    return result;
+}
+
 std::string format_value(const Value& value) {
     return format_value(value, IntegerDisplayMode::decimal);
 }
@@ -84,7 +96,11 @@ std::string format_value(const Value& value, IntegerDisplayMode mode) {
         return format_position(*position);
     }
 
-    return format_list(std::get<ListValue>(value), mode);
+    if (const auto* list = std::get_if<ListValue>(&value)) {
+        return format_list(*list, mode);
+    }
+
+    return format_position_list(std::get<PositionListValue>(value));
 }
 
 }  // namespace console_calc

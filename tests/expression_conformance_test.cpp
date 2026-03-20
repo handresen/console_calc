@@ -61,6 +61,17 @@ bool expect_value_api(console_calc::ExpressionParser& parser) {
            almost_equal(console_calc::scalar_to_double((*list_value)[2]), 3.0);
 }
 
+bool expect_position_list_value_api(console_calc::ExpressionParser& parser) {
+    const console_calc::Value position_list =
+        parser.evaluate_value("{pos(60, 10), pos(61, 11)}");
+    const auto* values = std::get_if<console_calc::PositionListValue>(&position_list);
+    return values != nullptr && values->size() == 2 &&
+           almost_equal((*values)[0].latitude_deg, 60.0) &&
+           almost_equal((*values)[0].longitude_deg, 10.0) &&
+           almost_equal((*values)[1].latitude_deg, 61.0) &&
+           almost_equal((*values)[1].longitude_deg, 11.0);
+}
+
 bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
     try {
         (void)parser.evaluate("{1, 2, 3}");
@@ -246,8 +257,36 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
         return false;
     }
 
+    const console_calc::Value filled_positions =
+        parser.evaluate_value("fill(pos(60, 10), 2)");
+    const auto* position_values =
+        std::get_if<console_calc::PositionListValue>(&filled_positions);
+    if (position_values == nullptr || position_values->size() != 2 ||
+        !almost_equal((*position_values)[0].latitude_deg, 60.0) ||
+        !almost_equal((*position_values)[0].longitude_deg, 10.0) ||
+        !almost_equal((*position_values)[1].latitude_deg, 60.0) ||
+        !almost_equal((*position_values)[1].longitude_deg, 10.0)) {
+        return false;
+    }
+
     try {
         (void)parser.evaluate("sin({1, 2})");
+        return false;
+    } catch (const std::invalid_argument&) {
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.evaluate("sum({pos(60, 10), pos(61, 11)})");
+        return false;
+    } catch (const std::invalid_argument&) {
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.evaluate("{1, pos(60, 10)}");
         return false;
     } catch (const std::invalid_argument&) {
     } catch (const std::exception&) {
@@ -892,6 +931,10 @@ int main() {
     }
 
     if (!expect_value_api(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_position_list_value_api(parser)) {
         return EXIT_FAILURE;
     }
 

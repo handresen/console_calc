@@ -118,6 +118,10 @@ For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger tha
 
 Geo positions are a dedicated value type, separate from scalars and lists. They use the `(lat, lon)` convention in degrees. Only the geo-specific functions accept position values.
 
+Position lists are also supported as a separate homogeneous collection type. A
+literal such as `{pos(60, 10), pos(61, 11)}` produces a position list. Scalar
+lists remain scalar-only, and mixed scalar/position list literals are invalid.
+
 Examples:
 - `2 + 3` => `5`
 - `2 + 3 * 4` => `14`
@@ -144,6 +148,7 @@ Examples:
 - `guard(1 / 0, 0)` => `0`
 - `timed_loop(sin(pi / 3), 1000)` => a non-negative elapsed time in seconds
 - `fill(1 + 2, 3)` => `{3, 3, 3}`
+- `{pos(60, 10), pos(61, 11)}` => a position list
 - `rand()` => a value in `[0, 1)`
 - `sum(map(range(-2, 5), guard(1 / _, 0)))` => `0`
 - `sum(list_div(powers(-1, 4), range(1, 4, 2)))` => `0.72380952380952379`
@@ -194,6 +199,7 @@ Examples:
 - `guard(1 / 0, 0)`
 - `timed_loop(1 + 2, 3)`
 - `fill(rand(), 3)`
+- `{pos(60, 10), pos(61, 11)}`
 - `rand(10, 20)`
 - `range(10, 4)`
 - `range(1.5, 3, 0.5)`
@@ -237,6 +243,7 @@ Examples:
 - `timed_loop(1 + 2)`
 - `fill(1)`
 - `rand(1, 2, 3)`
+- `{1, pos(60, 10)}`
 - `_`
 - `range(1)`
 - `range(1, 2, 3, 4)`

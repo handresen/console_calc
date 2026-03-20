@@ -35,6 +35,9 @@ namespace {
     if (std::holds_alternative<PositionValue>(value)) {
         throw EvaluationError("position value cannot be used as a scalar");
     }
+    if (std::holds_alternative<PositionListValue>(value)) {
+        throw EvaluationError("position list value cannot be used as a scalar");
+    }
 
     throw EvaluationError("list value cannot be used as a scalar");
 }
@@ -55,6 +58,9 @@ namespace {
     if (std::holds_alternative<PositionValue>(value)) {
         throw EvaluationError("position value cannot be used as a scalar");
     }
+    if (std::holds_alternative<PositionListValue>(value)) {
+        throw EvaluationError("position list value cannot be used as a scalar");
+    }
 
     throw EvaluationError("scalar value required");
 }
@@ -63,8 +69,19 @@ namespace {
     if (const auto* list = std::get_if<ListValue>(&value)) {
         return *list;
     }
+    if (std::holds_alternative<PositionListValue>(value)) {
+        throw EvaluationError("scalar list value required");
+    }
 
     throw EvaluationError("list value required");
+}
+
+[[nodiscard]] PositionListValue require_position_list(const Value& value) {
+    if (const auto* list = std::get_if<PositionListValue>(&value)) {
+        return *list;
+    }
+
+    throw EvaluationError("position list value required");
 }
 
 [[nodiscard]] PositionValue require_position(const Value& value) {
@@ -206,6 +223,49 @@ template <typename Operation>
         values.push_back(operation(lhs[index], rhs[index]));
     }
     return values;
+}
+
+[[nodiscard]] Value evaluate_homogeneous_list_literal(
+    std::span<const std::unique_ptr<Expression>> elements,
+    const std::optional<ScalarValue>& placeholder_value) {
+    if (elements.empty()) {
+        return ListValue{};
+    }
+
+    const Value first_value =
+        evaluate_expression_with_placeholder(*elements.front(), placeholder_value);
+    if (const auto* scalar = std::get_if<std::int64_t>(&first_value)) {
+        ListValue values;
+        values.reserve(elements.size());
+        values.push_back(*scalar);
+        for (std::size_t index = 1; index < elements.size(); ++index) {
+            values.push_back(require_scalar_value(
+                evaluate_expression_with_placeholder(*elements[index], placeholder_value)));
+        }
+        return values;
+    }
+    if (const auto* scalar = std::get_if<double>(&first_value)) {
+        ListValue values;
+        values.reserve(elements.size());
+        values.push_back(*scalar);
+        for (std::size_t index = 1; index < elements.size(); ++index) {
+            values.push_back(require_scalar_value(
+                evaluate_expression_with_placeholder(*elements[index], placeholder_value)));
+        }
+        return values;
+    }
+    if (const auto* position = std::get_if<PositionValue>(&first_value)) {
+        PositionListValue values;
+        values.reserve(elements.size());
+        values.push_back(*position);
+        for (std::size_t index = 1; index < elements.size(); ++index) {
+            values.push_back(require_position(
+                evaluate_expression_with_placeholder(*elements[index], placeholder_value)));
+        }
+        return values;
+    }
+
+    throw EvaluationError("nested lists are not supported");
 }
 
 [[nodiscard]] Value evaluate_scalar_builtin(Function function, std::span<const Value> arguments) {
@@ -641,13 +701,44 @@ template <typename Operation>
         require_scalar_or_singleton_list_value(
             evaluate_expression_with_placeholder(*node.iteration_count, placeholder_value)));
 
-    ListValue values;
-    values.reserve(iteration_count);
-    for (std::size_t index = 0; index < iteration_count; ++index) {
-        values.push_back(require_scalar_value(
-            evaluate_expression_with_placeholder(*node.fill_expression, placeholder_value)));
+    if (iteration_count == 0) {
+        return ListValue{};
     }
-    return values;
+
+    const Value first_value =
+        evaluate_expression_with_placeholder(*node.fill_expression, placeholder_value);
+    if (const auto* scalar = std::get_if<std::int64_t>(&first_value)) {
+        ListValue values;
+        values.reserve(iteration_count);
+        values.push_back(*scalar);
+        for (std::size_t index = 1; index < iteration_count; ++index) {
+            values.push_back(require_scalar_value(
+                evaluate_expression_with_placeholder(*node.fill_expression, placeholder_value)));
+        }
+        return values;
+    }
+    if (const auto* scalar = std::get_if<double>(&first_value)) {
+        ListValue values;
+        values.reserve(iteration_count);
+        values.push_back(*scalar);
+        for (std::size_t index = 1; index < iteration_count; ++index) {
+            values.push_back(require_scalar_value(
+                evaluate_expression_with_placeholder(*node.fill_expression, placeholder_value)));
+        }
+        return values;
+    }
+    if (const auto* position = std::get_if<PositionValue>(&first_value)) {
+        PositionListValue values;
+        values.reserve(iteration_count);
+        values.push_back(*position);
+        for (std::size_t index = 1; index < iteration_count; ++index) {
+            values.push_back(require_position(
+                evaluate_expression_with_placeholder(*node.fill_expression, placeholder_value)));
+        }
+        return values;
+    }
+
+    throw EvaluationError("fill() requires a scalar or position expression");
 }
 
 [[nodiscard]] Value evaluate_binary_expression(const BinaryExpression& node,
@@ -699,13 +790,7 @@ Value evaluate_expression_with_placeholder(const Expression& expression,
                     require_scalar_or_singleton_list_value(
                         evaluate_expression_with_placeholder(*node.operand, placeholder_value))));
             } else if constexpr (std::is_same_v<Node, ListLiteral>) {
-                ListValue values;
-                values.reserve(node.elements.size());
-                for (const auto& element : node.elements) {
-                    values.push_back(require_scalar_value(
-                        evaluate_expression_with_placeholder(*element, placeholder_value)));
-                }
-                return values;
+                return evaluate_homogeneous_list_literal(node.elements, placeholder_value);
             } else if constexpr (std::is_same_v<Node, FunctionCall>) {
                 std::vector<Value> arguments;
                 arguments.reserve(node.arguments.size());

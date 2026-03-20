@@ -11,9 +11,14 @@ Current status:
   - console-style transcript
   - prompt with history support
   - helper panes for stack, definitions, constants, functions, and samples
-  - a client-only plot pane for the topmost list on the stack
+  - a client-only plot pane for the topmost scalar list on the stack
 - shows per-command timing in the transcript
 - keeps calculator/session semantics in the wasm host layer rather than in the UI
+
+Current limits:
+
+- position lists display correctly in the transcript via their formatted value
+- the plot pane is still scalar-list-only and ignores position lists
 
 Relevant root-side artifacts:
 

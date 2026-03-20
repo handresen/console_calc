@@ -172,6 +172,11 @@ pow(e, 1)
 - `linspace(start, stop, count)` generate evenly spaced values over an interval
 - `powers(base, count[, start_exp])` generate successive powers of a base
 
+Position lists:
+- homogeneous position lists are supported with literals such as `{pos(60, 10), pos(61, 11)}`
+- scalar lists remain scalar-only; mixed scalar/position lists are invalid
+- existing numeric list functions still require scalar lists
+
 Function notes:
 - `product({})` is `1`
 - `avg`, `min`, and `max` require a non-empty list
@@ -222,6 +227,7 @@ map({1, 2, 3}, sin(_) + _)    => {1.84147..., 2.90929..., 3.14112...}
 guard(1 / 0, 0)               => 0
 timed_loop(sin(pi / 3), 1000) => 0.00...
 fill(rand(), 3)               => {0.42..., 0.13..., 0.91...}
+{pos(60, 10), pos(61, 11)}    => {pos(60, 10), pos(61, 11)}
 rand()                        => 0.42...
 rand(10, 20)                  => 13.7...
 map(range(-2, 5), guard(1 / _, 0))
