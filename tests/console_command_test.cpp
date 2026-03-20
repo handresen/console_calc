@@ -5,6 +5,7 @@
 #include "console_listing.h"
 #include "expression_environment.h"
 #include "console_calc/builtin_function.h"
+#include "console_calc/special_form.h"
 
 namespace {
 
@@ -36,41 +37,19 @@ bool expect_command_classification() {
 }
 
 bool expect_builtin_function_listing() {
-    return console_calc::format_builtin_function_listing(console_calc::builtin_functions()) ==
-           "Scalar functions\n"
-           "  abs(x)                            absolute value\n"
-           "  cos(x)                            cosine in radians\n"
-           "  cosd(x)                           cosine in degrees\n"
-           "  guard(expr, fallback)             use fallback when expr evaluation fails\n"
-           "  pow(x, y)                         power\n"
-           "  sin(x)                            sine in radians\n"
-           "  sind(x)                           sine in degrees\n"
-           "  sqrt(x)                           square root\n"
-           "  tan(x)                            tangent in radians\n"
-           "  tand(x)                           tangent in degrees\n"
-           "\n"
-           "List functions\n"
-           "  avg(list)                         average of list elements\n"
-           "  drop(n, list)                     drop first n list elements\n"
-           "  first(n, list)                    first n list elements\n"
-           "  len(list)                         list length\n"
-           "  list_add(a, b)                    add matching list elements\n"
-           "  list_div(a, b)                    divide matching list elements\n"
-           "  list_mul(a, b)                    multiply matching list elements\n"
-           "  list_sub(a, b)                    subtract matching list elements\n"
-           "  map(list, expr)                   map inline expression over list\n"
-           "  max(list)                         maximum list element\n"
-           "  min(list)                         minimum list element\n"
-           "  product(list)                     product of list elements\n"
-           "  reduce(list, op)                  reduce list with binary operator\n"
-           "  sum(list)                         sum list elements\n"
-           "\n"
-           "List generation functions\n"
-           "  geom(start, count[, ratio])       generate geometric series from start\n"
-           "  linspace(start, stop, count)      generate evenly spaced values over interval\n"
-           "  powers(base, count[, start_exp])  generate successive integer powers\n"
-           "  range(start, count[, step])       generate linear series from start\n"
-           "  repeat(value, count)              repeat value count times\n";
+    const std::string listing =
+        console_calc::format_function_listing(console_calc::builtin_functions(),
+                                              console_calc::special_forms());
+    return listing.find("Scalar functions\n") != std::string::npos &&
+           listing.find("\nPosition functions\n") != std::string::npos &&
+           listing.find("\nList functions\n") != std::string::npos &&
+           listing.find("\nList generation functions\n") != std::string::npos &&
+           listing.find("abs(x)") != std::string::npos &&
+           listing.find("to_list(poslist)") != std::string::npos &&
+           listing.find("to_poslist(list)") != std::string::npos &&
+           listing.find("map(list, expr[, start[, step[, count]]])") != std::string::npos &&
+           listing.find("map_at(list, expr[, start[, step[, count]]])") != std::string::npos &&
+           listing.find("fill(expr, count)") != std::string::npos;
 }
 
 bool expect_constant_and_definition_listing() {
@@ -114,8 +93,8 @@ bool expect_structured_listing_views() {
     const auto stack_views = console_calc::stack_entry_views(stack);
     const auto definition_list = console_calc::definition_views(definitions);
     const auto constant_list = console_calc::constant_views(constants);
-    const auto function_list =
-        console_calc::builtin_function_views(console_calc::builtin_functions());
+    const auto function_list = console_calc::function_views(console_calc::builtin_functions(),
+                                                            console_calc::special_forms());
 
     return stack_views.size() == 2 && stack_views[0].level == 0 &&
            std::holds_alternative<std::int64_t>(stack_views[0].value) &&
@@ -136,13 +115,27 @@ bool expect_builtin_function_metadata() {
     const auto sum_info = console_calc::builtin_function_info(console_calc::Function::sum);
     const auto abs_info = console_calc::builtin_function_info(console_calc::Function::abs);
     const auto sqrt_info = console_calc::builtin_function_info(console_calc::Function::sqrt);
+    const auto rand_info = console_calc::builtin_function_info(console_calc::Function::rand);
     const auto list_add_info = console_calc::builtin_function_info(console_calc::Function::list_add);
     const auto list_div_info = console_calc::builtin_function_info(console_calc::Function::list_div);
     const auto list_mul_info = console_calc::builtin_function_info(console_calc::Function::list_mul);
     const auto list_sub_info = console_calc::builtin_function_info(console_calc::Function::list_sub);
-    const auto guard_info = console_calc::builtin_function_info(console_calc::Function::guard);
-    const auto reduce_info = console_calc::builtin_function_info(console_calc::Function::reduce);
-    const auto map_info = console_calc::builtin_function_info(console_calc::Function::map);
+    const auto guard_info = console_calc::special_form_info(console_calc::Function::guard);
+    const auto pos_info = console_calc::builtin_function_info(console_calc::Function::pos);
+    const auto lat_info = console_calc::builtin_function_info(console_calc::Function::lat);
+    const auto lon_info = console_calc::builtin_function_info(console_calc::Function::lon);
+    const auto to_list_info = console_calc::builtin_function_info(console_calc::Function::to_list);
+    const auto to_poslist_info =
+        console_calc::builtin_function_info(console_calc::Function::to_poslist);
+    const auto dist_info = console_calc::builtin_function_info(console_calc::Function::dist);
+    const auto bearing_info = console_calc::builtin_function_info(console_calc::Function::bearing);
+    const auto br_to_pos_info = console_calc::builtin_function_info(console_calc::Function::br_to_pos);
+    const auto reduce_info = console_calc::special_form_info(console_calc::Function::reduce);
+    const auto timed_loop_info =
+        console_calc::special_form_info(console_calc::Function::timed_loop);
+    const auto fill_info = console_calc::special_form_info(console_calc::Function::fill);
+    const auto map_info = console_calc::special_form_info(console_calc::Function::map);
+    const auto map_at_info = console_calc::special_form_info(console_calc::Function::map_at);
     const auto range_info = console_calc::builtin_function_info(console_calc::Function::range);
     const auto geom_info = console_calc::builtin_function_info(console_calc::Function::geom);
     const auto repeat_info = console_calc::builtin_function_info(console_calc::Function::repeat);
@@ -154,6 +147,10 @@ bool expect_builtin_function_metadata() {
            sqrt_info.name == "sqrt" && sqrt_info.min_arity == 1 && sqrt_info.max_arity == 1 &&
            sqrt_info.category == console_calc::BuiltinFunctionCategory::scalar &&
            sqrt_info.summary == "square root" && sqrt_info.mappable &&
+           rand_info.name == "rand" && rand_info.min_arity == 0 && rand_info.max_arity == 2 &&
+           rand_info.category == console_calc::BuiltinFunctionCategory::scalar &&
+           rand_info.signature == "rand([min, max])" &&
+           rand_info.summary == "random number in half-open interval" &&
            sum_info.name == "sum" && sum_info.min_arity == 1 && sum_info.max_arity == 1 &&
            sum_info.category == console_calc::BuiltinFunctionCategory::list &&
            sum_info.summary == "sum list elements" && !sum_info.mappable &&
@@ -178,14 +175,59 @@ bool expect_builtin_function_metadata() {
            guard_info.category == console_calc::BuiltinFunctionCategory::scalar &&
            guard_info.signature == "guard(expr, fallback)" &&
            guard_info.summary == "use fallback when expr evaluation fails" &&
+           pos_info.name == "pos" && pos_info.min_arity == 2 && pos_info.max_arity == 2 &&
+           pos_info.category == console_calc::BuiltinFunctionCategory::position &&
+           pos_info.signature == "pos(lat, lon)" && pos_info.scalar_arguments &&
+           lat_info.name == "lat" && lat_info.min_arity == 1 && lat_info.max_arity == 1 &&
+           lat_info.category == console_calc::BuiltinFunctionCategory::position &&
+           lat_info.signature == "lat(pos)" && !lat_info.scalar_arguments &&
+           lon_info.name == "lon" &&
+           lon_info.category == console_calc::BuiltinFunctionCategory::position &&
+           lon_info.signature == "lon(pos)" &&
+           !lon_info.scalar_arguments &&
+           to_list_info.name == "to_list" &&
+           to_list_info.category == console_calc::BuiltinFunctionCategory::position &&
+           to_list_info.signature == "to_list(poslist)" &&
+           !to_list_info.scalar_arguments &&
+           to_poslist_info.name == "to_poslist" &&
+           to_poslist_info.category == console_calc::BuiltinFunctionCategory::position &&
+           to_poslist_info.signature == "to_poslist(list)" &&
+           !to_poslist_info.scalar_arguments &&
+           dist_info.name == "dist" &&
+           dist_info.category == console_calc::BuiltinFunctionCategory::position &&
+           dist_info.signature == "dist(pos1, pos2)" &&
+           !dist_info.scalar_arguments &&
+           bearing_info.name == "bearing" &&
+           bearing_info.category == console_calc::BuiltinFunctionCategory::position &&
+           bearing_info.signature == "bearing(pos1, pos2)" &&
+           !bearing_info.scalar_arguments &&
+           br_to_pos_info.name == "br_to_pos" &&
+           br_to_pos_info.category == console_calc::BuiltinFunctionCategory::position &&
+           br_to_pos_info.signature == "br_to_pos(pos, bearing_deg, range_m)" &&
+           !br_to_pos_info.scalar_arguments &&
            reduce_info.name == "reduce" && reduce_info.min_arity == 2 &&
            reduce_info.max_arity == 2 &&
            reduce_info.category == console_calc::BuiltinFunctionCategory::list &&
            reduce_info.summary == "reduce list with binary operator" &&
-           map_info.name == "map" && map_info.min_arity == 2 && map_info.max_arity == 2 &&
+           timed_loop_info.name == "timed_loop" &&
+           timed_loop_info.min_arity == 2 && timed_loop_info.max_arity == 2 &&
+           timed_loop_info.category == console_calc::BuiltinFunctionCategory::scalar &&
+           timed_loop_info.signature == "timed_loop(expr, count)" &&
+           timed_loop_info.summary ==
+               "evaluate expr count times and return elapsed seconds" &&
+           fill_info.name == "fill" && fill_info.min_arity == 2 && fill_info.max_arity == 2 &&
+           fill_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
+           fill_info.signature == "fill(expr, count)" &&
+           fill_info.summary == "evaluate expr count times into a list" &&
+           map_info.name == "map" && map_info.min_arity == 2 && map_info.max_arity == 5 &&
            map_info.category == console_calc::BuiltinFunctionCategory::list &&
-           map_info.signature == "map(list, expr)" &&
-           map_info.summary == "map inline expression over list" && !map_info.mappable &&
+           map_info.signature == "map(list, expr[, start[, step[, count]]])" &&
+           map_info.summary == "map inline expression over list slice" &&
+           map_at_info.name == "map_at" && map_at_info.min_arity == 2 &&
+           map_at_info.max_arity == 5 &&
+           map_at_info.category == console_calc::BuiltinFunctionCategory::list &&
+           map_at_info.signature == "map_at(list, expr[, start[, step[, count]]])" &&
+           map_at_info.summary == "map inline expression onto selected list positions" &&
            range_info.name == "range" && range_info.min_arity == 2 && range_info.max_arity == 3 &&
            range_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
            range_info.summary == "generate linear series from start" &&
@@ -204,18 +246,26 @@ bool expect_builtin_function_helpers() {
     return console_calc::is_scalar_function(console_calc::Function::sin) &&
            console_calc::is_scalar_function(console_calc::Function::abs) &&
            console_calc::is_scalar_function(console_calc::Function::guard) &&
+           console_calc::is_scalar_function(console_calc::Function::timed_loop) &&
+           console_calc::is_scalar_function(console_calc::Function::rand) &&
+           !console_calc::is_scalar_function(console_calc::Function::pos) &&
            !console_calc::is_scalar_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::list_add) &&
+           console_calc::is_list_function(console_calc::Function::fill) &&
            console_calc::is_list_function(console_calc::Function::range) &&
+           !console_calc::is_list_function(console_calc::Function::pos) &&
            !console_calc::is_list_function(console_calc::Function::pow) &&
            console_calc::is_unary_scalar_function(console_calc::Function::sin) &&
            console_calc::is_unary_scalar_function(console_calc::Function::abs) &&
            console_calc::is_unary_scalar_function(console_calc::Function::sqrt) &&
+           !console_calc::is_unary_scalar_function(console_calc::Function::rand) &&
+           !console_calc::is_unary_scalar_function(console_calc::Function::lat) &&
            !console_calc::is_unary_scalar_function(console_calc::Function::pow) &&
            console_calc::is_mappable_unary_scalar_function(console_calc::Function::sin) &&
            console_calc::is_mappable_unary_scalar_function(console_calc::Function::abs) &&
            console_calc::is_mappable_unary_scalar_function(console_calc::Function::sqrt) &&
+           !console_calc::is_mappable_unary_scalar_function(console_calc::Function::rand) &&
            !console_calc::is_mappable_unary_scalar_function(console_calc::Function::pow) &&
            !console_calc::is_mappable_unary_scalar_function(console_calc::Function::sum);
 }
@@ -238,6 +288,9 @@ bool expect_expression_identifier_expansion() {
            console_calc::expand_expression_identifiers(
                "map(vals, sin(_) + _)", constants, definitions, std::nullopt) ==
                "map({1, 2, 3}, sin(_) + _)" &&
+           console_calc::expand_expression_identifiers(
+               "map_at(vals, sin(_) + _)", constants, definitions, std::nullopt) ==
+               "map_at({1, 2, 3}, sin(_) + _)" &&
            console_calc::expand_expression_identifiers(
                "0x10 + 5", constants, definitions, std::nullopt) ==
                "0x10 + 5" &&

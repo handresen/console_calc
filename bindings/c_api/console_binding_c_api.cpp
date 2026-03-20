@@ -3,6 +3,8 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <type_traits>
+#include <vector>
 
 #include "compile_time_constants.h"
 #include "console_calc/console_binding_facade.h"
@@ -17,34 +19,6 @@ struct console_calc_binding_session {
 namespace console_calc {
 
 namespace {
-
-std::string json_escape(std::string_view input) {
-    std::string output;
-    output.reserve(input.size());
-    for (const char ch : input) {
-        switch (ch) {
-        case '\\':
-            output += "\\\\";
-            break;
-        case '"':
-            output += "\\\"";
-            break;
-        case '\n':
-            output += "\\n";
-            break;
-        case '\r':
-            output += "\\r";
-            break;
-        case '\t':
-            output += "\\t";
-            break;
-        default:
-            output.push_back(ch);
-            break;
-        }
-    }
-    return output;
-}
 
 std::string event_kind_name(BindingEventKind kind) {
     switch (kind) {
@@ -67,122 +41,253 @@ std::string event_kind_name(BindingEventKind kind) {
     return "text";
 }
 
-void append_stack_json(std::ostringstream& json, std::span<const BindingStackEntry> stack) {
-    json << '[';
-    for (std::size_t index = 0; index < stack.size(); ++index) {
-        if (index != 0) {
-            json << ',';
-        }
-        const auto& entry = stack[index];
-        json << "{\"level\":" << entry.level << ",\"display\":\"" << json_escape(entry.display)
-             << "\",\"list_values\":[";
-        for (std::size_t value_index = 0; value_index < entry.list_values.size(); ++value_index) {
-            if (value_index != 0) {
-                json << ',';
-            }
-            json << entry.list_values[value_index];
-        }
-        json << "]}";
+class JsonWriter {
+public:
+    void begin_object() { begin_container('{'); }
+    void end_object() { end_container('}'); }
+    void begin_array() { begin_container('['); }
+    void end_array() { end_container(']'); }
+
+    void key(std::string_view name) {
+        prefix_value();
+        write_string(name);
+        stream_ << ':';
+        expecting_value_ = true;
     }
-    json << ']';
-}
 
-void append_definitions_json(std::ostringstream& json,
-                             std::span<const BindingDefinitionEntry> definitions) {
-    json << '[';
-    for (std::size_t index = 0; index < definitions.size(); ++index) {
-        if (index != 0) {
-            json << ',';
-        }
-        const auto& definition = definitions[index];
-        json << "{\"name\":\"" << json_escape(definition.name) << "\",\"expression\":\""
-             << json_escape(definition.expression) << "\"}";
+    void value(std::string_view input) {
+        prefix_value();
+        write_string(input);
     }
-    json << ']';
-}
 
-void append_constants_json(std::ostringstream& json,
-                           std::span<const BindingConstantEntry> constants) {
-    json << '[';
-    for (std::size_t index = 0; index < constants.size(); ++index) {
-        if (index != 0) {
-            json << ',';
-        }
-        const auto& constant = constants[index];
-        json << "{\"name\":\"" << json_escape(constant.name) << "\",\"value\":\""
-             << json_escape(constant.value) << "\"}";
+    void value(bool input) {
+        prefix_value();
+        stream_ << (input ? "true" : "false");
     }
-    json << ']';
-}
 
-void append_functions_json(std::ostringstream& json,
-                           std::span<const BindingFunctionEntry> functions) {
-    json << '[';
-    for (std::size_t index = 0; index < functions.size(); ++index) {
-        if (index != 0) {
-            json << ',';
-        }
-        const auto& function = functions[index];
-        json << "{\"name\":\"" << json_escape(function.name) << "\",\"signature\":\""
-             << json_escape(function.signature) << "\",\"category\":\""
-             << json_escape(function.category) << "\",\"summary\":\""
-             << json_escape(function.summary) << "\"}";
+    template <typename Number>
+    void value(Number input) requires std::is_arithmetic_v<Number>
+    {
+        prefix_value();
+        stream_ << input;
     }
-    json << ']';
-}
 
-void append_snapshot_json(std::ostringstream& json, const BindingSnapshot& snapshot) {
-    json << "{\"display_mode\":\"" << json_escape(snapshot.display_mode)
-         << "\",\"max_stack_depth\":" << snapshot.max_stack_depth;
-    json << ",\"stack\":";
-    append_stack_json(json, snapshot.stack);
-    json << ",\"definitions\":";
-    append_definitions_json(json, snapshot.definitions);
-    json << ",\"constants\":";
-    append_constants_json(json, snapshot.constants);
-    json << ",\"functions\":";
-    append_functions_json(json, snapshot.functions);
-    json << '}';
-}
+    void null_value() {
+        prefix_value();
+        stream_ << "null";
+    }
 
-void append_event_json(std::ostringstream& json, const BindingEvent& event) {
-    json << "{\"kind\":\"" << event_kind_name(event.kind) << "\",\"text\":\""
-         << json_escape(event.text) << "\",\"error\":";
-    if (event.error.has_value()) {
-        json << "{\"message\":\"" << json_escape(event.error->message) << "\",\"expected_signature\":";
-        if (event.error->expected_signature.has_value()) {
-            json << "\"" << json_escape(*event.error->expected_signature) << "\"";
+    [[nodiscard]] std::string str() const { return stream_.str(); }
+
+private:
+    void begin_container(char opener) {
+        prefix_value();
+        stream_ << opener;
+        first_stack_.push_back(true);
+    }
+
+    void end_container(char closer) {
+        stream_ << closer;
+        first_stack_.pop_back();
+    }
+
+    void prefix_value() {
+        if (expecting_value_) {
+            expecting_value_ = false;
+            return;
+        }
+        if (first_stack_.empty()) {
+            return;
+        }
+        if (!first_stack_.back()) {
+            stream_ << ',';
         } else {
-            json << "null";
+            first_stack_.back() = false;
         }
-        json << "}";
-    } else {
-        json << "null";
     }
-    json << ",\"stack\":";
+
+    void write_string(std::string_view input) {
+        stream_ << '"';
+        for (const char ch : input) {
+            switch (ch) {
+            case '\\':
+                stream_ << "\\\\";
+                break;
+            case '"':
+                stream_ << "\\\"";
+                break;
+            case '\n':
+                stream_ << "\\n";
+                break;
+            case '\r':
+                stream_ << "\\r";
+                break;
+            case '\t':
+                stream_ << "\\t";
+                break;
+            default:
+                stream_ << ch;
+                break;
+            }
+        }
+        stream_ << '"';
+    }
+
+    std::ostringstream stream_;
+    std::vector<bool> first_stack_;
+    bool expecting_value_ = false;
+};
+
+void append_stack_json(JsonWriter& json, std::span<const BindingStackEntry> stack) {
+    json.begin_array();
+    for (const auto& entry : stack) {
+        json.begin_object();
+        json.key("level");
+        json.value(entry.level);
+        json.key("display");
+        json.value(entry.display);
+        json.key("list_values");
+        json.begin_array();
+        for (const double value : entry.list_values) {
+            json.value(value);
+        }
+        json.end_array();
+        json.key("position");
+        if (entry.position.has_value()) {
+            json.begin_object();
+            json.key("latitude_deg");
+            json.value(entry.position->latitude_deg);
+            json.key("longitude_deg");
+            json.value(entry.position->longitude_deg);
+            json.end_object();
+        } else {
+            json.null_value();
+        }
+        json.key("position_list_values");
+        json.begin_array();
+        for (const auto& position : entry.position_list_values) {
+            json.begin_object();
+            json.key("latitude_deg");
+            json.value(position.latitude_deg);
+            json.key("longitude_deg");
+            json.value(position.longitude_deg);
+            json.end_object();
+        }
+        json.end_array();
+        json.end_object();
+    }
+    json.end_array();
+}
+
+void append_definitions_json(JsonWriter& json,
+                             std::span<const BindingDefinitionEntry> definitions) {
+    json.begin_array();
+    for (const auto& definition : definitions) {
+        json.begin_object();
+        json.key("name");
+        json.value(definition.name);
+        json.key("expression");
+        json.value(definition.expression);
+        json.end_object();
+    }
+    json.end_array();
+}
+
+void append_constants_json(JsonWriter& json,
+                           std::span<const BindingConstantEntry> constants) {
+    json.begin_array();
+    for (const auto& constant : constants) {
+        json.begin_object();
+        json.key("name");
+        json.value(constant.name);
+        json.key("value");
+        json.value(constant.value);
+        json.end_object();
+    }
+    json.end_array();
+}
+
+void append_functions_json(JsonWriter& json,
+                           std::span<const BindingFunctionEntry> functions) {
+    json.begin_array();
+    for (const auto& function : functions) {
+        json.begin_object();
+        json.key("name");
+        json.value(function.name);
+        json.key("signature");
+        json.value(function.signature);
+        json.key("category");
+        json.value(function.category);
+        json.key("summary");
+        json.value(function.summary);
+        json.end_object();
+    }
+    json.end_array();
+}
+
+void append_snapshot_json(JsonWriter& json, const BindingSnapshot& snapshot) {
+    json.begin_object();
+    json.key("display_mode");
+    json.value(snapshot.display_mode);
+    json.key("max_stack_depth");
+    json.value(snapshot.max_stack_depth);
+    json.key("stack");
+    append_stack_json(json, snapshot.stack);
+    json.key("definitions");
+    append_definitions_json(json, snapshot.definitions);
+    json.key("constants");
+    append_constants_json(json, snapshot.constants);
+    json.key("functions");
+    append_functions_json(json, snapshot.functions);
+    json.end_object();
+}
+
+void append_event_json(JsonWriter& json, const BindingEvent& event) {
+    json.begin_object();
+    json.key("kind");
+    json.value(event_kind_name(event.kind));
+    json.key("text");
+    json.value(event.text);
+    json.key("error");
+    if (event.error.has_value()) {
+        json.begin_object();
+        json.key("message");
+        json.value(event.error->message);
+        json.key("expected_signature");
+        if (event.error->expected_signature.has_value()) {
+            json.value(*event.error->expected_signature);
+        } else {
+            json.null_value();
+        }
+        json.end_object();
+    } else {
+        json.null_value();
+    }
+    json.key("stack");
     append_stack_json(json, event.stack);
-    json << ",\"definitions\":";
+    json.key("definitions");
     append_definitions_json(json, event.definitions);
-    json << ",\"constants\":";
+    json.key("constants");
     append_constants_json(json, event.constants);
-    json << ",\"functions\":";
+    json.key("functions");
     append_functions_json(json, event.functions);
-    json << '}';
+    json.end_object();
 }
 
 std::string result_to_json(const BindingCommandResult& result) {
-    std::ostringstream json;
-    json << "{\"should_exit\":" << (result.should_exit ? "true" : "false");
-    json << ",\"events\":[";
-    for (std::size_t index = 0; index < result.events.size(); ++index) {
-        if (index != 0) {
-            json << ',';
-        }
-        append_event_json(json, result.events[index]);
+    JsonWriter json;
+    json.begin_object();
+    json.key("should_exit");
+    json.value(result.should_exit);
+    json.key("events");
+    json.begin_array();
+    for (const auto& event : result.events) {
+        append_event_json(json, event);
     }
-    json << "],\"snapshot\":";
+    json.end_array();
+    json.key("snapshot");
     append_snapshot_json(json, result.snapshot);
-    json << '}';
+    json.end_object();
     return json.str();
 }
 

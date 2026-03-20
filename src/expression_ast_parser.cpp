@@ -2,6 +2,7 @@
 
 #include "console_calc/builtin_function.h"
 #include "console_calc/expression_error.h"
+#include "console_calc/special_form.h"
 
 #include <memory>
 #include <string>
@@ -57,25 +58,6 @@ namespace {
 
 [[nodiscard]] bool starts_operand_expression(TokenKind kind) {
     return starts_primary_expression(kind) || kind == TokenKind::minus;
-}
-
-enum class SpecialForm {
-    map,
-    guard,
-    reduce,
-};
-
-[[nodiscard]] std::optional<SpecialForm> parse_special_form(std::string_view identifier) {
-    if (identifier == "map") {
-        return SpecialForm::map;
-    }
-    if (identifier == "guard") {
-        return SpecialForm::guard;
-    }
-    if (identifier == "reduce") {
-        return SpecialForm::reduce;
-    }
-    return std::nullopt;
 }
 
 class Parser {
@@ -230,10 +212,6 @@ private:
                 advance();
                 return Expression{PlaceholderExpression{}};
             }
-            if (const auto special_form = parse_special_form(current_.identifier_text);
-                special_form.has_value()) {
-                return parse_special_form_call(*special_form);
-            }
             return parse_function_call();
         }
 
@@ -261,20 +239,32 @@ private:
         return expression;
     }
 
-    [[nodiscard]] Expression parse_special_form_call(SpecialForm form) {
+    [[nodiscard]] Expression parse_special_form_call(Function form) {
         switch (form) {
-        case SpecialForm::map:
+        case Function::map:
+        case Function::map_at:
             return parse_map_call();
-        case SpecialForm::guard:
+        case Function::guard:
             return parse_guard_call();
-        case SpecialForm::reduce:
+        case Function::reduce:
             return parse_reduce_call();
+        case Function::timed_loop:
+            return parse_timed_loop_call();
+        case Function::fill:
+            return parse_fill_call();
+        default:
+            break;
         }
 
         throw ParseError("unknown special form");
     }
 
     [[nodiscard]] Expression parse_function_call() {
+        if (const auto special_form = parse_special_form_function(current_.identifier_text);
+            special_form.has_value()) {
+            return parse_special_form_call(*special_form);
+        }
+
         const auto function = parse_builtin_function(current_.identifier_text);
         if (!function.has_value()) {
             throw ParseError("unknown function");
@@ -317,6 +307,9 @@ private:
     }
 
     [[nodiscard]] Expression parse_map_call() {
+        const auto map_function = parse_special_form_function(current_.identifier_text).value();
+        const auto map_name = std::string(builtin_function_name(map_function));
+        const auto map_signature = std::string(special_form_signature(map_function));
         advance();
         if (current_.kind != TokenKind::left_paren) {
             throw ParseError("expected '(' after function name");
@@ -324,17 +317,17 @@ private:
 
         advance();
         if (!starts_operand_expression(current_.kind)) {
-            throw ParseError("expected expression after '('");
+            throw ParseError("function '" + map_name + "' expects " + map_signature);
         }
 
         auto list_argument = make_expression(parse_bitwise_or_expression());
         if (current_.kind != TokenKind::comma) {
-            throw ParseError("expected ',' after first argument");
+            throw ParseError("function '" + map_name + "' expects " + map_signature);
         }
 
         advance();
         if (!starts_operand_expression(current_.kind)) {
-            throw ParseError("expected expression after ','");
+            throw ParseError("function '" + map_name + "' expects " + map_signature);
         }
 
         const bool previous_allow_map_placeholder = allow_map_placeholder_;
@@ -342,8 +335,33 @@ private:
         auto mapped_expression = make_expression(parse_bitwise_or_expression());
         allow_map_placeholder_ = previous_allow_map_placeholder;
 
+        std::unique_ptr<Expression> start_argument;
+        std::unique_ptr<Expression> step_argument;
+        std::unique_ptr<Expression> count_argument;
+        if (current_.kind == TokenKind::comma) {
+            advance();
+            if (!starts_operand_expression(current_.kind)) {
+                throw ParseError("function '" + map_name + "' expects " + map_signature);
+            }
+            start_argument = make_expression(parse_bitwise_or_expression());
+        }
+        if (current_.kind == TokenKind::comma) {
+            advance();
+            if (!starts_operand_expression(current_.kind)) {
+                throw ParseError("function '" + map_name + "' expects " + map_signature);
+            }
+            step_argument = make_expression(parse_bitwise_or_expression());
+        }
+        if (current_.kind == TokenKind::comma) {
+            advance();
+            if (!starts_operand_expression(current_.kind)) {
+                throw ParseError("function '" + map_name + "' expects " + map_signature);
+            }
+            count_argument = make_expression(parse_bitwise_or_expression());
+        }
+
         if (current_.kind != TokenKind::right_paren) {
-            throw ParseError("expected ')'");
+            throw ParseError("function '" + map_name + "' expects " + map_signature);
         }
 
         advance();
@@ -351,11 +369,15 @@ private:
             MapCall{
                 .list_argument = std::move(list_argument),
                 .mapped_expression = std::move(mapped_expression),
+                .start_argument = std::move(start_argument),
+                .step_argument = std::move(step_argument),
+                .count_argument = std::move(count_argument),
+                .preserve_unmapped = (map_function == Function::map_at),
             }};
     }
 
     [[nodiscard]] Expression parse_guard_call() {
-        const auto guard_signature = std::string(builtin_function_signature(Function::guard));
+        const auto guard_signature = std::string(special_form_signature(Function::guard));
         advance();
         if (current_.kind != TokenKind::left_paren) {
             throw ParseError("expected '(' after function name");
@@ -425,6 +447,79 @@ private:
             ReduceCall{
                 .list_argument = std::move(list_argument),
                 .reduction_operator = reduction_operator,
+            }};
+    }
+
+    [[nodiscard]] Expression parse_timed_loop_call() {
+        advance();
+        if (current_.kind != TokenKind::left_paren) {
+            throw ParseError("expected '(' after function name");
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("function 'timed_loop' expects " +
+                             std::string(special_form_signature(Function::timed_loop)));
+        }
+
+        auto loop_expression = make_expression(parse_bitwise_or_expression());
+
+        if (current_.kind != TokenKind::comma) {
+            throw ParseError("function 'timed_loop' expects " +
+                             std::string(special_form_signature(Function::timed_loop)));
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("expected expression after ','");
+        }
+
+        auto iteration_count = make_expression(parse_bitwise_or_expression());
+
+        if (current_.kind != TokenKind::right_paren) {
+            throw ParseError("expected ')'");
+        }
+
+        advance();
+        return Expression{
+            TimedLoopCall{
+                .loop_expression = std::move(loop_expression),
+                .iteration_count = std::move(iteration_count),
+            }};
+    }
+
+    [[nodiscard]] Expression parse_fill_call() {
+        const auto fill_signature = std::string(special_form_signature(Function::fill));
+        advance();
+        if (current_.kind != TokenKind::left_paren) {
+            throw ParseError("expected '(' after function name");
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("function 'fill' expects " + fill_signature);
+        }
+
+        auto fill_expression = make_expression(parse_bitwise_or_expression());
+        if (current_.kind != TokenKind::comma) {
+            throw ParseError("function 'fill' expects " + fill_signature);
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("expected expression after ','");
+        }
+
+        auto iteration_count = make_expression(parse_bitwise_or_expression());
+        if (current_.kind != TokenKind::right_paren) {
+            throw ParseError("expected ')'");
+        }
+
+        advance();
+        return Expression{
+            FillCall{
+                .fill_expression = std::move(fill_expression),
+                .iteration_count = std::move(iteration_count),
             }};
     }
 

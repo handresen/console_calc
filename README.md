@@ -137,7 +137,18 @@ pow(e, 1)
 - `cosd(x)`     cosine in degrees
 - `tand(x)`     tangent in degrees
 - `pow(x, y)`   power
+- `rand([min, max])` random number in a half-open interval
+- `pos(lat, lon)` construct WGS84 position in degrees
+- `lat(pos)`    extract latitude in degrees
+- `lon(pos)`    extract longitude in degrees
+- `to_list(poslist)` expand positions into a scalar list using `(lat, lon)` order
+- `to_poslist(list)` pair scalar list values into positions
+- `dist(pos1, pos2)` WGS84 ellipsoid distance in meters
+- `bearing(pos1, pos2)` initial WGS84 bearing in degrees
+- `br_to_pos(pos, bearing_deg, range_m)` destination position from bearing and range
 - `guard(expr, fallback)` evaluate `fallback` only if `expr` fails
+- `timed_loop(expr, count)` evaluate `expr` `count` times and return elapsed seconds
+- `fill(expr, count)` evaluate `expr` `count` times into a list
 
 ### List Functions
 
@@ -149,19 +160,27 @@ pow(e, 1)
 - `max(list)`        maximum list element
 - `first(n, list)`   first `n` list elements
 - `drop(n, list)`    drop first `n` list elements
-- `guard(expr, fallback)` return fallback when expression evaluation fails
 - `list_div(a, b)`   divide matching list elements
 - `list_mul(a, b)`   multiply matching list elements
 - `reduce(list, op)` reduce a list with a binary operator
-- `map(list, expr)`  map an inline expression using `_` as the current element
+- `map(list, expr[, start[, step[, count]]])` map an inline expression using `_` over a list slice
+- `map_at(list, expr[, start[, step[, count]]])` map an inline expression onto selected list positions
 
 ### List Generation Functions
 
 - `range(start, count[, step])` generate `count` values starting at `start`
 - `geom(start, count[, ratio])` generate a geometric series
+- `fill(expr, count)` generate a list by repeatedly evaluating an expression
 - `repeat(value, count)` repeat a value `count` times
 - `linspace(start, stop, count)` generate evenly spaced values over an interval
 - `powers(base, count[, start_exp])` generate successive powers of a base
+
+Position lists:
+- homogeneous position lists are supported with literals such as `{pos(60, 10), pos(61, 11)}`
+- `to_list({pos(60, 10), pos(61, 11)})` converts a position list into `{60, 10, 61, 11}`
+- `to_poslist({60, 10, 61, 11})` converts a scalar list into `{pos(60, 10), pos(61, 11)}`
+- scalar lists remain scalar-only; mixed scalar/position lists are invalid
+- existing numeric list functions still require scalar lists
 
 Function notes:
 - `product({})` is `1`
@@ -172,10 +191,24 @@ Function notes:
 - `reduce` requires a non-empty list
 - `reduce` uses existing binary operators such as `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - `map` accepts an inline expression using `_` as the current element
+- `map` optional `start`, `step`, and `count` arguments use zero-based `start`
+- `map` uses `step = 1` and maps all remaining matching elements when `count` is omitted
+- `map` requires `step` to be a positive integer
+- `map_at` uses the same slice controls as `map`, but preserves original list length
+- `pos(lat, lon)` uses the `(lat, lon)` convention in degrees
+- only geo functions accept position values
 - `map({1, 2}, sum)` and `map({1, 2}, pow)` are invalid
 - `map({1, 2}, sin)` is invalid
 - `_` is only valid inside `map(..., expr)`
 - `guard` evaluates its fallback lazily and can be used inside `map`
+- `timed_loop` evaluates its expression lazily for each iteration
+- `timed_loop` requires `count` to be a non-negative integer
+- `fill` evaluates its expression lazily for each element
+- `fill` requires `count` to be a non-negative integer
+- `rand()` returns a value in `[0, 1)`
+- `rand(max)` returns a value in `[0, max)`
+- `rand(min, max)` returns a value in `[min, max)`
+- `rand` requires finite bounds and `min < max`
 - `range` requires `count` to be a non-negative integer
 - `range(start, count)` uses a default step of `1`
 - `range` preserves integer list elements when `start` and `step` are integers
@@ -199,16 +232,39 @@ list_mul({2, 3}, {4, 5})      => {8, 15}
 reduce({2, 3, 4}, *)          => 24
 map({0, 90}, sind(_))         => {0, 1}
 map({1, 2, 3}, _ + 1)         => {2, 3, 4}
+map({10, 20, 30, 40, 50}, _ + 1, 1, 2, 2) => {21, 41}
+map_at({10, 20, 30, 40, 50}, _ + 1, 1, 2, 2) => {10, 21, 30, 41, 50}
 map({1, 2, 3}, sin(_) + _)    => {1.84147..., 2.90929..., 3.14112...}
 guard(1 / 0, 0)               => 0
+timed_loop(sin(pi / 3), 1000) => 0.00...
+fill(rand(), 3)               => {0.42..., 0.13..., 0.91...}
+{pos(60, 10), pos(61, 11)}    => {pos(60, 10), pos(61, 11)}
+to_list({pos(60, 10), pos(61, 11)}) => {60, 10, 61, 11}
+to_poslist({60, 10, 61, 11})  => {pos(60, 10), pos(61, 11)}
+rand()                        => 0.42...
+rand(10, 20)                  => 13.7...
 map(range(-2, 5), guard(1 / _, 0))
 sum(map({1, 2, 3}, sin(_)))   => 1.89189...
+dist(pos(0, 0), pos(0, 1))    => 111319.490793...
+bearing(pos(0, 0), pos(0, 1)) => 90
+lon(br_to_pos(pos(0, 0), 90, 111319.4907932264)) => 1
 range(10, 4)                  => {10, 11, 12, 13}
 range(2, 4, 3)                => {2, 5, 8, 11}
 geom(2, 4)                    => {2, 4, 8, 16}
 repeat(3, 4)                  => {3, 3, 3, 3}
 linspace(0, 1, 5)             => {0, 0.25, 0.5, 0.75, 1}
 powers(-1, 4)                 => {1, -1, 1, -1}
+```
+
+## Geo Example
+
+Geo positions are WGS84 latitude/longitude pairs in degrees:
+
+```text
+home:pos(59.9127, 10.7461)
+lat(home)
+dist(home, pos(60.3913, 5.3221))
+br_to_pos(home, 270, 1000)
 ```
 
 ## Pi Example

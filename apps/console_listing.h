@@ -8,6 +8,7 @@
 #include "expression_environment.h"
 #include "console_calc/builtin_function.h"
 #include "console_calc/scalar_value.h"
+#include "console_calc/special_form.h"
 #include "console_calc/value.h"
 #include "console_calc/value_format.h"
 
@@ -40,6 +41,9 @@ struct FunctionView {
 [[nodiscard]] std::vector<ConstantView> constant_views(const ConstantTable& constants);
 [[nodiscard]] std::vector<FunctionView> builtin_function_views(
     std::span<const BuiltinFunctionInfo> functions);
+[[nodiscard]] std::vector<FunctionView> function_views(
+    std::span<const BuiltinFunctionInfo> functions,
+    std::span<const SpecialFormInfo> special_forms);
 
 [[nodiscard]] std::string format_stack_listing(std::span<const StackEntryView> entries,
                                                IntegerDisplayMode mode);
@@ -54,5 +58,7 @@ struct FunctionView {
 [[nodiscard]] std::string format_builtin_function_listing(std::span<const FunctionView> functions);
 [[nodiscard]] std::string format_builtin_function_listing(
     std::span<const BuiltinFunctionInfo> functions);
+[[nodiscard]] std::string format_function_listing(std::span<const BuiltinFunctionInfo> functions,
+                                                  std::span<const SpecialFormInfo> special_forms);
 
 }  // namespace console_calc

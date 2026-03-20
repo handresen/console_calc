@@ -13,7 +13,8 @@
       "binaryDir": "${sourceDir}/build/default",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_TOOLCHAIN_FILE": "$penv{HOME}/vcpkg/scripts/buildsystems/vcpkg.cmake"
       }
     },
     {
@@ -32,7 +33,8 @@
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_TOOLCHAIN_FILE": "$penv{HOME}/vcpkg/scripts/buildsystems/vcpkg.cmake"
       }
     },
     {
@@ -55,7 +57,9 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "OFF",
-        "CMAKE_TOOLCHAIN_FILE": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+        "CMAKE_TOOLCHAIN_FILE": "$penv{HOME}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+        "VCPKG_TARGET_TRIPLET": "wasm32-emscripten",
         "CONSOLE_CALC_BUILD_TERMINAL_APP": "OFF",
         "CONSOLE_CALC_BUILD_TESTS": "OFF",
         "CONSOLE_CALC_ENABLE_NATIVE_CURRENCY_PROVIDER": "OFF"

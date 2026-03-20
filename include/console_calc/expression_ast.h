@@ -42,6 +42,7 @@ enum class Function {
     tand,
     sqrt,
     pow,
+    rand,
     sum,
     len,
     product,
@@ -56,12 +57,23 @@ enum class Function {
     list_mul,
     guard,
     reduce,
+    timed_loop,
+    fill,
     map,
+    map_at,
     range,
     geom,
     repeat,
     linspace,
     powers,
+    pos,
+    lat,
+    lon,
+    to_poslist,
+    to_list,
+    dist,
+    bearing,
+    br_to_pos,
 };
 
 struct BinaryExpression {
@@ -82,6 +94,10 @@ struct FunctionCall {
 struct MapCall {
     std::unique_ptr<Expression> list_argument;
     std::unique_ptr<Expression> mapped_expression;
+    std::unique_ptr<Expression> start_argument;
+    std::unique_ptr<Expression> step_argument;
+    std::unique_ptr<Expression> count_argument;
+    bool preserve_unmapped = false;
 };
 
 struct GuardCall {
@@ -94,9 +110,20 @@ struct ReduceCall {
     BinaryOperator reduction_operator;
 };
 
+struct TimedLoopCall {
+    std::unique_ptr<Expression> loop_expression;
+    std::unique_ptr<Expression> iteration_count;
+};
+
+struct FillCall {
+    std::unique_ptr<Expression> fill_expression;
+    std::unique_ptr<Expression> iteration_count;
+};
+
 struct Expression {
     std::variant<NumberLiteral, PlaceholderExpression, UnaryExpression, BinaryExpression,
-                 ListLiteral, FunctionCall, MapCall, GuardCall, ReduceCall>
+                 ListLiteral, FunctionCall, MapCall, GuardCall, ReduceCall, TimedLoopCall,
+                 FillCall>
         node;
 };
 

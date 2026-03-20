@@ -22,8 +22,8 @@ body {
 
 .app-shell {
   display: grid;
-  grid-template-columns: minmax(0, 2.2fr) minmax(24rem, 1.5fr);
-  gap: 1.25rem;
+  grid-template-columns: minmax(0, 2.2fr) 12px minmax(24rem, 1.5fr);
+  gap: 0;
   height: 100vh;
   min-height: 100vh;
   padding: 1.25rem;
@@ -37,6 +37,41 @@ body {
   backdrop-filter: blur(10px);
   box-shadow: 0 12px 40px rgba(64, 53, 28, 0.08);
   min-height: 0;
+}
+
+.shell-resize-handle {
+  position: relative;
+  cursor: col-resize;
+  user-select: none;
+}
+
+.shell-resize-handle::before {
+  content: "";
+  position: absolute;
+  top: 1rem;
+  bottom: 1rem;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(29, 36, 28, 0.18);
+}
+
+.shell-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 3rem;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: rgba(46, 93, 49, 0.16);
+}
+
+body.is-resizing-shell {
+  cursor: col-resize;
+  user-select: none;
 }
 
 .console-column {
@@ -63,7 +98,8 @@ body {
 }
 
 .info-panel,
-.plot-panel {
+.plot-panel,
+.map-panel {
   border: 1px solid rgba(29, 36, 28, 0.1);
   border-radius: 0.9rem;
   background: rgba(252, 248, 239, 0.7);
@@ -88,7 +124,23 @@ body {
 }
 
 .transcript-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
   white-space: pre-wrap;
+}
+
+.transcript-line-content {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.transcript-line-meta {
+  flex: 0 0 auto;
+  color: rgba(94, 90, 76, 0.72);
+  font-size: 0.82rem;
+  white-space: nowrap;
 }
 
 .transcript-line-command {
@@ -191,6 +243,31 @@ body {
   padding-right: 0.2rem;
 }
 
+.function-table-container {
+  min-height: 0;
+}
+
+.sample-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sample-button {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(29, 36, 28, 0.12);
+  border-radius: 0.5rem;
+  background: rgba(220, 233, 211, 0.2);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sample-button:hover {
+  background: rgba(220, 233, 211, 0.38);
+}
+
 .pane-body[hidden] {
   display: none;
 }
@@ -216,6 +293,24 @@ body {
   vertical-align: top;
 }
 
+.function-category-row th {
+  padding: 0.5rem 0 0.2rem;
+  text-align: left;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5e5a4c;
+}
+
+.function-category-row:first-child th {
+  padding-top: 0;
+}
+
+.function-entry-row td {
+  padding-left: 0.55rem;
+}
+
 .function-signature {
   width: 40%;
   padding-right: 0.9rem;
@@ -232,6 +327,54 @@ body {
   margin-bottom: 0.45rem;
   color: #5e5a4c;
   font-size: 0.85rem;
+}
+
+.plot-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+  color: #5e5a4c;
+  font-size: 0.88rem;
+}
+
+.map-meta {
+  margin-bottom: 0.45rem;
+  color: #5e5a4c;
+  font-size: 0.85rem;
+}
+
+.map-canvas {
+  width: 100%;
+  height: 15rem;
+  border: 1px solid rgba(29, 36, 28, 0.12);
+  border-radius: 0.65rem;
+  overflow: hidden;
+}
+
+.map-resize-handle {
+  position: relative;
+  height: 14px;
+  margin-top: 0.25rem;
+  cursor: ns-resize;
+  user-select: none;
+}
+
+.map-resize-handle::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3rem;
+  height: 2px;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: rgba(29, 36, 28, 0.18);
+}
+
+body.is-resizing-map {
+  cursor: ns-resize;
+  user-select: none;
 }
 
 .plot-svg {
@@ -256,6 +399,13 @@ body {
   stroke-dasharray: 4 4;
 }
 
+.plot-reference-axis {
+  stroke: rgba(29, 36, 28, 0.24);
+  stroke-width: 1;
+  fill: none;
+  stroke-dasharray: 4 4;
+}
+
 .plot-line {
   stroke: #2e5d31;
   stroke-width: 2.5;
@@ -264,8 +414,26 @@ body {
   stroke-linejoin: round;
 }
 
+.plot-point {
+  fill: #2e5d31;
+  stroke: rgba(250, 247, 239, 0.95);
+  stroke-width: 1;
+}
+
+.plot-corner-label {
+  fill: rgba(29, 36, 28, 0.52);
+  font-size: 8px;
+  font-family: "Iosevka", "Iosevka Term", "SF Mono", monospace;
+  letter-spacing: -0.04em;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .shell-resize-handle {
+    display: none;
   }
 }

@@ -7,7 +7,9 @@ responsibilities:
 
 1. `console_calc_lib`
    - Core language and value system
-   - Tokenization, parsing, AST, evaluation, builtin metadata, scalar/list math
+   - Tokenization, parsing, AST, evaluation, builtin metadata, scalar/list/position math
+   - Intrinsic value types currently include integers, floating-point scalars, flat scalar lists, geographic positions, and homogeneous position lists
+   - Geodesic calculations are implemented behind the core geo functions using `GeographicLib`
    - No terminal, browser, or transport-specific behavior
 
 2. `console_calc_runtime_lib`
@@ -27,6 +29,7 @@ responsibilities:
 
 5. `web/`
    - Browser UI consuming the WebAssembly host bridge
+   - Transcript rendering, helper panes, samples, and list plotting
    - No calculator semantics should be reimplemented here when structured host
      data is already available
 

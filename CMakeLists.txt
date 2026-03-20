@@ -20,6 +20,8 @@ if(CONSOLE_CALC_ENABLE_NATIVE_CURRENCY_PROVIDER)
     find_package(CURL REQUIRED)
 endif()
 
+find_package(GeographicLib CONFIG REQUIRED)
+
 if(CONSOLE_CALC_ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES clang-tidy)
     if(CLANG_TIDY_EXE)
@@ -33,11 +35,15 @@ add_library(console_calc_lib
     src/builtin_function.cpp
     src/error_info.cpp
     src/expression_ast_parser.cpp
+    src/expression_evaluator_builtins.cpp
     src/expression_evaluator.cpp
+    src/expression_evaluator_special_forms.cpp
     src/expression_parser.cpp
     src/expression_tokenizer.cpp
+    src/geodesy.cpp
     src/scalar_math.cpp
     src/scalar_value.cpp
+    src/special_form.cpp
     src/value_format.cpp
 )
 
@@ -49,6 +55,11 @@ target_include_directories(console_calc_lib
 )
 
 target_compile_features(console_calc_lib PUBLIC cxx_std_20)
+
+target_link_libraries(console_calc_lib
+    PRIVATE
+        ${GeographicLib_LIBRARIES}
+)
 
 add_library(console_calc_runtime_lib
     apps/console_assignment.cpp

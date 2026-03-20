@@ -16,6 +16,8 @@ std::string category_heading(BuiltinFunctionCategory category) {
     switch (category) {
     case BuiltinFunctionCategory::scalar:
         return "Scalar functions";
+    case BuiltinFunctionCategory::position:
+        return "Position functions";
     case BuiltinFunctionCategory::list:
         return "List functions";
     case BuiltinFunctionCategory::list_generation:
@@ -33,6 +35,29 @@ std::string format_console_list(const ListValue& values, IntegerDisplayMode mode
             output += ", ";
         }
         output += format_scalar(values[index], mode);
+    }
+
+    if (values.size() > k_max_console_list_entries) {
+        if (shown != 0) {
+            output += ", ";
+        }
+        output += "<hiding ";
+        output += std::to_string(values.size() - k_max_console_list_entries);
+        output += " entries>";
+    }
+
+    output += '}';
+    return output;
+}
+
+std::string format_console_position_list(const PositionListValue& values) {
+    std::string output = "{";
+    const std::size_t shown = std::min(values.size(), k_max_console_list_entries);
+    for (std::size_t index = 0; index < shown; ++index) {
+        if (index != 0) {
+            output += ", ";
+        }
+        output += format_position(values[index]);
     }
 
     if (values.size() > k_max_console_list_entries) {
@@ -85,6 +110,9 @@ std::string format_stack_listing(std::span<const StackEntryView> entries, Intege
 std::string format_console_value(const Value& value, IntegerDisplayMode mode) {
     if (const auto* list = std::get_if<ListValue>(&value)) {
         return format_console_list(*list, mode);
+    }
+    if (const auto* positions = std::get_if<PositionListValue>(&value)) {
+        return format_console_position_list(*positions);
     }
 
     return format_value(value, mode);
@@ -173,15 +201,44 @@ std::vector<FunctionView> builtin_function_views(std::span<const BuiltinFunction
     return views;
 }
 
+std::vector<FunctionView> function_views(std::span<const BuiltinFunctionInfo> functions,
+                                         std::span<const SpecialFormInfo> special_forms) {
+    std::vector<FunctionView> views = builtin_function_views(functions);
+    views.reserve(views.size() + special_forms.size());
+    for (const auto& form : special_forms) {
+        views.push_back(FunctionView{
+            .name = std::string(form.name),
+            .signature = std::string(form.signature),
+            .category = form.category,
+            .summary = std::string(form.summary),
+        });
+    }
+
+    std::sort(views.begin(), views.end(), [](const auto& lhs, const auto& rhs) {
+        if (lhs.category != rhs.category) {
+            return static_cast<int>(lhs.category) < static_cast<int>(rhs.category);
+        }
+        return lhs.name < rhs.name;
+    });
+    return views;
+}
+
 std::string format_builtin_function_listing(std::span<const BuiltinFunctionInfo> functions) {
     return format_builtin_function_listing(builtin_function_views(functions));
 }
 
+std::string format_function_listing(std::span<const BuiltinFunctionInfo> functions,
+                                    std::span<const SpecialFormInfo> special_forms) {
+    return format_builtin_function_listing(function_views(functions, special_forms));
+}
+
 std::string format_builtin_function_listing(std::span<const FunctionView> views) {
     std::vector<FunctionView> scalar_entries;
+    std::vector<FunctionView> position_entries;
     std::vector<FunctionView> list_entries;
     std::vector<FunctionView> list_generation_entries;
     scalar_entries.reserve(views.size());
+    position_entries.reserve(views.size());
     list_entries.reserve(views.size());
     list_generation_entries.reserve(views.size());
     std::size_t label_width = 0;
@@ -189,7 +246,9 @@ std::string format_builtin_function_listing(std::span<const FunctionView> views)
     for (const auto& function : views) {
         const std::string& label = function.signature;
         label_width = std::max(label_width, label.size());
-        if (function.category == BuiltinFunctionCategory::list) {
+        if (function.category == BuiltinFunctionCategory::position) {
+            position_entries.push_back(function);
+        } else if (function.category == BuiltinFunctionCategory::list) {
             list_entries.push_back(function);
         } else if (function.category == BuiltinFunctionCategory::list_generation) {
             list_generation_entries.push_back(function);
@@ -212,6 +271,10 @@ std::string format_builtin_function_listing(std::span<const FunctionView> views)
 
     std::string output = category_heading(BuiltinFunctionCategory::scalar) + '\n';
     append_entries(output, scalar_entries);
+    output += '\n';
+    output += category_heading(BuiltinFunctionCategory::position);
+    output += '\n';
+    append_entries(output, position_entries);
     output += '\n';
     output += category_heading(BuiltinFunctionCategory::list);
     output += '\n';

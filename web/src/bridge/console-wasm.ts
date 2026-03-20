@@ -1,7 +1,14 @@
+export interface BindingPositionEntry {
+  latitude_deg: number;
+  longitude_deg: number;
+}
+
 export interface BindingStackEntry {
   level: number;
   display: string;
   list_values?: number[];
+  position?: BindingPositionEntry | null;
+  position_list_values?: BindingPositionEntry[];
 }
 
 export interface BindingDefinitionEntry {

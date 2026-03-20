@@ -11,7 +11,7 @@ Current scope:
 - binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - parentheses for grouping
 - list literals with `{ ... }`
-- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`, `list_div`, `list_mul`, `guard`, `reduce`, `map`, `range`, `geom`, `repeat`, `linspace`, `powers`
+- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `pos`, `lat`, `lon`, `dist`, `bearing`, `br_to_pos`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`, `list_div`, `list_mul`, `guard`, `reduce`, `map`, `range`, `geom`, `repeat`, `linspace`, `powers`
 - optional whitespace between tokens
 
 Explicitly out of scope for this first version:
@@ -46,7 +46,7 @@ unary      = [ "-" ] , power ;
 power      = primary , [ "^" , unary ] ;
 primary    = number | function_call | map_call | guard_call | list | "(" , expression , ")" ;
 function_call = identifier , "(" , expression , { "," , expression } , ")" ;
-map_call   = "map" , "(" , expression , "," , ( identifier | expression ) , ")" ;
+map_call   = "map" , "(" , expression , "," , expression , ")" ;
 guard_call = "guard" , "(" , expression , "," , expression , ")" ;
 list       = "{" , expression , { "," , expression } , "}" ;
 number     = mantissa , [ exponent ] ;
@@ -79,6 +79,14 @@ Builtin functions:
 - `sin(x)`, `cos(x)`, `tan(x)` use radians
 - `sind(x)`, `cosd(x)`, `tand(x)` use degrees
 - `pow(x, y)` is equivalent to `x ^ y`
+- `rand([min, max])` returns a random floating-point value in a half-open interval
+- `pos(lat, lon)` constructs a WGS84 position from latitude/longitude in degrees
+- `lat(pos)` and `lon(pos)` extract latitude and longitude in degrees
+- `to_list(poslist)` expands positions into scalar values using `(lat, lon)` order
+- `to_poslist(list)` pairs scalar list values into positions using `(lat, lon)` order
+- `dist(pos1, pos2)` returns WGS84 ellipsoid distance in meters
+- `bearing(pos1, pos2)` returns initial WGS84 bearing in degrees
+- `br_to_pos(pos, bearing_deg, range_m)` returns a destination position from a start position, bearing, and range in meters
 - `sum(list)` sums a list value
 - `len(list)` returns list length
 - `product(list)` multiplies all list values; `product({})` is `1`
@@ -89,11 +97,15 @@ Builtin functions:
 - `list_div(list_a, list_b)` divides list elements pairwise and requires equal list lengths
 - `list_mul(list_a, list_b)` multiplies list elements pairwise and requires equal list lengths
 - `guard(expr, fallback)` returns `expr` when it evaluates successfully, otherwise evaluates and returns `fallback`
+- `timed_loop(expr, count)` evaluates `expr` `count` times and returns elapsed seconds as a floating-point value
+- `fill(expr, count)` evaluates `expr` `count` times and returns the collected results as a list
 - `reduce(list, op)` reduces a non-empty list left-to-right using a binary operator such as `+` or `*`
-- `map(list, expr)` evaluates `expr` once per list item with `_` bound to the current element
+- `map(list, expr[, start[, step[, count]]])` evaluates `expr` over a list slice with `_` bound to the current element
+- `map_at(list, expr[, start[, step[, count]]])` evaluates `expr` at selected list positions and preserves list length
 - `range(start, count[, step])` generates a list beginning at `start`, with `count` elements, incrementing by `step` or by `1` when omitted
 - `geom(start, count[, ratio])` generates a geometric series beginning at `start`, multiplying by `ratio` or by `2` when omitted
 - `repeat(value, count)` repeats `value` `count` times
+- `fill(expr, count)` repeatedly evaluates `expr` `count` times and returns the results as a list
 - `linspace(start, stop, count)` generates `count` evenly spaced values from `start` to `stop`
 - `powers(base, count[, start_exp])` generates successive powers of `base`, starting at exponent `start_exp` or `0`
 
@@ -105,7 +117,18 @@ Integer-preserving behavior:
 - `sum(list)` and `product(list)` preserve integer results when all inputs remain integral
 - trig functions always return floating-point results
 
-For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, the second argument may either be a unary scalar builtin such as `sin` or `cosd`, or an expression that uses `_` as the current element placeholder. In builtin-name form, list functions and multi-argument functions are rejected. `_` is only valid inside `map(..., expr)`.
+For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map` and `map_at`, the second argument is an expression that uses `_` as the current element placeholder. `_` is only valid inside these mapping forms. Optional `start`, `step`, and `count` arguments use zero-based `start`; `step = 1` by default; and when `count` is omitted, mapping continues over all remaining matching elements. `step` must be a positive integer. `map` returns only mapped elements, while `map_at` preserves original list length and copies untouched elements through. For `timed_loop` and `fill`, `count` must be a non-negative integer. For `rand`, `rand()` uses `[0, 1)`, `rand(max)` uses `[0, max)`, and `rand(min, max)` uses `[min, max)` with finite bounds and `min < max`.
+
+Geo positions are a dedicated value type, separate from scalars and lists. They use the `(lat, lon)` convention in degrees. Only the geo-specific functions accept position values.
+
+Position lists are also supported as a separate homogeneous collection type. A
+literal such as `{pos(60, 10), pos(61, 11)}` produces a position list. Scalar
+lists remain scalar-only, and mixed scalar/position list literals are invalid.
+`to_list(poslist)` converts a position list into a scalar list by expanding each
+position as `lat, lon`.
+`to_poslist(list)` converts an even-length scalar list into a position list by
+pairing values as `(lat, lon)`. An odd number of values is invalid, and an
+empty list returns an empty position list.
 
 Examples:
 - `2 + 3` => `5`
@@ -116,6 +139,13 @@ Examples:
 - `sin(0)` => `0`
 - `sind(30)` => `0.5`
 - `pow(2, 3)` => `8`
+- `lat(pos(60, 10))` => `60`
+- `lon(pos(60, 10))` => `10`
+- `to_list({pos(60, 10), pos(61, 11)})` => `{60, 10, 61, 11}`
+- `to_poslist({60, 10, 61, 11})` => `{pos(60, 10), pos(61, 11)}`
+- `dist(pos(0, 0), pos(0, 1))` => `111319.4907932264`
+- `bearing(pos(0, 0), pos(0, 1))` => `90`
+- `lon(br_to_pos(pos(0, 0), 90, 111319.4907932264))` => `1`
 - `len({1, 2, 3})` => `3`
 - `product({2, 3, 4})` => `24`
 - `avg({2, 4, 6})` => `4`
@@ -123,9 +153,15 @@ Examples:
 - `max({2, -1, 5})` => `5`
 - `sum({1, 2, 3})` => `6`
 - `sum(map({0, 90}, sind(_)))` => `1`
+- `map({10, 20, 30, 40, 50}, _ + 1, 1, 2, 2)` => `{21, 41}`
+- `map_at({10, 20, 30, 40, 50}, _ + 1, 1, 2, 2)` => `{10, 21, 30, 41, 50}`
 - `sum(map({1, 2, 3}, _ + 1))` => `9`
 - `sum(map({1, 2, 3}, sin(_) + _))` => `7.8918884196934453`
 - `guard(1 / 0, 0)` => `0`
+- `timed_loop(sin(pi / 3), 1000)` => a non-negative elapsed time in seconds
+- `fill(1 + 2, 3)` => `{3, 3, 3}`
+- `{pos(60, 10), pos(61, 11)}` => a position list
+- `rand()` => a value in `[0, 1)`
 - `sum(map(range(-2, 5), guard(1 / _, 0)))` => `0`
 - `sum(list_div(powers(-1, 4), range(1, 4, 2)))` => `0.72380952380952379`
 - `sum(list_mul({2, 3, 4}, {5, 6, 7}))` => `56`
@@ -158,6 +194,9 @@ Examples:
 - `sin(0)`
 - `sind(30)`
 - `pow(2, 3)`
+- `pos(60, 10)`
+- `lat(pos(60, 10))`
+- `dist(pos(0, 0), pos(0, 1))`
 - `len({1, 2, 3})`
 - `product({2, 3, 4})`
 - `avg({2, 4, 6})`
@@ -170,6 +209,10 @@ Examples:
 - `map({1, 2, 3}, _ + 1)`
 - `map({1, 2, 3}, sin(_) + _)`
 - `guard(1 / 0, 0)`
+- `timed_loop(1 + 2, 3)`
+- `fill(rand(), 3)`
+- `{pos(60, 10), pos(61, 11)}`
+- `rand(10, 20)`
 - `range(10, 4)`
 - `range(1.5, 3, 0.5)`
 - `geom(2, 4)`
@@ -203,8 +246,17 @@ Examples:
 - `map({1, 2}, sum)`
 - `map({1, 2}, pow)`
 - `map({1, 2}, sin)`
+- `pos(100, 0)`
+- `lat(1)`
+- `to_poslist({60, 10, 61})`
+- `dist(pos(0, 0), 1)`
+- `br_to_pos(pos(0, 0), 90, -1)`
 - `map({1, 2}, _ + foo)`
 - `guard(1 / 0)`
+- `timed_loop(1 + 2)`
+- `fill(1)`
+- `rand(1, 2, 3)`
+- `{1, pos(60, 10)}`
 - `_`
 - `range(1)`
 - `range(1, 2, 3, 4)`

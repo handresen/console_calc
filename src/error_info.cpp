@@ -1,6 +1,7 @@
 #include "console_calc/error_info.h"
 
 #include "console_calc/builtin_function.h"
+#include "console_calc/special_form.h"
 
 namespace console_calc {
 
@@ -20,11 +21,17 @@ ErrorInfo infer_error_info(std::string_view message) {
 
     const std::string_view name = message.substr(name_begin, name_end - name_begin);
     const auto function = parse_builtin_function(name);
-    if (!function.has_value()) {
+    if (function.has_value()) {
+        error.expected_signature = std::string(builtin_function_signature(*function));
         return error;
     }
 
-    error.expected_signature = std::string(builtin_function_signature(*function));
+    const auto special_form = parse_special_form_function(name);
+    if (!special_form.has_value()) {
+        return error;
+    }
+
+    error.expected_signature = std::string(special_form_signature(*special_form));
     return error;
 }
 

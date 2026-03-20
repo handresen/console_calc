@@ -2,6 +2,7 @@
 
 #include "console_calc/builtin_function.h"
 #include "console_calc/expression_parser.h"
+#include "console_calc/special_form.h"
 #include "console_calc/value_format.h"
 
 #include <cctype>
@@ -73,7 +74,8 @@ struct ExpansionFrame {
 
 [[nodiscard]] bool is_inside_map_expression(const std::vector<ExpansionFrame>& frames) {
     for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
-        if (it->kind == ExpansionFrameKind::call && it->identifier == "map" &&
+        if (it->kind == ExpansionFrameKind::call &&
+            (it->identifier == "map" || it->identifier == "map_at") &&
             it->argument_index == 1) {
             return true;
         }
@@ -201,7 +203,8 @@ std::string expand_expression_identifiers_impl(
         if (identifier == "_" && is_inside_map_expression(frames)) {
             expanded += identifier;
             pending_call_identifier.reset();
-        } else if (is_builtin_function_name(identifier) && followed_by_call) {
+        } else if ((is_builtin_function_name(identifier) || is_special_form_name(identifier)) &&
+                   followed_by_call) {
             expanded += identifier;
             pending_call_identifier = followed_by_call ? std::optional<std::string>(identifier)
                                                        : std::nullopt;

@@ -46,6 +46,11 @@ std::string format_scalar(const ScalarValue& value, IntegerDisplayMode mode) {
     return stream.str();
 }
 
+std::string format_position(const PositionValue& value) {
+    return "pos(" + format_scalar(ScalarValue{value.latitude_deg}) + ", " +
+           format_scalar(ScalarValue{value.longitude_deg}) + ")";
+}
+
 std::string format_list(const ListValue& values) {
     return format_list(values, IntegerDisplayMode::decimal);
 }
@@ -57,6 +62,18 @@ std::string format_list(const ListValue& values, IntegerDisplayMode mode) {
             result += ", ";
         }
         result += format_scalar(values[index], mode);
+    }
+    result += '}';
+    return result;
+}
+
+std::string format_position_list(const PositionListValue& values) {
+    std::string result = "{";
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        if (index != 0) {
+            result += ", ";
+        }
+        result += format_position(values[index]);
     }
     result += '}';
     return result;
@@ -75,7 +92,15 @@ std::string format_value(const Value& value, IntegerDisplayMode mode) {
         return format_scalar(ScalarValue{*scalar}, mode);
     }
 
-    return format_list(std::get<ListValue>(value), mode);
+    if (const auto* position = std::get_if<PositionValue>(&value)) {
+        return format_position(*position);
+    }
+
+    if (const auto* list = std::get_if<ListValue>(&value)) {
+        return format_list(*list, mode);
+    }
+
+    return format_position_list(std::get<PositionListValue>(value));
 }
 
 }  // namespace console_calc

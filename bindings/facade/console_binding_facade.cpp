@@ -39,6 +39,34 @@ std::vector<double> to_binding_list_values(const Value& value) {
     return output;
 }
 
+std::optional<BindingPositionEntry> to_binding_position(const Value& value) {
+    if (const auto* position = std::get_if<PositionValue>(&value)) {
+        return BindingPositionEntry{
+            .latitude_deg = position->latitude_deg,
+            .longitude_deg = position->longitude_deg,
+        };
+    }
+
+    return std::nullopt;
+}
+
+std::vector<BindingPositionEntry> to_binding_position_list_values(const Value& value) {
+    if (!std::holds_alternative<PositionListValue>(value)) {
+        return {};
+    }
+
+    std::vector<BindingPositionEntry> output;
+    const auto& list = std::get<PositionListValue>(value);
+    output.reserve(list.size());
+    for (const auto& position : list) {
+        output.push_back(BindingPositionEntry{
+            .latitude_deg = position.latitude_deg,
+            .longitude_deg = position.longitude_deg,
+        });
+    }
+    return output;
+}
+
 std::string display_mode_name(IntegerDisplayMode mode) {
     switch (mode) {
     case IntegerDisplayMode::decimal:
@@ -56,6 +84,8 @@ std::string function_category_name(BuiltinFunctionCategory category) {
     switch (category) {
     case BuiltinFunctionCategory::scalar:
         return "scalar";
+    case BuiltinFunctionCategory::position:
+        return "position";
     case BuiltinFunctionCategory::list:
         return "list";
     case BuiltinFunctionCategory::list_generation:
@@ -70,6 +100,8 @@ BindingStackEntry to_binding_entry(const StackEntryView& entry, IntegerDisplayMo
         .level = entry.level,
         .display = format_console_value(entry.value, mode),
         .list_values = to_binding_list_values(entry.value),
+        .position = to_binding_position(entry.value),
+        .position_list_values = to_binding_position_list_values(entry.value),
     };
 }
 

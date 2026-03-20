@@ -25,6 +25,14 @@ constexpr std::string_view k_color_reset = "\x1b[0m";
     std::fprintf(stderr, "%.*s mismatch\n", static_cast<int>(label.size()), label.data());
     std::fprintf(stderr, "expected: [%s]\n", expected.c_str());
     std::fprintf(stderr, "actual:   [%s]\n", actual.c_str());
+    std::size_t mismatch_index = 0;
+    while (mismatch_index < actual.size() && mismatch_index < expected.size() &&
+           actual[mismatch_index] == expected[mismatch_index]) {
+        ++mismatch_index;
+    }
+    std::fprintf(stderr, "first diff at index %zu (expected %d, actual %d)\n", mismatch_index,
+                 mismatch_index < expected.size() ? static_cast<unsigned char>(expected[mismatch_index]) : -1,
+                 mismatch_index < actual.size() ? static_cast<unsigned char>(actual[mismatch_index]) : -1);
     return false;
 }
 

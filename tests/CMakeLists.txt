@@ -1,6 +1,10 @@
 add_executable(console_calc_expression_conformance_test
     expression_case_loader.cpp
+    expression_conformance_ast_test.cpp
+    expression_conformance_semantics_test.cpp
     expression_conformance_test.cpp
+    expression_conformance_signature_test.cpp
+    expression_conformance_value_test.cpp
 )
 
 target_link_libraries(console_calc_expression_conformance_test
@@ -54,6 +58,10 @@ if(CONSOLE_CALC_BUILD_TERMINAL_APP)
     add_test(NAME console_calc_history_test COMMAND $<TARGET_FILE:console_calc_history_test>)
 
     add_executable(console_calc_session_test
+        console_session_basic_test.cpp
+        console_session_definition_test.cpp
+        console_session_list_test.cpp
+        console_session_listing_test.cpp
         console_session_test.cpp
     )
 
