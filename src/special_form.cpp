@@ -16,8 +16,9 @@ constexpr std::array<SpecialFormInfo, 5> k_special_forms = {{
      "timed_loop(expr, count)", "evaluate expr count times and return elapsed seconds"},
     {Function::fill, "fill", 2, 2, BuiltinFunctionCategory::list_generation, "fill(expr, count)",
      "evaluate expr count times into a list"},
-    {Function::map, "map", 2, 2, BuiltinFunctionCategory::list, "map(list, expr)",
-     "map inline expression over list"},
+    {Function::map, "map", 2, 5, BuiltinFunctionCategory::list,
+     "map(list, expr[, start[, step[, count]]])",
+     "map inline expression over list slice"},
 }};
 
 }  // namespace

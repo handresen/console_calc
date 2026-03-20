@@ -163,7 +163,7 @@ pow(e, 1)
 - `list_div(a, b)`   divide matching list elements
 - `list_mul(a, b)`   multiply matching list elements
 - `reduce(list, op)` reduce a list with a binary operator
-- `map(list, expr)`  map an inline expression using `_` as the current element
+- `map(list, expr[, start[, step[, count]]])` map an inline expression using `_` over a list slice
 
 ### List Generation Functions
 
@@ -190,6 +190,9 @@ Function notes:
 - `reduce` requires a non-empty list
 - `reduce` uses existing binary operators such as `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - `map` accepts an inline expression using `_` as the current element
+- `map` optional `start`, `step`, and `count` arguments use zero-based `start`
+- `map` uses `step = 1` and maps all remaining matching elements when `count` is omitted
+- `map` requires `step` to be a positive integer
 - `pos(lat, lon)` uses the `(lat, lon)` convention in degrees
 - only geo functions accept position values
 - `map({1, 2}, sum)` and `map({1, 2}, pow)` are invalid
@@ -227,6 +230,7 @@ list_mul({2, 3}, {4, 5})      => {8, 15}
 reduce({2, 3, 4}, *)          => 24
 map({0, 90}, sind(_))         => {0, 1}
 map({1, 2, 3}, _ + 1)         => {2, 3, 4}
+map({10, 20, 30, 40, 50}, _ + 1, 1, 2, 2) => {21, 41}
 map({1, 2, 3}, sin(_) + _)    => {1.84147..., 2.90929..., 3.14112...}
 guard(1 / 0, 0)               => 0
 timed_loop(sin(pi / 3), 1000) => 0.00...

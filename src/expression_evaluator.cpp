@@ -113,6 +113,14 @@ namespace {
     return static_cast<std::size_t>(integral_part);
 }
 
+[[nodiscard]] std::size_t require_positive_list_step(const ScalarValue& value) {
+    const std::size_t step = require_list_index(value);
+    if (step == 0) {
+        throw EvaluationError("map() step must be a positive integer");
+    }
+    return step;
+}
+
 [[nodiscard]] std::int64_t require_integer_operand(const ScalarValue& value) {
     if (const auto* integer = std::get_if<std::int64_t>(&value)) {
         return *integer;
@@ -682,11 +690,44 @@ template <typename Operation>
                                       const std::optional<ScalarValue>& placeholder_value) {
     const ListValue input_values =
         require_list(evaluate_expression_with_placeholder(*node.list_argument, placeholder_value));
+
+    std::size_t start = 0;
+    std::size_t step = 1;
+    std::optional<std::size_t> count;
+    if (node.start_argument != nullptr) {
+        start = require_list_index(require_scalar_or_singleton_list_value(
+            evaluate_expression_with_placeholder(*node.start_argument, placeholder_value)));
+    }
+    if (node.step_argument != nullptr) {
+        step = require_positive_list_step(require_scalar_or_singleton_list_value(
+            evaluate_expression_with_placeholder(*node.step_argument, placeholder_value)));
+    }
+    if (node.count_argument != nullptr) {
+        count = require_list_index(require_scalar_or_singleton_list_value(
+            evaluate_expression_with_placeholder(*node.count_argument, placeholder_value)));
+    }
+
+    start = std::min(start, input_values.size());
+    if (start >= input_values.size() || (count.has_value() && *count == 0U)) {
+        return ListValue{};
+    }
+
     ListValue mapped_values;
-    mapped_values.reserve(input_values.size());
-    for (const auto& value : input_values) {
+    if (count.has_value()) {
+        mapped_values.reserve(*count);
+    } else {
+        mapped_values.reserve(((input_values.size() - start) + step - 1U) / step);
+    }
+
+    std::size_t emitted = 0;
+    for (std::size_t index = start; index < input_values.size(); index += step) {
+        if (count.has_value() && emitted >= *count) {
+            break;
+        }
+        const auto& value = input_values[index];
         mapped_values.push_back(require_scalar_value(
             evaluate_expression_with_placeholder(*node.mapped_expression, value)));
+        ++emitted;
     }
     return mapped_values;
 }

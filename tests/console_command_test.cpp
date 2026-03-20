@@ -40,52 +40,52 @@ bool expect_builtin_function_listing() {
     return console_calc::format_function_listing(console_calc::builtin_functions(),
                                                  console_calc::special_forms()) ==
            "Scalar functions\n"
-           "  abs(x)                                absolute value\n"
-           "  cos(x)                                cosine in radians\n"
-           "  cosd(x)                               cosine in degrees\n"
-           "  guard(expr, fallback)                 use fallback when expr evaluation fails\n"
-           "  pow(x, y)                             power\n"
-           "  rand([min, max])                      random number in half-open interval\n"
-           "  sin(x)                                sine in radians\n"
-           "  sind(x)                               sine in degrees\n"
-           "  sqrt(x)                               square root\n"
-           "  tan(x)                                tangent in radians\n"
-           "  tand(x)                               tangent in degrees\n"
-           "  timed_loop(expr, count)               evaluate expr count times and return elapsed seconds\n"
+           "  abs(x)                                   absolute value\n"
+           "  cos(x)                                   cosine in radians\n"
+           "  cosd(x)                                  cosine in degrees\n"
+           "  guard(expr, fallback)                    use fallback when expr evaluation fails\n"
+           "  pow(x, y)                                power\n"
+           "  rand([min, max])                         random number in half-open interval\n"
+           "  sin(x)                                   sine in radians\n"
+           "  sind(x)                                  sine in degrees\n"
+           "  sqrt(x)                                  square root\n"
+           "  tan(x)                                   tangent in radians\n"
+           "  tand(x)                                  tangent in degrees\n"
+           "  timed_loop(expr, count)                  evaluate expr count times and return elapsed seconds\n"
            "\n"
            "Position functions\n"
-           "  bearing(pos1, pos2)                   initial WGS84 bearing in degrees\n"
-           "  br_to_pos(pos, bearing_deg, range_m)  destination position from bearing and range\n"
-           "  dist(pos1, pos2)                      WGS84 ellipsoid distance in meters\n"
-           "  lat(pos)                              extract latitude in degrees\n"
-           "  lon(pos)                              extract longitude in degrees\n"
-           "  pos(lat, lon)                         construct WGS84 position in degrees\n"
-           "  to_list(poslist)                      expand positions into lat lon scalar list\n"
-           "  to_poslist(list)                      pair scalar list values into positions\n"
+           "  bearing(pos1, pos2)                      initial WGS84 bearing in degrees\n"
+           "  br_to_pos(pos, bearing_deg, range_m)     destination position from bearing and range\n"
+           "  dist(pos1, pos2)                         WGS84 ellipsoid distance in meters\n"
+           "  lat(pos)                                 extract latitude in degrees\n"
+           "  lon(pos)                                 extract longitude in degrees\n"
+           "  pos(lat, lon)                            construct WGS84 position in degrees\n"
+           "  to_list(poslist)                         expand positions into lat lon scalar list\n"
+           "  to_poslist(list)                         pair scalar list values into positions\n"
            "\n"
            "List functions\n"
-           "  avg(list)                             average of list elements\n"
-           "  drop(n, list)                         drop first n list elements\n"
-           "  first(n, list)                        first n list elements\n"
-           "  len(list)                             list length\n"
-           "  list_add(a, b)                        add matching list elements\n"
-           "  list_div(a, b)                        divide matching list elements\n"
-           "  list_mul(a, b)                        multiply matching list elements\n"
-           "  list_sub(a, b)                        subtract matching list elements\n"
-           "  map(list, expr)                       map inline expression over list\n"
-           "  max(list)                             maximum list element\n"
-           "  min(list)                             minimum list element\n"
-           "  product(list)                         product of list elements\n"
-           "  reduce(list, op)                      reduce list with binary operator\n"
-           "  sum(list)                             sum list elements\n"
+           "  avg(list)                                average of list elements\n"
+           "  drop(n, list)                            drop first n list elements\n"
+           "  first(n, list)                           first n list elements\n"
+           "  len(list)                                list length\n"
+           "  list_add(a, b)                           add matching list elements\n"
+           "  list_div(a, b)                           divide matching list elements\n"
+           "  list_mul(a, b)                           multiply matching list elements\n"
+           "  list_sub(a, b)                           subtract matching list elements\n"
+           "  map(list, expr[, start[, step[, count]]])  map inline expression over list slice\n"
+           "  max(list)                                maximum list element\n"
+           "  min(list)                                minimum list element\n"
+           "  product(list)                            product of list elements\n"
+           "  reduce(list, op)                         reduce list with binary operator\n"
+           "  sum(list)                                sum list elements\n"
            "\n"
            "List generation functions\n"
-           "  fill(expr, count)                     evaluate expr count times into a list\n"
-           "  geom(start, count[, ratio])           generate geometric series from start\n"
-           "  linspace(start, stop, count)          generate evenly spaced values over interval\n"
-           "  powers(base, count[, start_exp])      generate successive integer powers\n"
-           "  range(start, count[, step])           generate linear series from start\n"
-           "  repeat(value, count)                  repeat value count times\n";
+           "  fill(expr, count)                        evaluate expr count times into a list\n"
+           "  geom(start, count[, ratio])              generate geometric series from start\n"
+           "  linspace(start, stop, count)             generate evenly spaced values over interval\n"
+           "  powers(base, count[, start_exp])         generate successive integer powers\n"
+           "  range(start, count[, step])              generate linear series from start\n"
+           "  repeat(value, count)                     repeat value count times\n";
 }
 
 bool expect_constant_and_definition_listing() {
@@ -254,10 +254,10 @@ bool expect_builtin_function_metadata() {
            fill_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
            fill_info.signature == "fill(expr, count)" &&
            fill_info.summary == "evaluate expr count times into a list" &&
-           map_info.name == "map" && map_info.min_arity == 2 && map_info.max_arity == 2 &&
+           map_info.name == "map" && map_info.min_arity == 2 && map_info.max_arity == 5 &&
            map_info.category == console_calc::BuiltinFunctionCategory::list &&
-           map_info.signature == "map(list, expr)" &&
-           map_info.summary == "map inline expression over list" &&
+           map_info.signature == "map(list, expr[, start[, step[, count]]])" &&
+           map_info.summary == "map inline expression over list slice" &&
            range_info.name == "range" && range_info.min_arity == 2 && range_info.max_arity == 3 &&
            range_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
            range_info.summary == "generate linear series from start" &&

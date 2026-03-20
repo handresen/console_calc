@@ -1,6 +1,8 @@
 #include <cmath>
 #include <cstdlib>
 #include <exception>
+#include <functional>
+#include <iostream>
 #include <string>
 #include <variant>
 
@@ -257,6 +259,25 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
         return false;
     }
 
+    const console_calc::Value ranged_map =
+        parser.evaluate_value("map({10, 20, 30, 40, 50}, _ + 1, 1, 2, 2)");
+    const auto* ranged_values = std::get_if<console_calc::ListValue>(&ranged_map);
+    if (ranged_values == nullptr || ranged_values->size() != 2 ||
+        !almost_equal(console_calc::scalar_to_double((*ranged_values)[0]), 21.0) ||
+        !almost_equal(console_calc::scalar_to_double((*ranged_values)[1]), 41.0)) {
+        return false;
+    }
+
+    const console_calc::Value default_end_map =
+        parser.evaluate_value("map({10, 20, 30, 40, 50}, _ + 1, 2)");
+    const auto* default_end_values = std::get_if<console_calc::ListValue>(&default_end_map);
+    if (default_end_values == nullptr || default_end_values->size() != 3 ||
+        !almost_equal(console_calc::scalar_to_double((*default_end_values)[0]), 31.0) ||
+        !almost_equal(console_calc::scalar_to_double((*default_end_values)[1]), 41.0) ||
+        !almost_equal(console_calc::scalar_to_double((*default_end_values)[2]), 51.0)) {
+        return false;
+    }
+
     const console_calc::Value paired_positions =
         parser.evaluate_value("to_poslist({60, 10, 61, 11})");
     const auto* paired_values =
@@ -288,7 +309,8 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
         return false;
     }
 
-    const console_calc::Value empty_scalar_list = parser.evaluate_value("to_list({})");
+    const console_calc::Value empty_scalar_list =
+        parser.evaluate_value("to_list(to_poslist({}))");
     const auto* empty_scalars = std::get_if<console_calc::ListValue>(&empty_scalar_list);
     if (empty_scalars == nullptr || !empty_scalars->empty()) {
         return false;
@@ -332,6 +354,14 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
 
     try {
         (void)parser.evaluate("to_list({60, 10})");
+        return false;
+    } catch (const std::invalid_argument&) {
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.evaluate("map({1, 2, 3}, _ + 1, 0, 0)");
         return false;
     } catch (const std::invalid_argument&) {
     } catch (const std::exception&) {
@@ -598,14 +628,16 @@ bool expect_map_expression_ast_shape(console_calc::ExpressionParser& parser) {
     using console_calc::NumberLiteral;
     using console_calc::PlaceholderExpression;
 
-    const Expression ast = parser.parse("map({2, 3}, _ + 1)");
+    const Expression ast = parser.parse("map({2, 3, 4, 5}, _ + 1, 1, 2, 4)");
     const auto* root = std::get_if<MapCall>(&ast.node);
-    if (root == nullptr || root->mapped_expression == nullptr) {
+    if (root == nullptr || root->mapped_expression == nullptr ||
+        root->start_argument == nullptr || root->step_argument == nullptr ||
+        root->count_argument == nullptr) {
         return false;
     }
 
     const auto* list = std::get_if<ListLiteral>(&root->list_argument->node);
-    if (list == nullptr || list->elements.size() != 2) {
+    if (list == nullptr || list->elements.size() != 4) {
         return false;
     }
 
@@ -614,8 +646,15 @@ bool expect_map_expression_ast_shape(console_calc::ExpressionParser& parser) {
         return false;
     }
 
+    const auto* start = std::get_if<NumberLiteral>(&root->start_argument->node);
+    const auto* step = std::get_if<NumberLiteral>(&root->step_argument->node);
+    const auto* count = std::get_if<NumberLiteral>(&root->count_argument->node);
+
     return std::holds_alternative<PlaceholderExpression>(mapped->left->node) &&
-           std::holds_alternative<NumberLiteral>(mapped->right->node);
+           std::holds_alternative<NumberLiteral>(mapped->right->node) &&
+           start != nullptr && almost_equal(start->value, 1.0) &&
+           step != nullptr && almost_equal(step->value, 2.0) &&
+           count != nullptr && almost_equal(count->value, 4.0);
 }
 
 bool expect_guard_ast_shape(console_calc::ExpressionParser& parser) {
@@ -961,6 +1000,18 @@ bool expect_function_signature_errors(console_calc::ExpressionParser& parser) {
     }
 
     try {
+        (void)parser.parse("map({1, 2}, _ + 1, 0, 2, 4, 5)");
+        return false;
+    } catch (const std::invalid_argument& error) {
+        if (std::string(error.what()) !=
+            "function 'map' expects map(list, expr[, start[, step[, count]]])") {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
         (void)parser.parse("to_poslist()");
         return false;
     } catch (const std::invalid_argument& error) {
@@ -1000,96 +1051,54 @@ bool expect_function_signature_errors(console_calc::ExpressionParser& parser) {
 
 int main() {
     console_calc::ExpressionParser parser;
+    const auto run_check = [](std::string_view label, const std::function<bool()>& check) {
+        try {
+            if (check()) {
+                return true;
+            }
+            std::cerr << "conformance check failed: " << label << '\n';
+            return false;
+        } catch (const std::exception& error) {
+            std::cerr << "conformance check threw in " << label << ": " << error.what() << '\n';
+            return false;
+        }
+    };
 
-    if (!expect_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_value_api(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_position_list_value_api(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_value_api_boundaries(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_parenthesized_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_unary_minus_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_power_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_bitwise_and_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_bitwise_or_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_function_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_sum_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_map_expression_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_guard_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_reduce_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_timed_loop_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_fill_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_range_ast_shape(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_generator_ast_shapes(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_integer_semantics(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_timed_loop_behavior(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_fill_behavior(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_rand_behavior(parser)) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_function_signature_errors(parser)) {
+    if (!run_check("expect_ast_shape", [&] { return expect_ast_shape(parser); }) ||
+        !run_check("expect_value_api", [&] { return expect_value_api(parser); }) ||
+        !run_check("expect_position_list_value_api",
+                   [&] { return expect_position_list_value_api(parser); }) ||
+        !run_check("expect_value_api_boundaries",
+                   [&] { return expect_value_api_boundaries(parser); }) ||
+        !run_check("expect_parenthesized_ast_shape",
+                   [&] { return expect_parenthesized_ast_shape(parser); }) ||
+        !run_check("expect_unary_minus_ast_shape",
+                   [&] { return expect_unary_minus_ast_shape(parser); }) ||
+        !run_check("expect_power_ast_shape", [&] { return expect_power_ast_shape(parser); }) ||
+        !run_check("expect_bitwise_and_ast_shape",
+                   [&] { return expect_bitwise_and_ast_shape(parser); }) ||
+        !run_check("expect_bitwise_or_ast_shape",
+                   [&] { return expect_bitwise_or_ast_shape(parser); }) ||
+        !run_check("expect_function_ast_shape",
+                   [&] { return expect_function_ast_shape(parser); }) ||
+        !run_check("expect_sum_ast_shape", [&] { return expect_sum_ast_shape(parser); }) ||
+        !run_check("expect_map_expression_ast_shape",
+                   [&] { return expect_map_expression_ast_shape(parser); }) ||
+        !run_check("expect_guard_ast_shape", [&] { return expect_guard_ast_shape(parser); }) ||
+        !run_check("expect_reduce_ast_shape", [&] { return expect_reduce_ast_shape(parser); }) ||
+        !run_check("expect_timed_loop_ast_shape",
+                   [&] { return expect_timed_loop_ast_shape(parser); }) ||
+        !run_check("expect_fill_ast_shape", [&] { return expect_fill_ast_shape(parser); }) ||
+        !run_check("expect_range_ast_shape", [&] { return expect_range_ast_shape(parser); }) ||
+        !run_check("expect_generator_ast_shapes",
+                   [&] { return expect_generator_ast_shapes(parser); }) ||
+        !run_check("expect_integer_semantics", [&] { return expect_integer_semantics(parser); }) ||
+        !run_check("expect_timed_loop_behavior",
+                   [&] { return expect_timed_loop_behavior(parser); }) ||
+        !run_check("expect_fill_behavior", [&] { return expect_fill_behavior(parser); }) ||
+        !run_check("expect_rand_behavior", [&] { return expect_rand_behavior(parser); }) ||
+        !run_check("expect_function_signature_errors",
+                   [&] { return expect_function_signature_errors(parser); })) {
         return EXIT_FAILURE;
     }
 

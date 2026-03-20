@@ -93,6 +93,9 @@ struct FunctionCall {
 struct MapCall {
     std::unique_ptr<Expression> list_argument;
     std::unique_ptr<Expression> mapped_expression;
+    std::unique_ptr<Expression> start_argument;
+    std::unique_ptr<Expression> step_argument;
+    std::unique_ptr<Expression> count_argument;
 };
 
 struct GuardCall {
