@@ -26,6 +26,7 @@ struct BindingStackEntry {
     std::string display;
     std::vector<double> list_values;
     std::optional<BindingPositionEntry> position;
+    std::vector<BindingPositionEntry> position_list_values;
 };
 
 struct BindingDefinitionEntry {

@@ -50,6 +50,23 @@ std::optional<BindingPositionEntry> to_binding_position(const Value& value) {
     return std::nullopt;
 }
 
+std::vector<BindingPositionEntry> to_binding_position_list_values(const Value& value) {
+    if (!std::holds_alternative<PositionListValue>(value)) {
+        return {};
+    }
+
+    std::vector<BindingPositionEntry> output;
+    const auto& list = std::get<PositionListValue>(value);
+    output.reserve(list.size());
+    for (const auto& position : list) {
+        output.push_back(BindingPositionEntry{
+            .latitude_deg = position.latitude_deg,
+            .longitude_deg = position.longitude_deg,
+        });
+    }
+    return output;
+}
+
 std::string display_mode_name(IntegerDisplayMode mode) {
     switch (mode) {
     case IntegerDisplayMode::decimal:
@@ -84,6 +101,7 @@ BindingStackEntry to_binding_entry(const StackEntryView& entry, IntegerDisplayMo
         .display = format_console_value(entry.value, mode),
         .list_values = to_binding_list_values(entry.value),
         .position = to_binding_position(entry.value),
+        .position_list_values = to_binding_position_list_values(entry.value),
     };
 }
 

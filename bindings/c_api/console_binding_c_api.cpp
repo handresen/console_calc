@@ -163,6 +163,17 @@ void append_stack_json(JsonWriter& json, std::span<const BindingStackEntry> stac
         } else {
             json.null_value();
         }
+        json.key("position_list_values");
+        json.begin_array();
+        for (const auto& position : entry.position_list_values) {
+            json.begin_object();
+            json.key("latitude_deg");
+            json.value(position.latitude_deg);
+            json.key("longitude_deg");
+            json.value(position.longitude_deg);
+            json.end_object();
+        }
+        json.end_array();
         json.end_object();
     }
     json.end_array();

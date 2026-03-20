@@ -30,7 +30,16 @@ interface PlotSeries {
   truncated: boolean;
 }
 
-function isPlotSeries(value: PlotSeries | null): value is PlotSeries {
+interface PositionPlotSeries {
+  key: string;
+  label: string;
+  points: BindingPositionEntry[];
+  truncated: boolean;
+}
+
+type PlotItem = PlotSeries | PositionPlotSeries;
+
+function isPlotSeries(value: PlotItem | null): value is PlotItem {
   return value !== null;
 }
 
@@ -142,7 +151,32 @@ function constantDisplay(entry: BindingConstantEntry): string {
   return `${entry.name}:${entry.value}`;
 }
 
-function parsePlotSeries(entry: BindingStackEntry): PlotSeries | null {
+function parsePlotSeries(entry: BindingStackEntry): PlotItem | null {
+  const positionListValues = entry.position_list_values ?? [];
+  if (positionListValues.length > 0 || entry.display.trim().startsWith("{pos(")) {
+    const maxPositionPoints = 10000;
+    const points =
+      positionListValues.length <= maxPositionPoints
+        ? positionListValues
+        : Array.from({ length: maxPositionPoints }, (_, index) => {
+            const sourceIndex = Math.round(
+              (index / (maxPositionPoints - 1)) * (positionListValues.length - 1),
+            );
+            return (
+              positionListValues[sourceIndex] ?? {
+                latitude_deg: 0,
+                longitude_deg: 0,
+              }
+            );
+          });
+    return {
+      key: `stack-${entry.level}`,
+      label: `Stack ${entry.level}`,
+      points,
+      truncated: positionListValues.length > 500,
+    };
+  }
+
   const listValues = entry.list_values ?? [];
   if (listValues.length === 0 && !entry.display.trim().startsWith("{}")) {
     return null;
@@ -202,6 +236,99 @@ function buildZeroAxisPath(values: number[], width: number, height: number): str
   const range = max - min || 1;
   const y = height - ((0 - min) / range) * height;
   return `M 0 ${y.toFixed(2)} L ${width} ${y.toFixed(2)}`;
+}
+
+function buildPositionBounds(points: BindingPositionEntry[]): {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+} {
+  const longitudes = points.map((point) => point.longitude_deg);
+  const latitudes = points.map((point) => point.latitude_deg);
+  const minX = Math.min(...longitudes);
+  const maxX = Math.max(...longitudes);
+  const minY = Math.min(...latitudes);
+  const maxY = Math.max(...latitudes);
+  const spanX = maxX - minX;
+  const spanY = maxY - minY;
+  const paddedSpanX = spanX === 0 ? 0.02 : spanX * 1.08;
+  const paddedSpanY = spanY === 0 ? 0.02 : spanY * 1.08;
+  const unifiedSpan = Math.max(paddedSpanX, paddedSpanY);
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  const halfSpan = unifiedSpan / 2;
+
+  return {
+    minX: centerX - halfSpan,
+    maxX: centerX + halfSpan,
+    minY: centerY - halfSpan,
+    maxY: centerY + halfSpan,
+  };
+}
+
+function formatLatitude(value: number): string {
+  const suffix = value < 0 ? "S" : "N";
+  return `${Math.abs(value).toFixed(1).padStart(4, "0")}${suffix}`;
+}
+
+function formatLongitude(value: number): string {
+  const suffix = value < 0 ? "W" : "E";
+  return `${Math.abs(value).toFixed(1).padStart(5, "0")}${suffix}`;
+}
+
+function formatCornerLabel(latitude: number, longitude: number): string {
+  return `${formatLatitude(latitude)}-${formatLongitude(longitude)}`;
+}
+
+function buildPositionPlotPath(
+  points: BindingPositionEntry[],
+  width: number,
+  height: number,
+): string {
+  if (points.length === 0) {
+    return "";
+  }
+
+  const bounds = buildPositionBounds(points);
+  const rangeX = bounds.maxX - bounds.minX || 1;
+  const rangeY = bounds.maxY - bounds.minY || 1;
+
+  return points
+    .map((point, index) => {
+      const x = ((point.longitude_deg - bounds.minX) / rangeX) * width;
+      const y = height - ((point.latitude_deg - bounds.minY) / rangeY) * height;
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
+}
+
+function buildPositionReferenceAxes(
+  points: BindingPositionEntry[],
+  width: number,
+  height: number,
+): { equator: string; primeMeridian: string } {
+  if (points.length === 0) {
+    return { equator: "", primeMeridian: "" };
+  }
+
+  const bounds = buildPositionBounds(points);
+  const rangeX = bounds.maxX - bounds.minX || 1;
+  const rangeY = bounds.maxY - bounds.minY || 1;
+
+  let equator = "";
+  if (bounds.minY <= 0 && bounds.maxY >= 0) {
+    const y = height - ((0 - bounds.minY) / rangeY) * height;
+    equator = `M 0 ${y.toFixed(2)} L ${width} ${y.toFixed(2)}`;
+  }
+
+  let primeMeridian = "";
+  if (bounds.minX <= 0 && bounds.maxX >= 0) {
+    const x = ((0 - bounds.minX) / rangeX) * width;
+    primeMeridian = `M ${x.toFixed(2)} 0 L ${x.toFixed(2)} ${height}`;
+  }
+
+  return { equator, primeMeridian };
 }
 
 interface PaneElements {
@@ -292,6 +419,18 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
   const plotMeta = document.createElement("div");
   plotMeta.className = "plot-meta";
 
+  const plotControls = document.createElement("label");
+  plotControls.className = "plot-controls";
+
+  const connectPointsToggle = document.createElement("input");
+  connectPointsToggle.type = "checkbox";
+  connectPointsToggle.checked = true;
+
+  const connectPointsLabel = document.createElement("span");
+  connectPointsLabel.textContent = "Connect points";
+
+  plotControls.append(connectPointsToggle, connectPointsLabel);
+
   const plotSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   plotSvg.setAttribute("viewBox", "0 0 320 180");
   plotSvg.setAttribute("preserveAspectRatio", "none");
@@ -304,28 +443,164 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
   const plotZeroAxis = document.createElementNS("http://www.w3.org/2000/svg", "path");
   plotZeroAxis.setAttribute("class", "plot-zero-axis");
 
+  const plotPrimeMeridian = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  plotPrimeMeridian.setAttribute("class", "plot-reference-axis");
+
   const plotLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
   plotLine.setAttribute("class", "plot-line");
 
-  plotSvg.append(plotGrid, plotZeroAxis, plotLine);
-  plotPane.body.append(plotMeta, plotSvg);
+  const plotPoints = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  plotPoints.setAttribute("class", "plot-points");
 
-  const renderPlot = (seriesList: PlotSeries[]) => {
+  const plotCornerLabels = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  plotCornerLabels.setAttribute("class", "plot-corner-labels");
+
+  const createCornerLabel = (x: string, y: string, anchor: string, baseline: string) => {
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", x);
+    label.setAttribute("y", y);
+    label.setAttribute("text-anchor", anchor);
+    label.setAttribute("dominant-baseline", baseline);
+    label.setAttribute("class", "plot-corner-label");
+    return label;
+  };
+
+  const topLeftLabel = createCornerLabel("6", "6", "start", "hanging");
+  const topRightLabel = createCornerLabel("314", "6", "end", "hanging");
+  const bottomLeftLabel = createCornerLabel("6", "174", "start", "auto");
+  const bottomRightLabel = createCornerLabel("314", "174", "end", "auto");
+
+  plotCornerLabels.append(
+    topLeftLabel,
+    topRightLabel,
+    bottomLeftLabel,
+    bottomRightLabel,
+  );
+
+  plotSvg.append(
+    plotGrid,
+    plotZeroAxis,
+    plotPrimeMeridian,
+    plotLine,
+    plotPoints,
+    plotCornerLabels,
+  );
+  plotPane.body.append(plotMeta, plotControls, plotSvg);
+
+  const renderPointMarkers = (points: Array<{ x: number; y: number }>) => {
+    plotPoints.replaceChildren();
+    for (const point of points) {
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("cx", point.x.toFixed(2));
+      circle.setAttribute("cy", point.y.toFixed(2));
+      circle.setAttribute("r", "2.3");
+      circle.setAttribute("class", "plot-point");
+      plotPoints.append(circle);
+    }
+  };
+
+  const buildScalarPlotPoints = (values: number[], width: number, height: number) => {
+    if (values.length === 0) {
+      return [];
+    }
+    if (values.length === 1) {
+      return [{ x: width / 2, y: height / 2 }];
+    }
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+
+    return values.map((value, index) => ({
+      x: (index / (values.length - 1)) * width,
+      y: height - ((value - min) / range) * height,
+    }));
+  };
+
+  const buildPositionPlotPoints = (
+    points: BindingPositionEntry[],
+    width: number,
+    height: number,
+  ) => {
+    if (points.length === 0) {
+      return [];
+    }
+
+    const bounds = buildPositionBounds(points);
+    const rangeX = bounds.maxX - bounds.minX || 1;
+    const rangeY = bounds.maxY - bounds.minY || 1;
+
+    return points.map((point) => ({
+      x: ((point.longitude_deg - bounds.minX) / rangeX) * width,
+      y: height - ((point.latitude_deg - bounds.minY) / rangeY) * height,
+    }));
+  };
+
+  const renderPlot = (seriesList: PlotItem[]) => {
     plotPane.count.textContent = `${seriesList.length}`;
 
     if (seriesList.length === 0) {
-      plotMeta.textContent = "No list values in stack";
+      plotMeta.textContent = "No plottable list values in stack";
       plotZeroAxis.setAttribute("d", "");
+      plotPrimeMeridian.setAttribute("d", "");
       plotLine.setAttribute("d", "");
+      renderPointMarkers([]);
+      topLeftLabel.textContent = "";
+      topRightLabel.textContent = "";
+      bottomLeftLabel.textContent = "";
+      bottomRightLabel.textContent = "";
       return;
     }
 
     const currentSeries = seriesList[seriesList.length - 1];
     const suffix = currentSeries.truncated ? " | using visible values" : "";
-    plotMeta.textContent = `${currentSeries.label} | ${currentSeries.values.length} points${suffix}`;
-    plotZeroAxis.setAttribute("d", buildZeroAxisPath(currentSeries.values, 320, 180));
-    plotLine.setAttribute("d", buildPlotPath(currentSeries.values, 320, 180));
+    if ("values" in currentSeries) {
+      plotMeta.textContent = `${currentSeries.label} | ${currentSeries.values.length} values${suffix}`;
+      plotZeroAxis.setAttribute("d", buildZeroAxisPath(currentSeries.values, 320, 180));
+      plotPrimeMeridian.setAttribute("d", "");
+      const points = buildScalarPlotPoints(currentSeries.values, 320, 180);
+      plotLine.setAttribute(
+        "d",
+        connectPointsToggle.checked ? buildPlotPath(currentSeries.values, 320, 180) : "",
+      );
+      renderPointMarkers(points);
+      topLeftLabel.textContent = "";
+      topRightLabel.textContent = "";
+      bottomLeftLabel.textContent = "";
+      bottomRightLabel.textContent = "";
+      return;
+    }
+
+    plotMeta.textContent = `${currentSeries.label} | ${currentSeries.points.length} positions | lon/x, lat/y${suffix}`;
+    const bounds = buildPositionBounds(currentSeries.points);
+    const referenceAxes = buildPositionReferenceAxes(currentSeries.points, 320, 180);
+    plotZeroAxis.setAttribute("d", referenceAxes.equator);
+    plotPrimeMeridian.setAttribute("d", referenceAxes.primeMeridian);
+    const points = buildPositionPlotPoints(currentSeries.points, 320, 180);
+    plotLine.setAttribute(
+      "d",
+      connectPointsToggle.checked
+        ? buildPositionPlotPath(currentSeries.points, 320, 180)
+        : "",
+    );
+    renderPointMarkers(points);
+    topLeftLabel.textContent = formatCornerLabel(bounds.maxY, bounds.minX);
+    topRightLabel.textContent = formatCornerLabel(bounds.maxY, bounds.maxX);
+    bottomLeftLabel.textContent = formatCornerLabel(bounds.minY, bounds.minX);
+    bottomRightLabel.textContent = formatCornerLabel(bounds.minY, bounds.maxX);
   };
+
+  connectPointsToggle.addEventListener("change", () => {
+    const stackEntries = (section as HTMLElement).dataset.plotSnapshot;
+    if (stackEntries == null) {
+      return;
+    }
+    renderPlot(
+      (JSON.parse(stackEntries) as BindingStackEntry[])
+        .map((entry) => parsePlotSeries(entry))
+        .filter(isPlotSeries),
+    );
+  });
 
   infoPanel.append(
     status,
@@ -364,6 +639,7 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
         snapshot.constants.map((entry) => constantDisplay(entry)),
       );
       renderFunctionTable(functionTableContainer, snapshot.functions);
+      section.dataset.plotSnapshot = JSON.stringify(snapshot.stack);
       renderPlot(snapshot.stack.map((entry) => parsePlotSeries(entry)).filter(isPlotSeries));
     },
   };
