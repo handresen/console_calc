@@ -141,6 +141,8 @@ pow(e, 1)
 - `pos(lat, lon)` construct WGS84 position in degrees
 - `lat(pos)`    extract latitude in degrees
 - `lon(pos)`    extract longitude in degrees
+- `to_list(poslist)` expand positions into a scalar list using `(lat, lon)` order
+- `to_poslist(list)` pair scalar list values into positions
 - `dist(pos1, pos2)` WGS84 ellipsoid distance in meters
 - `bearing(pos1, pos2)` initial WGS84 bearing in degrees
 - `br_to_pos(pos, bearing_deg, range_m)` destination position from bearing and range
@@ -174,6 +176,8 @@ pow(e, 1)
 
 Position lists:
 - homogeneous position lists are supported with literals such as `{pos(60, 10), pos(61, 11)}`
+- `to_list({pos(60, 10), pos(61, 11)})` converts a position list into `{60, 10, 61, 11}`
+- `to_poslist({60, 10, 61, 11})` converts a scalar list into `{pos(60, 10), pos(61, 11)}`
 - scalar lists remain scalar-only; mixed scalar/position lists are invalid
 - existing numeric list functions still require scalar lists
 
@@ -228,6 +232,8 @@ guard(1 / 0, 0)               => 0
 timed_loop(sin(pi / 3), 1000) => 0.00...
 fill(rand(), 3)               => {0.42..., 0.13..., 0.91...}
 {pos(60, 10), pos(61, 11)}    => {pos(60, 10), pos(61, 11)}
+to_list({pos(60, 10), pos(61, 11)}) => {60, 10, 61, 11}
+to_poslist({60, 10, 61, 11})  => {pos(60, 10), pos(61, 11)}
 rand()                        => 0.42...
 rand(10, 20)                  => 13.7...
 map(range(-2, 5), guard(1 / _, 0))

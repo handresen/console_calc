@@ -257,6 +257,43 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
         return false;
     }
 
+    const console_calc::Value paired_positions =
+        parser.evaluate_value("to_poslist({60, 10, 61, 11})");
+    const auto* paired_values =
+        std::get_if<console_calc::PositionListValue>(&paired_positions);
+    if (paired_values == nullptr || paired_values->size() != 2 ||
+        !almost_equal((*paired_values)[0].latitude_deg, 60.0) ||
+        !almost_equal((*paired_values)[0].longitude_deg, 10.0) ||
+        !almost_equal((*paired_values)[1].latitude_deg, 61.0) ||
+        !almost_equal((*paired_values)[1].longitude_deg, 11.0)) {
+        return false;
+    }
+
+    const console_calc::Value flattened_positions =
+        parser.evaluate_value("to_list({pos(60, 10), pos(61, 11)})");
+    const auto* flattened_values = std::get_if<console_calc::ListValue>(&flattened_positions);
+    if (flattened_values == nullptr || flattened_values->size() != 4 ||
+        !almost_equal(console_calc::scalar_to_double((*flattened_values)[0]), 60.0) ||
+        !almost_equal(console_calc::scalar_to_double((*flattened_values)[1]), 10.0) ||
+        !almost_equal(console_calc::scalar_to_double((*flattened_values)[2]), 61.0) ||
+        !almost_equal(console_calc::scalar_to_double((*flattened_values)[3]), 11.0)) {
+        return false;
+    }
+
+    const console_calc::Value empty_position_list =
+        parser.evaluate_value("to_poslist({})");
+    const auto* empty_positions =
+        std::get_if<console_calc::PositionListValue>(&empty_position_list);
+    if (empty_positions == nullptr || !empty_positions->empty()) {
+        return false;
+    }
+
+    const console_calc::Value empty_scalar_list = parser.evaluate_value("to_list({})");
+    const auto* empty_scalars = std::get_if<console_calc::ListValue>(&empty_scalar_list);
+    if (empty_scalars == nullptr || !empty_scalars->empty()) {
+        return false;
+    }
+
     const console_calc::Value filled_positions =
         parser.evaluate_value("fill(pos(60, 10), 2)");
     const auto* position_values =
@@ -279,6 +316,22 @@ bool expect_value_api_boundaries(console_calc::ExpressionParser& parser) {
 
     try {
         (void)parser.evaluate("sum({pos(60, 10), pos(61, 11)})");
+        return false;
+    } catch (const std::invalid_argument&) {
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.evaluate("to_poslist({60, 10, 61})");
+        return false;
+    } catch (const std::invalid_argument&) {
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.evaluate("to_list({60, 10})");
         return false;
     } catch (const std::invalid_argument&) {
     } catch (const std::exception&) {
@@ -901,6 +954,28 @@ bool expect_function_signature_errors(console_calc::ExpressionParser& parser) {
         return false;
     } catch (const std::invalid_argument& error) {
         if (std::string(error.what()) != "function 'fill' expects fill(expr, count)") {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.parse("to_poslist()");
+        return false;
+    } catch (const std::invalid_argument& error) {
+        if (std::string(error.what()) != "function 'to_poslist' expects to_poslist(list)") {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.parse("to_list()");
+        return false;
+    } catch (const std::invalid_argument& error) {
+        if (std::string(error.what()) != "function 'to_list' expects to_list(poslist)") {
             return false;
         }
     } catch (const std::exception&) {

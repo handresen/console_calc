@@ -68,6 +68,8 @@ enum class Function {
     pos,
     lat,
     lon,
+    to_poslist,
+    to_list,
     dist,
     bearing,
     br_to_pos,

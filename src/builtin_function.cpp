@@ -10,7 +10,7 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<BuiltinFunctionInfo, 33> k_builtin_functions = {{
+constexpr std::array<BuiltinFunctionInfo, 35> k_builtin_functions = {{
     {Function::abs, "abs", 1, 1, BuiltinFunctionCategory::scalar, true, true, "abs(x)", "absolute value"},
     {Function::sin, "sin", 1, 1, BuiltinFunctionCategory::scalar, true, true, "sin(x)", "sine in radians"},
     {Function::cos, "cos", 1, 1, BuiltinFunctionCategory::scalar, true, true, "cos(x)", "cosine in radians"},
@@ -24,6 +24,8 @@ constexpr std::array<BuiltinFunctionInfo, 33> k_builtin_functions = {{
     {Function::pos, "pos", 2, 2, BuiltinFunctionCategory::position, true, false, "pos(lat, lon)", "construct WGS84 position in degrees"},
     {Function::lat, "lat", 1, 1, BuiltinFunctionCategory::position, false, false, "lat(pos)", "extract latitude in degrees"},
     {Function::lon, "lon", 1, 1, BuiltinFunctionCategory::position, false, false, "lon(pos)", "extract longitude in degrees"},
+    {Function::to_poslist, "to_poslist", 1, 1, BuiltinFunctionCategory::position, false, false, "to_poslist(list)", "pair scalar list values into positions"},
+    {Function::to_list, "to_list", 1, 1, BuiltinFunctionCategory::position, false, false, "to_list(poslist)", "expand positions into lat lon scalar list"},
     {Function::dist, "dist", 2, 2, BuiltinFunctionCategory::position, false, false, "dist(pos1, pos2)", "WGS84 ellipsoid distance in meters"},
     {Function::bearing, "bearing", 2, 2, BuiltinFunctionCategory::position, false, false, "bearing(pos1, pos2)", "initial WGS84 bearing in degrees"},
     {Function::br_to_pos, "br_to_pos", 3, 3, BuiltinFunctionCategory::position, false, false, "br_to_pos(pos, bearing_deg, range_m)", "destination position from bearing and range"},

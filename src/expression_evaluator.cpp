@@ -176,6 +176,8 @@ namespace {
     case Function::pos:
     case Function::lat:
     case Function::lon:
+    case Function::to_poslist:
+    case Function::to_list:
     case Function::dist:
     case Function::bearing:
     case Function::br_to_pos:
@@ -320,6 +322,8 @@ template <typename Operation>
     case Function::pos:
     case Function::lat:
     case Function::lon:
+    case Function::to_poslist:
+    case Function::to_list:
     case Function::dist:
     case Function::bearing:
     case Function::br_to_pos:
@@ -361,6 +365,33 @@ template <typename Operation>
         return require_position(arguments[0]).latitude_deg;
     case Function::lon:
         return require_position(arguments[0]).longitude_deg;
+    case Function::to_poslist: {
+        const ListValue values = require_list(arguments[0]);
+        if (values.empty()) {
+            return PositionListValue{};
+        }
+        if ((values.size() % 2U) != 0U) {
+            throw EvaluationError("to_poslist() requires an even number of scalar values");
+        }
+
+        PositionListValue positions;
+        positions.reserve(values.size() / 2U);
+        for (std::size_t index = 0; index < values.size(); index += 2U) {
+            positions.push_back(normalize_position(scalar_to_double(values[index]),
+                                                   scalar_to_double(values[index + 1U])));
+        }
+        return positions;
+    }
+    case Function::to_list: {
+        const PositionListValue positions = require_position_list(arguments[0]);
+        ListValue values;
+        values.reserve(positions.size() * 2U);
+        for (const auto& position : positions) {
+            values.push_back(position.latitude_deg);
+            values.push_back(position.longitude_deg);
+        }
+        return values;
+    }
     case Function::dist:
         return wgs84_inverse(require_position(arguments[0]), require_position(arguments[1]))
             .distance_m;
@@ -472,6 +503,8 @@ template <typename Operation>
     case Function::pos:
     case Function::lat:
     case Function::lon:
+    case Function::to_poslist:
+    case Function::to_list:
     case Function::dist:
     case Function::bearing:
     case Function::br_to_pos:
@@ -585,6 +618,8 @@ template <typename Operation>
     case Function::pos:
     case Function::lat:
     case Function::lon:
+    case Function::to_poslist:
+    case Function::to_list:
     case Function::dist:
     case Function::bearing:
     case Function::br_to_pos:

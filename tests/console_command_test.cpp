@@ -60,6 +60,8 @@ bool expect_builtin_function_listing() {
            "  lat(pos)                              extract latitude in degrees\n"
            "  lon(pos)                              extract longitude in degrees\n"
            "  pos(lat, lon)                         construct WGS84 position in degrees\n"
+           "  to_list(poslist)                      expand positions into lat lon scalar list\n"
+           "  to_poslist(list)                      pair scalar list values into positions\n"
            "\n"
            "List functions\n"
            "  avg(list)                             average of list elements\n"
@@ -158,6 +160,9 @@ bool expect_builtin_function_metadata() {
     const auto pos_info = console_calc::builtin_function_info(console_calc::Function::pos);
     const auto lat_info = console_calc::builtin_function_info(console_calc::Function::lat);
     const auto lon_info = console_calc::builtin_function_info(console_calc::Function::lon);
+    const auto to_list_info = console_calc::builtin_function_info(console_calc::Function::to_list);
+    const auto to_poslist_info =
+        console_calc::builtin_function_info(console_calc::Function::to_poslist);
     const auto dist_info = console_calc::builtin_function_info(console_calc::Function::dist);
     const auto bearing_info = console_calc::builtin_function_info(console_calc::Function::bearing);
     const auto br_to_pos_info = console_calc::builtin_function_info(console_calc::Function::br_to_pos);
@@ -215,6 +220,14 @@ bool expect_builtin_function_metadata() {
            lon_info.category == console_calc::BuiltinFunctionCategory::position &&
            lon_info.signature == "lon(pos)" &&
            !lon_info.scalar_arguments &&
+           to_list_info.name == "to_list" &&
+           to_list_info.category == console_calc::BuiltinFunctionCategory::position &&
+           to_list_info.signature == "to_list(poslist)" &&
+           !to_list_info.scalar_arguments &&
+           to_poslist_info.name == "to_poslist" &&
+           to_poslist_info.category == console_calc::BuiltinFunctionCategory::position &&
+           to_poslist_info.signature == "to_poslist(list)" &&
+           !to_poslist_info.scalar_arguments &&
            dist_info.name == "dist" &&
            dist_info.category == console_calc::BuiltinFunctionCategory::position &&
            dist_info.signature == "dist(pos1, pos2)" &&

@@ -82,6 +82,8 @@ Builtin functions:
 - `rand([min, max])` returns a random floating-point value in a half-open interval
 - `pos(lat, lon)` constructs a WGS84 position from latitude/longitude in degrees
 - `lat(pos)` and `lon(pos)` extract latitude and longitude in degrees
+- `to_list(poslist)` expands positions into scalar values using `(lat, lon)` order
+- `to_poslist(list)` pairs scalar list values into positions using `(lat, lon)` order
 - `dist(pos1, pos2)` returns WGS84 ellipsoid distance in meters
 - `bearing(pos1, pos2)` returns initial WGS84 bearing in degrees
 - `br_to_pos(pos, bearing_deg, range_m)` returns a destination position from a start position, bearing, and range in meters
@@ -121,6 +123,11 @@ Geo positions are a dedicated value type, separate from scalars and lists. They 
 Position lists are also supported as a separate homogeneous collection type. A
 literal such as `{pos(60, 10), pos(61, 11)}` produces a position list. Scalar
 lists remain scalar-only, and mixed scalar/position list literals are invalid.
+`to_list(poslist)` converts a position list into a scalar list by expanding each
+position as `lat, lon`.
+`to_poslist(list)` converts an even-length scalar list into a position list by
+pairing values as `(lat, lon)`. An odd number of values is invalid, and an
+empty list returns an empty position list.
 
 Examples:
 - `2 + 3` => `5`
@@ -133,6 +140,8 @@ Examples:
 - `pow(2, 3)` => `8`
 - `lat(pos(60, 10))` => `60`
 - `lon(pos(60, 10))` => `10`
+- `to_list({pos(60, 10), pos(61, 11)})` => `{60, 10, 61, 11}`
+- `to_poslist({60, 10, 61, 11})` => `{pos(60, 10), pos(61, 11)}`
 - `dist(pos(0, 0), pos(0, 1))` => `111319.4907932264`
 - `bearing(pos(0, 0), pos(0, 1))` => `90`
 - `lon(br_to_pos(pos(0, 0), 90, 111319.4907932264))` => `1`
@@ -236,6 +245,7 @@ Examples:
 - `map({1, 2}, sin)`
 - `pos(100, 0)`
 - `lat(1)`
+- `to_poslist({60, 10, 61})`
 - `dist(pos(0, 0), 1)`
 - `br_to_pos(pos(0, 0), 90, -1)`
 - `map({1, 2}, _ + foo)`

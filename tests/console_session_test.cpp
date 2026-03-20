@@ -464,6 +464,8 @@ bool expect_console_mode_list_variables_and_functions() {
         "  lat(pos)                              extract latitude in degrees\n"
         "  lon(pos)                              extract longitude in degrees\n"
         "  pos(lat, lon)                         construct WGS84 position in degrees\n"
+        "  to_list(poslist)                      expand positions into lat lon scalar list\n"
+        "  to_poslist(list)                      pair scalar list values into positions\n"
         "\n"
         "List functions\n"
         "  avg(list)                             average of list elements\n"
