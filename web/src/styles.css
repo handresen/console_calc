@@ -257,6 +257,24 @@ body {
   vertical-align: top;
 }
 
+.function-category-row th {
+  padding: 0.5rem 0 0.2rem;
+  text-align: left;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5e5a4c;
+}
+
+.function-category-row:first-child th {
+  padding-top: 0;
+}
+
+.function-entry-row td {
+  padding-left: 0.55rem;
+}
+
 .function-signature {
   width: 40%;
   padding-right: 0.9rem;

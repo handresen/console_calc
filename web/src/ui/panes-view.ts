@@ -65,19 +65,61 @@ function renderFunctionTable(
   table.className = "function-table";
 
   const body = document.createElement("tbody");
+  const categoryOrder = ["scalar", "position", "list", "list_generation"];
+  const categoryLabels = new Map<string, string>([
+    ["scalar", "Scalar functions"],
+    ["position", "Position functions"],
+    ["list", "List functions"],
+    ["list_generation", "List generation functions"],
+  ]);
+  const groupedValues = new Map<string, BindingFunctionEntry[]>();
+
   for (const value of values) {
-    const row = document.createElement("tr");
+    const group = groupedValues.get(value.category) ?? [];
+    group.push(value);
+    groupedValues.set(value.category, group);
+  }
 
-    const signature = document.createElement("td");
-    signature.className = "function-signature";
-    signature.textContent = value.signature;
+  const orderedCategories = [
+    ...categoryOrder.filter((category) => groupedValues.has(category)),
+    ...Array.from(groupedValues.keys()).filter(
+      (category) => !categoryOrder.includes(category),
+    ),
+  ];
 
-    const summary = document.createElement("td");
-    summary.className = "function-summary";
-    summary.textContent = value.summary;
+  for (const category of orderedCategories) {
+    const entries = groupedValues.get(category) ?? [];
+    if (entries.length === 0) {
+      continue;
+    }
 
-    row.append(signature, summary);
-    body.append(row);
+    const headingRow = document.createElement("tr");
+    headingRow.className = "function-category-row";
+
+    const heading = document.createElement("th");
+    heading.className = "function-category-heading";
+    heading.colSpan = 2;
+    heading.scope = "colgroup";
+    heading.textContent = categoryLabels.get(category) ?? category;
+
+    headingRow.append(heading);
+    body.append(headingRow);
+
+    for (const value of entries) {
+      const row = document.createElement("tr");
+      row.className = "function-entry-row";
+
+      const signature = document.createElement("td");
+      signature.className = "function-signature";
+      signature.textContent = value.signature;
+
+      const summary = document.createElement("td");
+      summary.className = "function-summary";
+      summary.textContent = value.summary;
+
+      row.append(signature, summary);
+      body.append(row);
+    }
   }
 
   table.append(body);
