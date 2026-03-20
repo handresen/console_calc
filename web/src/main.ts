@@ -1,3 +1,4 @@
+import "ol/ol.css";
 import "./styles.css";
 
 import { createApp } from "./app";

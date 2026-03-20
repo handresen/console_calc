@@ -2,9 +2,19 @@ import type {
   BindingConstantEntry,
   BindingDefinitionEntry,
   BindingFunctionEntry,
+  BindingPositionEntry,
   BindingSnapshot,
   BindingStackEntry,
 } from "../bridge/console-wasm";
+import Feature from "ol/Feature";
+import LineString from "ol/geom/LineString";
+import Point from "ol/geom/Point";
+import OlMap from "ol/Map";
+import View from "ol/View";
+import { OSM, Vector as VectorSource } from "ol/source";
+import { Tile as TileLayer, Vector as VectorLayer } from "ol/layer";
+import { Fill, Stroke, Style, Circle as CircleStyle } from "ol/style";
+import { fromLonLat } from "ol/proj";
 
 export interface PanesView {
   element: HTMLElement;
@@ -253,7 +263,7 @@ function buildPositionBounds(points: BindingPositionEntry[]): {
   const spanX = maxX - minX;
   const spanY = maxY - minY;
   const paddedSpanX = spanX === 0 ? 0.02 : spanX * 1.08;
-  const paddedSpanY = spanY === 0 ? 0.02 : spanY * 1.08;
+  const paddedSpanY = spanY === 0 ? 0.02 : spanY * 1.14;
   const unifiedSpan = Math.max(paddedSpanX, paddedSpanY);
   const centerX = (minX + maxX) / 2;
   const centerY = (minY + maxY) / 2;
@@ -331,13 +341,18 @@ function buildPositionReferenceAxes(
   return { equator, primeMeridian };
 }
 
+function toMapCoordinates(points: BindingPositionEntry[]): [number, number][] {
+  return points.map((point) => fromLonLat([point.longitude_deg, point.latitude_deg]));
+}
+
 interface PaneElements {
   section: HTMLElement;
+  title: HTMLButtonElement;
   body: HTMLElement;
   count: HTMLElement;
 }
 
-function createPane(titleText: string): PaneElements {
+function createPane(titleText: string, onToggle?: (expanded: boolean) => void): PaneElements {
   const section = document.createElement("section");
   section.className = "pane";
 
@@ -367,11 +382,12 @@ function createPane(titleText: string): PaneElements {
     title.setAttribute("aria-expanded", expanded ? "false" : "true");
     body.hidden = expanded;
     marker.textContent = expanded ? "+" : "−";
+    onToggle?.(!expanded);
   });
 
   title.append(titleLabel, count, marker);
   section.append(title, body);
-  return { section, body, count };
+  return { section, title, body, count };
 }
 
 export function createPanesView(onSampleSelected?: (expression: string) => void): PanesView {
@@ -384,6 +400,9 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
   const plotPanel = document.createElement("section");
   plotPanel.className = "plot-panel";
 
+  const mapPanel = document.createElement("section");
+  mapPanel.className = "map-panel";
+
   const status = document.createElement("div");
   status.className = "pane-status";
 
@@ -393,6 +412,13 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
   const functionsPane = createPane("Functions");
   const samplesPane = createPane("Samples");
   const plotPane = createPane("Plot");
+  const mapPane = createPane("Map", (expanded) => {
+    if (expanded) {
+      requestAnimationFrame(() => {
+        map.updateSize();
+      });
+    }
+  });
 
   functionsPane.body.classList.add("functions-pane-body");
 
@@ -486,6 +512,65 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     plotCornerLabels,
   );
   plotPane.body.append(plotMeta, plotControls, plotSvg);
+
+  const mapMeta = document.createElement("div");
+  mapMeta.className = "map-meta";
+
+  const mapControls = document.createElement("label");
+  mapControls.className = "plot-controls";
+
+  const connectMapLinesToggle = document.createElement("input");
+  connectMapLinesToggle.type = "checkbox";
+  connectMapLinesToggle.checked = false;
+
+  const connectMapLinesLabel = document.createElement("span");
+  connectMapLinesLabel.textContent = "Connect lines";
+
+  mapControls.append(connectMapLinesToggle, connectMapLinesLabel);
+
+  const mapElement = document.createElement("div");
+  mapElement.className = "map-canvas";
+
+  mapPane.body.append(mapMeta, mapControls, mapElement);
+
+  const mapPointSource = new VectorSource();
+  const mapLineSource = new VectorSource();
+
+  const mapPointLayer = new VectorLayer({
+    source: mapPointSource,
+    style: new Style({
+      image: new CircleStyle({
+        radius: 4,
+        fill: new Fill({ color: "#2e5d31" }),
+        stroke: new Stroke({ color: "rgba(250, 247, 239, 0.95)", width: 1.5 }),
+      }),
+    }),
+  });
+
+  const mapLineLayer = new VectorLayer({
+    source: mapLineSource,
+    style: new Style({
+      stroke: new Stroke({
+        color: "rgba(46, 93, 49, 0.8)",
+        width: 2.5,
+      }),
+    }),
+  });
+
+  const map = new OlMap({
+    target: mapElement,
+    layers: [
+      new TileLayer({
+        source: new OSM(),
+      }),
+      mapLineLayer,
+      mapPointLayer,
+    ],
+    view: new View({
+      center: fromLonLat([0, 0]),
+      zoom: 1.5,
+    }),
+  });
 
   const renderPointMarkers = (points: Array<{ x: number; y: number }>) => {
     plotPoints.replaceChildren();
@@ -590,16 +675,68 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     bottomRightLabel.textContent = formatCornerLabel(bounds.minY, bounds.maxX);
   };
 
+  const renderMap = (seriesList: PlotItem[]) => {
+    const currentSeries = [...seriesList].reverse().find((series) => "points" in series);
+    mapPane.count.textContent = currentSeries != null && "points" in currentSeries ? "1" : "0";
+
+    if (currentSeries == null || !("points" in currentSeries)) {
+      mapMeta.textContent = "World view";
+      mapPointSource.clear();
+      mapLineSource.clear();
+      const view = map.getView();
+      view.setCenter(fromLonLat([0, 0]));
+      view.setZoom(1.5);
+      return;
+    }
+
+    const mapCoordinates = toMapCoordinates(currentSeries.points);
+    mapMeta.textContent = `${currentSeries.label} | ${currentSeries.points.length} positions`;
+    mapPointSource.clear();
+    mapLineSource.clear();
+    mapPointSource.addFeatures(
+      mapCoordinates.map((coordinate) => new Feature(new Point(coordinate))),
+    );
+    if (connectMapLinesToggle.checked && mapCoordinates.length >= 2) {
+      mapLineSource.addFeature(new Feature(new LineString(mapCoordinates)));
+    }
+
+    const view = map.getView();
+    if (mapCoordinates.length === 1) {
+      view.setCenter(mapCoordinates[0]);
+      view.setZoom(8);
+    } else {
+      const extent = mapPointSource.getExtent();
+      view.fit(extent, {
+        size: [320, 240],
+        padding: [24, 24, 24, 24],
+        maxZoom: 12,
+      });
+    }
+    requestAnimationFrame(() => {
+      map.updateSize();
+    });
+  };
+
   connectPointsToggle.addEventListener("change", () => {
     const stackEntries = (section as HTMLElement).dataset.plotSnapshot;
     if (stackEntries == null) {
       return;
     }
-    renderPlot(
-      (JSON.parse(stackEntries) as BindingStackEntry[])
-        .map((entry) => parsePlotSeries(entry))
-        .filter(isPlotSeries),
-    );
+    const series = (JSON.parse(stackEntries) as BindingStackEntry[])
+      .map((entry) => parsePlotSeries(entry))
+      .filter(isPlotSeries);
+    renderPlot(series);
+  });
+
+  connectMapLinesToggle.addEventListener("change", () => {
+    const stackEntries = (section as HTMLElement).dataset.plotSnapshot;
+    if (stackEntries == null) {
+      return;
+    }
+    const series = (JSON.parse(stackEntries) as BindingStackEntry[])
+      .map((entry) => parsePlotSeries(entry))
+      .filter(isPlotSeries);
+    renderMap(series);
   });
 
   infoPanel.append(
@@ -615,7 +752,9 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     plotPane.section,
   );
 
-  section.append(infoPanel, plotPanel);
+  mapPanel.append(mapPane.section);
+
+  section.append(infoPanel, plotPanel, mapPanel);
 
   return {
     element: section,
@@ -640,7 +779,9 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
       );
       renderFunctionTable(functionTableContainer, snapshot.functions);
       section.dataset.plotSnapshot = JSON.stringify(snapshot.stack);
-      renderPlot(snapshot.stack.map((entry) => parsePlotSeries(entry)).filter(isPlotSeries));
+      const series = snapshot.stack.map((entry) => parsePlotSeries(entry)).filter(isPlotSeries);
+      renderPlot(series);
+      renderMap(series);
     },
   };
 }
