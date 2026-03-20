@@ -13,6 +13,8 @@ import OlMap from "ol/Map";
 import View from "ol/View";
 import { OSM, Vector as VectorSource } from "ol/source";
 import { Tile as TileLayer, Vector as VectorLayer } from "ol/layer";
+import { defaults as defaultInteractions } from "ol/interaction/defaults";
+import MouseWheelZoom from "ol/interaction/MouseWheelZoom";
 import { Fill, Stroke, Style, Circle as CircleStyle } from "ol/style";
 import { fromLonLat } from "ol/proj";
 
@@ -303,11 +305,15 @@ function buildPositionPlotPath(
   const bounds = buildPositionBounds(points);
   const rangeX = bounds.maxX - bounds.minX || 1;
   const rangeY = bounds.maxY - bounds.minY || 1;
+  const padding = 8;
+  const plotWidth = width - padding * 2;
+  const plotHeight = height - padding * 2;
 
   return points
     .map((point, index) => {
-      const x = ((point.longitude_deg - bounds.minX) / rangeX) * width;
-      const y = height - ((point.latitude_deg - bounds.minY) / rangeY) * height;
+      const x = padding + ((point.longitude_deg - bounds.minX) / rangeX) * plotWidth;
+      const y =
+        height - padding - ((point.latitude_deg - bounds.minY) / rangeY) * plotHeight;
       return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
     })
     .join(" ");
@@ -325,24 +331,33 @@ function buildPositionReferenceAxes(
   const bounds = buildPositionBounds(points);
   const rangeX = bounds.maxX - bounds.minX || 1;
   const rangeY = bounds.maxY - bounds.minY || 1;
+  const padding = 8;
+  const plotWidth = width - padding * 2;
+  const plotHeight = height - padding * 2;
 
   let equator = "";
   if (bounds.minY <= 0 && bounds.maxY >= 0) {
-    const y = height - ((0 - bounds.minY) / rangeY) * height;
-    equator = `M 0 ${y.toFixed(2)} L ${width} ${y.toFixed(2)}`;
+    const y = height - padding - ((0 - bounds.minY) / rangeY) * plotHeight;
+    equator = `M ${padding} ${y.toFixed(2)} L ${(width - padding).toFixed(2)} ${y.toFixed(2)}`;
   }
 
   let primeMeridian = "";
   if (bounds.minX <= 0 && bounds.maxX >= 0) {
-    const x = ((0 - bounds.minX) / rangeX) * width;
-    primeMeridian = `M ${x.toFixed(2)} 0 L ${x.toFixed(2)} ${height}`;
+    const x = padding + ((0 - bounds.minX) / rangeX) * plotWidth;
+    primeMeridian = `M ${x.toFixed(2)} ${padding} L ${x.toFixed(2)} ${(height - padding).toFixed(2)}`;
   }
 
   return { equator, primeMeridian };
 }
 
 function toMapCoordinates(points: BindingPositionEntry[]): [number, number][] {
-  return points.map((point) => fromLonLat([point.longitude_deg, point.latitude_deg]));
+  const maxMercatorLatitude = 85.05112878;
+  return points.map((point) =>
+    fromLonLat([
+      point.longitude_deg,
+      Math.max(-maxMercatorLatitude, Math.min(maxMercatorLatitude, point.latitude_deg)),
+    ]),
+  );
 }
 
 interface PaneElements {
@@ -402,6 +417,7 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
 
   const mapPanel = document.createElement("section");
   mapPanel.className = "map-panel";
+  let latestMapSeries: PositionPlotSeries | null = null;
 
   const status = document.createElement("div");
   status.className = "pane-status";
@@ -416,6 +432,7 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     if (expanded) {
       requestAnimationFrame(() => {
         map.updateSize();
+        applyMapView(latestMapSeries);
       });
     }
   });
@@ -531,7 +548,48 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
   const mapElement = document.createElement("div");
   mapElement.className = "map-canvas";
 
-  mapPane.body.append(mapMeta, mapControls, mapElement);
+  const mapResizeHandle = document.createElement("div");
+  mapResizeHandle.className = "map-resize-handle";
+  mapResizeHandle.setAttribute("role", "separator");
+  mapResizeHandle.setAttribute("aria-orientation", "horizontal");
+  mapResizeHandle.setAttribute("aria-label", "Resize map height");
+
+  const applyMapHeight = (height: number) => {
+    const clampedHeight = Math.max(180, Math.min(height, 640));
+    mapElement.style.height = `${Math.round(clampedHeight)}px`;
+    requestAnimationFrame(() => {
+      map.updateSize();
+      if (!mapPane.body.hidden) {
+        applyMapView(latestMapSeries);
+      }
+    });
+  };
+
+  mapResizeHandle.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    mapResizeHandle.setPointerCapture(event.pointerId);
+    document.body.classList.add("is-resizing-map");
+
+    const startY = event.clientY;
+    const startHeight = mapElement.getBoundingClientRect().height;
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      applyMapHeight(startHeight + (moveEvent.clientY - startY));
+    };
+
+    const stopDragging = () => {
+      document.body.classList.remove("is-resizing-map");
+      mapResizeHandle.removeEventListener("pointermove", onPointerMove);
+      mapResizeHandle.removeEventListener("pointerup", stopDragging);
+      mapResizeHandle.removeEventListener("pointercancel", stopDragging);
+    };
+
+    mapResizeHandle.addEventListener("pointermove", onPointerMove);
+    mapResizeHandle.addEventListener("pointerup", stopDragging);
+    mapResizeHandle.addEventListener("pointercancel", stopDragging);
+  });
+
+  mapPane.body.append(mapMeta, mapControls, mapElement, mapResizeHandle);
 
   const mapPointSource = new VectorSource();
   const mapLineSource = new VectorSource();
@@ -566,6 +624,16 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
       mapLineLayer,
       mapPointLayer,
     ],
+    interactions: defaultInteractions({
+      mouseWheelZoom: false,
+    }).extend([
+      new MouseWheelZoom({
+        maxDelta: 5,
+        duration: 120,
+        timeout: 50,
+        useAnchor: true,
+      }),
+    ]),
     view: new View({
       center: fromLonLat([0, 0]),
       zoom: 1.5,
@@ -614,10 +682,14 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     const bounds = buildPositionBounds(points);
     const rangeX = bounds.maxX - bounds.minX || 1;
     const rangeY = bounds.maxY - bounds.minY || 1;
+    const padding = 8;
+    const plotWidth = width - padding * 2;
+    const plotHeight = height - padding * 2;
 
     return points.map((point) => ({
-      x: ((point.longitude_deg - bounds.minX) / rangeX) * width,
-      y: height - ((point.latitude_deg - bounds.minY) / rangeY) * height,
+      x: padding + ((point.longitude_deg - bounds.minX) / rangeX) * plotWidth,
+      y:
+        height - padding - ((point.latitude_deg - bounds.minY) / rangeY) * plotHeight,
     }));
   };
 
@@ -678,14 +750,17 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
   const renderMap = (seriesList: PlotItem[]) => {
     const currentSeries = [...seriesList].reverse().find((series) => "points" in series);
     mapPane.count.textContent = currentSeries != null && "points" in currentSeries ? "1" : "0";
+    latestMapSeries =
+      currentSeries != null && "points" in currentSeries ? currentSeries : null;
 
     if (currentSeries == null || !("points" in currentSeries)) {
       mapMeta.textContent = "World view";
       mapPointSource.clear();
       mapLineSource.clear();
-      const view = map.getView();
-      view.setCenter(fromLonLat([0, 0]));
-      view.setZoom(1.5);
+      requestAnimationFrame(() => {
+        map.updateSize();
+        applyMapView(null);
+      });
       return;
     }
 
@@ -700,20 +775,40 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
       mapLineSource.addFeature(new Feature(new LineString(mapCoordinates)));
     }
 
+    if (mapPane.body.hidden) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      map.updateSize();
+      applyMapView(currentSeries);
+    });
+  };
+
+  const applyMapView = (series: PositionPlotSeries | null) => {
     const view = map.getView();
+    if (series == null) {
+      view.setCenter(fromLonLat([0, 0]));
+      view.setZoom(1.5);
+      return;
+    }
+
+    const mapCoordinates = toMapCoordinates(series.points);
+    if (mapCoordinates.length === 0) {
+      view.setCenter(fromLonLat([0, 0]));
+      view.setZoom(1.5);
+      return;
+    }
     if (mapCoordinates.length === 1) {
       view.setCenter(mapCoordinates[0]);
       view.setZoom(8);
-    } else {
-      const extent = mapPointSource.getExtent();
-      view.fit(extent, {
-        size: [320, 240],
-        padding: [24, 24, 24, 24],
-        maxZoom: 12,
-      });
+      return;
     }
-    requestAnimationFrame(() => {
-      map.updateSize();
+
+    view.fit(mapPointSource.getExtent(), {
+      size: map.getSize(),
+      padding: [48, 48, 48, 48],
+      maxZoom: 12,
     });
   };
 
