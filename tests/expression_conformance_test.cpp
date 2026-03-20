@@ -572,6 +572,24 @@ bool expect_reduce_ast_shape(console_calc::ExpressionParser& parser) {
            almost_equal(second->value, 3.0);
 }
 
+bool expect_timed_loop_ast_shape(console_calc::ExpressionParser& parser) {
+    using console_calc::BinaryExpression;
+    using console_calc::Expression;
+    using console_calc::NumberLiteral;
+    using console_calc::TimedLoopCall;
+
+    const Expression ast = parser.parse("timed_loop(1 + 2, 3)");
+    const auto* root = std::get_if<TimedLoopCall>(&ast.node);
+    if (root == nullptr) {
+        return false;
+    }
+
+    const auto* loop_expression = std::get_if<BinaryExpression>(&root->loop_expression->node);
+    const auto* iteration_count = std::get_if<NumberLiteral>(&root->iteration_count->node);
+    return loop_expression != nullptr && iteration_count != nullptr &&
+           almost_equal(iteration_count->value, 3.0);
+}
+
 bool expect_range_ast_shape(console_calc::ExpressionParser& parser) {
     using console_calc::Expression;
     using console_calc::Function;
@@ -693,6 +711,71 @@ bool expect_integer_semantics(console_calc::ExpressionParser& parser) {
            std::get<std::int64_t>(integer_length) == 3;
 }
 
+bool expect_timed_loop_behavior(console_calc::ExpressionParser& parser) {
+    const console_calc::Value elapsed = parser.evaluate_value("timed_loop(1 + 2, 3)");
+    if (!std::holds_alternative<double>(elapsed) || std::get<double>(elapsed) < 0.0 ||
+        !std::isfinite(std::get<double>(elapsed))) {
+        return false;
+    }
+
+    const console_calc::Value zero_elapsed = parser.evaluate_value("timed_loop(1 + 2, 0)");
+    if (!std::holds_alternative<double>(zero_elapsed) || std::get<double>(zero_elapsed) < 0.0 ||
+        !std::isfinite(std::get<double>(zero_elapsed))) {
+        return false;
+    }
+
+    try {
+        (void)parser.evaluate("timed_loop(1 + 2, -1)");
+        return false;
+    } catch (const std::invalid_argument&) {
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    return true;
+}
+
+bool expect_rand_behavior(console_calc::ExpressionParser& parser) {
+    const console_calc::Value default_random = parser.evaluate_value("rand()");
+    if (!std::holds_alternative<double>(default_random) ||
+        std::get<double>(default_random) < 0.0 ||
+        std::get<double>(default_random) >= 1.0) {
+        return false;
+    }
+
+    const console_calc::Value bounded_random = parser.evaluate_value("rand(5)");
+    if (!std::holds_alternative<double>(bounded_random) ||
+        std::get<double>(bounded_random) < 0.0 ||
+        std::get<double>(bounded_random) >= 5.0) {
+        return false;
+    }
+
+    const console_calc::Value ranged_random = parser.evaluate_value("rand(2, 5)");
+    if (!std::holds_alternative<double>(ranged_random) ||
+        std::get<double>(ranged_random) < 2.0 ||
+        std::get<double>(ranged_random) >= 5.0) {
+        return false;
+    }
+
+    try {
+        (void)parser.evaluate("rand(1, 1)");
+        return false;
+    } catch (const std::invalid_argument&) {
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.evaluate("rand(5, 2)");
+        return false;
+    } catch (const std::invalid_argument&) {
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    return true;
+}
+
 bool expect_function_signature_errors(console_calc::ExpressionParser& parser) {
     try {
         (void)parser.parse("pow(2)");
@@ -721,6 +804,29 @@ bool expect_function_signature_errors(console_calc::ExpressionParser& parser) {
         return false;
     } catch (const std::invalid_argument& error) {
         if (std::string(error.what()) != "function 'guard' expects guard(expr, fallback)") {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.parse("timed_loop(1)");
+        return false;
+    } catch (const std::invalid_argument& error) {
+        if (std::string(error.what()) !=
+            "function 'timed_loop' expects timed_loop(expr, count)") {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.parse("rand(1, 2, 3)");
+        return false;
+    } catch (const std::invalid_argument& error) {
+        if (std::string(error.what()) != "function 'rand' expects rand([min, max])") {
             return false;
         }
     } catch (const std::exception&) {
@@ -787,6 +893,10 @@ int main() {
         return EXIT_FAILURE;
     }
 
+    if (!expect_timed_loop_ast_shape(parser)) {
+        return EXIT_FAILURE;
+    }
+
     if (!expect_range_ast_shape(parser)) {
         return EXIT_FAILURE;
     }
@@ -796,6 +906,14 @@ int main() {
     }
 
     if (!expect_integer_semantics(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_timed_loop_behavior(parser)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_rand_behavior(parser)) {
         return EXIT_FAILURE;
     }
 

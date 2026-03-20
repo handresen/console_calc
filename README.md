@@ -137,6 +137,7 @@ pow(e, 1)
 - `cosd(x)`     cosine in degrees
 - `tand(x)`     tangent in degrees
 - `pow(x, y)`   power
+- `rand([min, max])` random number in a half-open interval
 - `pos(lat, lon)` construct WGS84 position in degrees
 - `lat(pos)`    extract latitude in degrees
 - `lon(pos)`    extract longitude in degrees
@@ -144,6 +145,7 @@ pow(e, 1)
 - `bearing(pos1, pos2)` initial WGS84 bearing in degrees
 - `br_to_pos(pos, bearing_deg, range_m)` destination position from bearing and range
 - `guard(expr, fallback)` evaluate `fallback` only if `expr` fails
+- `timed_loop(expr, count)` evaluate `expr` `count` times and return elapsed seconds
 
 ### List Functions
 
@@ -155,7 +157,6 @@ pow(e, 1)
 - `max(list)`        maximum list element
 - `first(n, list)`   first `n` list elements
 - `drop(n, list)`    drop first `n` list elements
-- `guard(expr, fallback)` return fallback when expression evaluation fails
 - `list_div(a, b)`   divide matching list elements
 - `list_mul(a, b)`   multiply matching list elements
 - `reduce(list, op)` reduce a list with a binary operator
@@ -184,6 +185,12 @@ Function notes:
 - `map({1, 2}, sin)` is invalid
 - `_` is only valid inside `map(..., expr)`
 - `guard` evaluates its fallback lazily and can be used inside `map`
+- `timed_loop` evaluates its expression lazily for each iteration
+- `timed_loop` requires `count` to be a non-negative integer
+- `rand()` returns a value in `[0, 1)`
+- `rand(max)` returns a value in `[0, max)`
+- `rand(min, max)` returns a value in `[min, max)`
+- `rand` requires finite bounds and `min < max`
 - `range` requires `count` to be a non-negative integer
 - `range(start, count)` uses a default step of `1`
 - `range` preserves integer list elements when `start` and `step` are integers
@@ -209,6 +216,9 @@ map({0, 90}, sind(_))         => {0, 1}
 map({1, 2, 3}, _ + 1)         => {2, 3, 4}
 map({1, 2, 3}, sin(_) + _)    => {1.84147..., 2.90929..., 3.14112...}
 guard(1 / 0, 0)               => 0
+timed_loop(sin(pi / 3), 1000) => 0.00...
+rand()                        => 0.42...
+rand(10, 20)                  => 13.7...
 map(range(-2, 5), guard(1 / _, 0))
 sum(map({1, 2, 3}, sin(_)))   => 1.89189...
 dist(pos(0, 0), pos(0, 1))    => 111319.490793...

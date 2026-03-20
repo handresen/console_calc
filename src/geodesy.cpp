@@ -1,8 +1,8 @@
 #include "geodesy.h"
 
+#include <GeographicLib/Geodesic.hpp>
+
 #include <cmath>
-#include <limits>
-#include <numbers>
 
 #include "console_calc/expression_error.h"
 
@@ -10,30 +10,14 @@ namespace console_calc {
 
 namespace {
 
-constexpr double k_wgs84_a = 6378137.0;
-constexpr double k_wgs84_f = 1.0 / 298.257223563;
-constexpr double k_wgs84_b = (1.0 - k_wgs84_f) * k_wgs84_a;
-constexpr int k_max_iterations = 200;
-constexpr double k_convergence_epsilon = 1e-12;
-
-// The geo builtins currently use Vincenty's ellipsoidal formulas on WGS84:
+// Geo builtins use GeographicLib's Geodesic implementation on the WGS84 ellipsoid:
 // - wgs84_inverse(): inverse problem (distance + initial bearing)
 // - wgs84_direct(): direct problem (destination from start/bearing/range)
 //
-// This keeps the implementation dependency-free while providing practical
-// geodetic accuracy for normal calculator use. When the iterations converge,
-// Vincenty's method is typically accurate to around millimeter scale on WGS84;
-// in practice, floating-point rounding and the ellipsoid model dominate before
-// the formulas themselves do. The known tradeoff is that some near-antipodal
-// cases can fail to converge, in which case we surface an explicit error.
-
-[[nodiscard]] double degrees_to_radians(double value) {
-    return value * std::numbers::pi_v<double> / 180.0;
-}
-
-[[nodiscard]] double radians_to_degrees(double value) {
-    return value * 180.0 / std::numbers::pi_v<double>;
-}
+// Compared with the previous Vincenty implementation, GeographicLib is more
+// robust for nearly antipodal cases while keeping excellent geodetic accuracy.
+// In normal use the results are effectively at round-off level for double
+// precision and are usually more accurate than the input coordinates warrant.
 
 [[nodiscard]] double normalize_longitude_degrees(double value) {
     double normalized = std::fmod(value + 180.0, 360.0);
@@ -51,7 +35,9 @@ constexpr double k_convergence_epsilon = 1e-12;
     return normalized;
 }
 
-[[nodiscard]] double square(double value) { return value * value; }
+[[nodiscard]] const GeographicLib::Geodesic& wgs84_geodesic() {
+    return GeographicLib::Geodesic::WGS84();
+}
 
 }  // namespace
 
@@ -70,85 +56,21 @@ PositionValue normalize_position(double latitude_deg, double longitude_deg) {
 }
 
 GeodesicInverseResult wgs84_inverse(const PositionValue& start, const PositionValue& end) {
-    // Vincenty inverse formula on the WGS84 ellipsoid. Inputs are geodetic
-    // latitude/longitude in degrees; altitude and terrain are intentionally
-    // ignored, so the result is the surface geodesic distance and forward azimuth.
-    const double phi1 = degrees_to_radians(start.latitude_deg);
-    const double phi2 = degrees_to_radians(end.latitude_deg);
-    const double L = degrees_to_radians(
-        normalize_longitude_degrees(end.longitude_deg - start.longitude_deg));
-
-    const double U1 = std::atan((1.0 - k_wgs84_f) * std::tan(phi1));
-    const double U2 = std::atan((1.0 - k_wgs84_f) * std::tan(phi2));
-    const double sinU1 = std::sin(U1);
-    const double cosU1 = std::cos(U1);
-    const double sinU2 = std::sin(U2);
-    const double cosU2 = std::cos(U2);
-
-    double lambda = L;
-    double lambda_previous = 0.0;
-    double sin_sigma = 0.0;
-    double cos_sigma = 1.0;
-    double sigma = 0.0;
-    double sin_alpha = 0.0;
-    double cos_sq_alpha = 1.0;
-    double cos2_sigma_m = 0.0;
-
-    for (int iteration = 0; iteration < k_max_iterations; ++iteration) {
-        const double sin_lambda = std::sin(lambda);
-        const double cos_lambda = std::cos(lambda);
-        sin_sigma = std::sqrt(square(cosU2 * sin_lambda) +
-                              square(cosU1 * sinU2 - sinU1 * cosU2 * cos_lambda));
-        if (sin_sigma == 0.0) {
-            return GeodesicInverseResult{};
-        }
-
-        cos_sigma = sinU1 * sinU2 + cosU1 * cosU2 * cos_lambda;
-        sigma = std::atan2(sin_sigma, cos_sigma);
-        sin_alpha = (cosU1 * cosU2 * sin_lambda) / sin_sigma;
-        cos_sq_alpha = 1.0 - square(sin_alpha);
-        cos2_sigma_m = cos_sq_alpha == 0.0
-                           ? 0.0
-                           : cos_sigma - (2.0 * sinU1 * sinU2) / cos_sq_alpha;
-        const double C = (k_wgs84_f / 16.0) * cos_sq_alpha *
-                         (4.0 + k_wgs84_f * (4.0 - 3.0 * cos_sq_alpha));
-
-        lambda_previous = lambda;
-        lambda = L + (1.0 - C) * k_wgs84_f * sin_alpha *
-                          (sigma + C * sin_sigma *
-                                       (cos2_sigma_m +
-                                        C * cos_sigma *
-                                            (-1.0 + 2.0 * square(cos2_sigma_m))));
-        if (std::fabs(lambda - lambda_previous) < k_convergence_epsilon) {
-            break;
-        }
-
-        if (iteration == k_max_iterations - 1) {
-            throw EvaluationError("geodesic calculation did not converge");
-        }
+    // GeographicLib solves the inverse geodesic problem on WGS84 directly from
+    // geodetic latitude/longitude in degrees, ignoring altitude and terrain.
+    double distance = 0.0;
+    double initial_bearing = 0.0;
+    double final_bearing = 0.0;
+    try {
+        wgs84_geodesic().Inverse(start.latitude_deg, start.longitude_deg, end.latitude_deg,
+                                 end.longitude_deg, distance, initial_bearing, final_bearing);
+    } catch (const GeographicLib::GeographicErr& error) {
+        throw EvaluationError(error.what());
     }
-
-    const double u_sq = cos_sq_alpha * (square(k_wgs84_a) - square(k_wgs84_b)) / square(k_wgs84_b);
-    const double A = 1.0 + (u_sq / 16384.0) *
-                               (4096.0 + u_sq * (-768.0 + u_sq * (320.0 - 175.0 * u_sq)));
-    const double B = (u_sq / 1024.0) *
-                     (256.0 + u_sq * (-128.0 + u_sq * (74.0 - 47.0 * u_sq)));
-    const double delta_sigma =
-        B * sin_sigma *
-        (cos2_sigma_m +
-         (B / 4.0) *
-             (cos_sigma * (-1.0 + 2.0 * square(cos2_sigma_m)) -
-              (B / 6.0) * cos2_sigma_m * (-3.0 + 4.0 * square(sin_sigma)) *
-                  (-3.0 + 4.0 * square(cos2_sigma_m))));
-
-    const double distance = k_wgs84_b * A * (sigma - delta_sigma);
-    const double alpha1 =
-        std::atan2(cosU2 * std::sin(lambda),
-                   cosU1 * sinU2 - sinU1 * cosU2 * std::cos(lambda));
 
     return GeodesicInverseResult{
         .distance_m = distance,
-        .initial_bearing_deg = normalize_bearing_degrees(radians_to_degrees(alpha1)),
+        .initial_bearing_deg = normalize_bearing_degrees(initial_bearing),
     };
 }
 
@@ -163,72 +85,20 @@ PositionValue wgs84_direct(const PositionValue& start, double bearing_deg, doubl
         return start;
     }
 
-    // Vincenty direct formula on the WGS84 ellipsoid. Bearing is interpreted as
-    // degrees clockwise from true north, and distance is an ellipsoidal surface
-    // range in meters. The destination longitude is normalized back to the
-    // calculator's standard [-180, 180) degree range.
-    const double alpha1 = degrees_to_radians(normalize_bearing_degrees(bearing_deg));
-    const double phi1 = degrees_to_radians(start.latitude_deg);
-    const double lambda1 = degrees_to_radians(start.longitude_deg);
-
-    const double tanU1 = (1.0 - k_wgs84_f) * std::tan(phi1);
-    const double cosU1 = 1.0 / std::sqrt(1.0 + square(tanU1));
-    const double sinU1 = tanU1 * cosU1;
-    const double sin_alpha1 = std::sin(alpha1);
-    const double cos_alpha1 = std::cos(alpha1);
-    const double sigma1 = std::atan2(tanU1, cos_alpha1);
-    const double sin_alpha = cosU1 * sin_alpha1;
-    const double cos_sq_alpha = 1.0 - square(sin_alpha);
-    const double u_sq = cos_sq_alpha * (square(k_wgs84_a) - square(k_wgs84_b)) / square(k_wgs84_b);
-    const double A = 1.0 + (u_sq / 16384.0) *
-                               (4096.0 + u_sq * (-768.0 + u_sq * (320.0 - 175.0 * u_sq)));
-    const double B = (u_sq / 1024.0) *
-                     (256.0 + u_sq * (-128.0 + u_sq * (74.0 - 47.0 * u_sq)));
-
-    double sigma = distance_m / (k_wgs84_b * A);
-    double sigma_previous = 0.0;
-    double cos2_sigma_m = 0.0;
-    double sin_sigma = 0.0;
-    double cos_sigma = 1.0;
-
-    for (int iteration = 0; iteration < k_max_iterations; ++iteration) {
-        cos2_sigma_m = std::cos(2.0 * sigma1 + sigma);
-        sin_sigma = std::sin(sigma);
-        cos_sigma = std::cos(sigma);
-        const double delta_sigma =
-            B * sin_sigma *
-            (cos2_sigma_m +
-             (B / 4.0) *
-                 (cos_sigma * (-1.0 + 2.0 * square(cos2_sigma_m)) -
-                  (B / 6.0) * cos2_sigma_m * (-3.0 + 4.0 * square(sin_sigma)) *
-                      (-3.0 + 4.0 * square(cos2_sigma_m))));
-
-        sigma_previous = sigma;
-        sigma = distance_m / (k_wgs84_b * A) + delta_sigma;
-        if (std::fabs(sigma - sigma_previous) < k_convergence_epsilon) {
-            break;
-        }
-
-        if (iteration == k_max_iterations - 1) {
-            throw EvaluationError("geodesic calculation did not converge");
-        }
+    // GeographicLib solves the direct geodesic problem on WGS84 directly from
+    // geodetic latitude/longitude in degrees, initial bearing in degrees
+    // clockwise from north, and ellipsoidal surface distance in meters.
+    double latitude_deg = 0.0;
+    double longitude_deg = 0.0;
+    try {
+        wgs84_geodesic().Direct(start.latitude_deg, start.longitude_deg,
+                                normalize_bearing_degrees(bearing_deg), distance_m,
+                                latitude_deg, longitude_deg);
+    } catch (const GeographicLib::GeographicErr& error) {
+        throw EvaluationError(error.what());
     }
 
-    const double tmp = sinU1 * sin_sigma - cosU1 * cos_sigma * cos_alpha1;
-    const double phi2 = std::atan2(
-        sinU1 * cos_sigma + cosU1 * sin_sigma * cos_alpha1,
-        (1.0 - k_wgs84_f) * std::sqrt(square(sin_alpha) + square(tmp)));
-    const double lambda =
-        std::atan2(sin_sigma * sin_alpha1, cosU1 * cos_sigma - sinU1 * sin_sigma * cos_alpha1);
-    const double C = (k_wgs84_f / 16.0) * cos_sq_alpha *
-                     (4.0 + k_wgs84_f * (4.0 - 3.0 * cos_sq_alpha));
-    const double L =
-        lambda - (1.0 - C) * k_wgs84_f * sin_alpha *
-                     (sigma + C * sin_sigma *
-                                  (cos2_sigma_m +
-                                   C * cos_sigma * (-1.0 + 2.0 * square(cos2_sigma_m))));
-
-    return normalize_position(radians_to_degrees(phi2), radians_to_degrees(lambda1 + L));
+    return normalize_position(latitude_deg, longitude_deg);
 }
 
 }  // namespace console_calc

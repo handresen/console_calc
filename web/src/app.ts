@@ -23,18 +23,7 @@ export function createApp(root: HTMLElement): void {
   const transcript = createTranscriptView();
   const bridge = new ConsoleWasmBridge();
 
-  const renderResult = (
-    result: Awaited<ReturnType<ConsoleWasmBridge["submit"]>>,
-    input?: string,
-    elapsedMs?: number,
-  ): void => {
-    prompt.setDepth(result.snapshot.stack.length);
-    renderTranscriptResult(transcript, result, input, elapsedMs);
-    panes.render(result.snapshot);
-    transcript.scrollToBottom();
-  };
-
-  const prompt = createPromptView(async (input) => {
+  const executeInput = async (input: string): Promise<void> => {
     if (input === "cls") {
       transcript.clear();
       return;
@@ -49,9 +38,24 @@ export function createApp(root: HTMLElement): void {
         error instanceof Error ? error.message : "Unknown wasm bridge failure";
       transcript.appendMessage(message, "error");
     }
+  };
+
+  const renderResult = (
+    result: Awaited<ReturnType<ConsoleWasmBridge["submit"]>>,
+    input?: string,
+    elapsedMs?: number,
+  ): void => {
+    prompt.setDepth(result.snapshot.stack.length);
+    renderTranscriptResult(transcript, result, input, elapsedMs);
+    panes.render(result.snapshot);
+    transcript.scrollToBottom();
+  };
+
+  const prompt = createPromptView(async (input) => {
+    await executeInput(input);
   });
   const panes = createPanesView((expression) => {
-    prompt.setValue(expression);
+    void executeInput(expression);
     prompt.focus();
   });
   prompt.setEnabled(false);

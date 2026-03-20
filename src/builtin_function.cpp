@@ -8,7 +8,7 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<BuiltinFunctionInfo, 35> k_builtin_functions = {{
+constexpr std::array<BuiltinFunctionInfo, 37> k_builtin_functions = {{
     {Function::abs, "abs", 1, 1, BuiltinFunctionCategory::scalar, true, true, "abs(x)", "absolute value"},
     {Function::sin, "sin", 1, 1, BuiltinFunctionCategory::scalar, true, true, "sin(x)", "sine in radians"},
     {Function::cos, "cos", 1, 1, BuiltinFunctionCategory::scalar, true, true, "cos(x)", "cosine in radians"},
@@ -18,6 +18,7 @@ constexpr std::array<BuiltinFunctionInfo, 35> k_builtin_functions = {{
     {Function::tand, "tand", 1, 1, BuiltinFunctionCategory::scalar, true, true, "tand(x)", "tangent in degrees"},
     {Function::sqrt, "sqrt", 1, 1, BuiltinFunctionCategory::scalar, true, true, "sqrt(x)", "square root"},
     {Function::pow, "pow", 2, 2, BuiltinFunctionCategory::scalar, true, false, "pow(x, y)", "power"},
+    {Function::rand, "rand", 0, 2, BuiltinFunctionCategory::scalar, true, false, "rand([min, max])", "random number in half-open interval"},
     {Function::pos, "pos", 2, 2, BuiltinFunctionCategory::position, true, false, "pos(lat, lon)", "construct WGS84 position in degrees"},
     {Function::lat, "lat", 1, 1, BuiltinFunctionCategory::position, false, false, "lat(pos)", "extract latitude in degrees"},
     {Function::lon, "lon", 1, 1, BuiltinFunctionCategory::position, false, false, "lon(pos)", "extract longitude in degrees"},
@@ -44,6 +45,8 @@ constexpr std::array<BuiltinFunctionInfo, 35> k_builtin_functions = {{
      "guard(expr, fallback)", "use fallback when expr evaluation fails"},
     {Function::reduce, "reduce", 2, 2, BuiltinFunctionCategory::list, true, false,
      "reduce(list, op)", "reduce list with binary operator"},
+    {Function::timed_loop, "timed_loop", 2, 2, BuiltinFunctionCategory::scalar, true, false,
+     "timed_loop(expr, count)", "evaluate expr count times and return elapsed seconds"},
     {Function::map, "map", 2, 2, BuiltinFunctionCategory::list, true, false, "map(list, expr)", "map inline expression over list"},
     {Function::range, "range", 2, 3, BuiltinFunctionCategory::list_generation, true, false,
      "range(start, count[, step])", "generate linear series from start"},

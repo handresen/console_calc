@@ -43,11 +43,13 @@ bool expect_builtin_function_listing() {
            "  cosd(x)                               cosine in degrees\n"
            "  guard(expr, fallback)                 use fallback when expr evaluation fails\n"
            "  pow(x, y)                             power\n"
+           "  rand([min, max])                      random number in half-open interval\n"
            "  sin(x)                                sine in radians\n"
            "  sind(x)                               sine in degrees\n"
            "  sqrt(x)                               square root\n"
            "  tan(x)                                tangent in radians\n"
            "  tand(x)                               tangent in degrees\n"
+           "  timed_loop(expr, count)               evaluate expr count times and return elapsed seconds\n"
            "\n"
            "Position functions\n"
            "  bearing(pos1, pos2)                   initial WGS84 bearing in degrees\n"
@@ -144,6 +146,7 @@ bool expect_builtin_function_metadata() {
     const auto sum_info = console_calc::builtin_function_info(console_calc::Function::sum);
     const auto abs_info = console_calc::builtin_function_info(console_calc::Function::abs);
     const auto sqrt_info = console_calc::builtin_function_info(console_calc::Function::sqrt);
+    const auto rand_info = console_calc::builtin_function_info(console_calc::Function::rand);
     const auto list_add_info = console_calc::builtin_function_info(console_calc::Function::list_add);
     const auto list_div_info = console_calc::builtin_function_info(console_calc::Function::list_div);
     const auto list_mul_info = console_calc::builtin_function_info(console_calc::Function::list_mul);
@@ -156,6 +159,8 @@ bool expect_builtin_function_metadata() {
     const auto bearing_info = console_calc::builtin_function_info(console_calc::Function::bearing);
     const auto br_to_pos_info = console_calc::builtin_function_info(console_calc::Function::br_to_pos);
     const auto reduce_info = console_calc::builtin_function_info(console_calc::Function::reduce);
+    const auto timed_loop_info =
+        console_calc::builtin_function_info(console_calc::Function::timed_loop);
     const auto map_info = console_calc::builtin_function_info(console_calc::Function::map);
     const auto range_info = console_calc::builtin_function_info(console_calc::Function::range);
     const auto geom_info = console_calc::builtin_function_info(console_calc::Function::geom);
@@ -168,6 +173,10 @@ bool expect_builtin_function_metadata() {
            sqrt_info.name == "sqrt" && sqrt_info.min_arity == 1 && sqrt_info.max_arity == 1 &&
            sqrt_info.category == console_calc::BuiltinFunctionCategory::scalar &&
            sqrt_info.summary == "square root" && sqrt_info.mappable &&
+           rand_info.name == "rand" && rand_info.min_arity == 0 && rand_info.max_arity == 2 &&
+           rand_info.category == console_calc::BuiltinFunctionCategory::scalar &&
+           rand_info.signature == "rand([min, max])" &&
+           rand_info.summary == "random number in half-open interval" &&
            sum_info.name == "sum" && sum_info.min_arity == 1 && sum_info.max_arity == 1 &&
            sum_info.category == console_calc::BuiltinFunctionCategory::list &&
            sum_info.summary == "sum list elements" && !sum_info.mappable &&
@@ -218,6 +227,12 @@ bool expect_builtin_function_metadata() {
            reduce_info.max_arity == 2 &&
            reduce_info.category == console_calc::BuiltinFunctionCategory::list &&
            reduce_info.summary == "reduce list with binary operator" &&
+           timed_loop_info.name == "timed_loop" &&
+           timed_loop_info.min_arity == 2 && timed_loop_info.max_arity == 2 &&
+           timed_loop_info.category == console_calc::BuiltinFunctionCategory::scalar &&
+           timed_loop_info.signature == "timed_loop(expr, count)" &&
+           timed_loop_info.summary ==
+               "evaluate expr count times and return elapsed seconds" &&
            map_info.name == "map" && map_info.min_arity == 2 && map_info.max_arity == 2 &&
            map_info.category == console_calc::BuiltinFunctionCategory::list &&
            map_info.signature == "map(list, expr)" &&
@@ -240,6 +255,8 @@ bool expect_builtin_function_helpers() {
     return console_calc::is_scalar_function(console_calc::Function::sin) &&
            console_calc::is_scalar_function(console_calc::Function::abs) &&
            console_calc::is_scalar_function(console_calc::Function::guard) &&
+           console_calc::is_scalar_function(console_calc::Function::timed_loop) &&
+           console_calc::is_scalar_function(console_calc::Function::rand) &&
            !console_calc::is_scalar_function(console_calc::Function::pos) &&
            !console_calc::is_scalar_function(console_calc::Function::sum) &&
            console_calc::is_list_function(console_calc::Function::sum) &&
@@ -250,11 +267,13 @@ bool expect_builtin_function_helpers() {
            console_calc::is_unary_scalar_function(console_calc::Function::sin) &&
            console_calc::is_unary_scalar_function(console_calc::Function::abs) &&
            console_calc::is_unary_scalar_function(console_calc::Function::sqrt) &&
+           !console_calc::is_unary_scalar_function(console_calc::Function::rand) &&
            !console_calc::is_unary_scalar_function(console_calc::Function::lat) &&
            !console_calc::is_unary_scalar_function(console_calc::Function::pow) &&
            console_calc::is_mappable_unary_scalar_function(console_calc::Function::sin) &&
            console_calc::is_mappable_unary_scalar_function(console_calc::Function::abs) &&
            console_calc::is_mappable_unary_scalar_function(console_calc::Function::sqrt) &&
+           !console_calc::is_mappable_unary_scalar_function(console_calc::Function::rand) &&
            !console_calc::is_mappable_unary_scalar_function(console_calc::Function::pow) &&
            !console_calc::is_mappable_unary_scalar_function(console_calc::Function::sum);
 }

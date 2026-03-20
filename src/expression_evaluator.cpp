@@ -9,6 +9,8 @@
 #include <limits>
 #include <numbers>
 #include <span>
+#include <random>
+#include <chrono>
 #include <type_traits>
 #include <variant>
 
@@ -152,6 +154,7 @@ namespace {
         }
         return require_finite_result(std::sqrt(argument));
     case Function::pow:
+    case Function::rand:
     case Function::pos:
     case Function::lat:
     case Function::lon:
@@ -172,6 +175,7 @@ namespace {
     case Function::list_mul:
     case Function::guard:
     case Function::reduce:
+    case Function::timed_loop:
     case Function::map:
     case Function::range:
     case Function::geom:
@@ -227,6 +231,30 @@ template <typename Operation>
         return to_value(power_scalars(
             require_scalar_or_singleton_list_value(arguments[0]),
             require_scalar_or_singleton_list_value(arguments[1])));
+    case Function::rand: {
+        static thread_local std::mt19937_64 generator(
+            static_cast<std::mt19937_64::result_type>(
+                std::chrono::steady_clock::now().time_since_epoch().count()) ^
+            (static_cast<std::mt19937_64::result_type>(std::random_device{}()) << 1U));
+
+        double minimum = 0.0;
+        double maximum = 1.0;
+        if (arguments.size() == 1) {
+            maximum = scalar_to_double(require_scalar_or_singleton_list_value(arguments[0]));
+        } else if (arguments.size() == 2) {
+            minimum = scalar_to_double(require_scalar_or_singleton_list_value(arguments[0]));
+            maximum = scalar_to_double(require_scalar_or_singleton_list_value(arguments[1]));
+        }
+
+        if (!std::isfinite(minimum) || !std::isfinite(maximum)) {
+            throw EvaluationError("rand() bounds must be finite");
+        }
+        if (!(minimum < maximum)) {
+            throw EvaluationError("rand() requires min < max");
+        }
+
+        return std::uniform_real_distribution<double>(minimum, maximum)(generator);
+    }
     case Function::pos:
         return normalize_position(
             scalar_to_double(require_scalar_or_singleton_list_value(arguments[0])),
@@ -260,6 +288,7 @@ template <typename Operation>
     case Function::list_mul:
     case Function::guard:
     case Function::reduce:
+    case Function::timed_loop:
     case Function::map:
     case Function::range:
     case Function::geom:
@@ -359,6 +388,7 @@ template <typename Operation>
     case Function::guard:
     case Function::map:
     case Function::reduce:
+    case Function::timed_loop:
         break;
     case Function::pos:
     case Function::lat:
@@ -375,6 +405,7 @@ template <typename Operation>
     case Function::tand:
     case Function::sqrt:
     case Function::pow:
+    case Function::rand:
     case Function::range:
     case Function::geom:
     case Function::repeat:
@@ -487,6 +518,7 @@ template <typename Operation>
     case Function::tand:
     case Function::sqrt:
     case Function::pow:
+    case Function::rand:
     case Function::sum:
     case Function::len:
     case Function::product:
@@ -501,6 +533,7 @@ template <typename Operation>
     case Function::list_mul:
     case Function::guard:
     case Function::reduce:
+    case Function::timed_loop:
     case Function::map:
         break;
     }
@@ -562,6 +595,21 @@ template <typename Operation>
         reduced = apply_binary_operator(node.reduction_operator, reduced, input_values[index]);
     }
     return to_value(reduced);
+}
+
+[[nodiscard]] Value evaluate_timed_loop_call(const TimedLoopCall& node,
+                                             const std::optional<ScalarValue>& placeholder_value) {
+    const std::size_t iteration_count = require_list_index(
+        require_scalar_or_singleton_list_value(
+            evaluate_expression_with_placeholder(*node.iteration_count, placeholder_value)));
+
+    const auto started_at = std::chrono::steady_clock::now();
+    for (std::size_t index = 0; index < iteration_count; ++index) {
+        (void)evaluate_expression_with_placeholder(*node.loop_expression, placeholder_value);
+    }
+    const auto elapsed =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - started_at).count();
+    return require_finite_result(elapsed);
 }
 
 [[nodiscard]] Value evaluate_binary_expression(const BinaryExpression& node,
@@ -634,6 +682,8 @@ Value evaluate_expression_with_placeholder(const Expression& expression,
                 return evaluate_guard_call(node, placeholder_value);
             } else if constexpr (std::is_same_v<Node, ReduceCall>) {
                 return evaluate_reduce_call(node, placeholder_value);
+            } else if constexpr (std::is_same_v<Node, TimedLoopCall>) {
+                return evaluate_timed_loop_call(node, placeholder_value);
             } else {
                 return evaluate_binary_expression(node, placeholder_value);
             }

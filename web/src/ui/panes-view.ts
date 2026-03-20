@@ -17,6 +17,10 @@ const sampleExpressions = [
   "map(linspace(-10,10,400),guard(1/_,0))",
   "map(linspace(0,4*pi,500),guard(1/sin(_),0))",
   "map(linspace(-3,3,400),_ * _)",
+  "dist(pos(59.9139,10.7522),pos(60.3913,5.3221))",
+  "bearing(pos(59.9139,10.7522),pos(60.3913,5.3221))",
+  "br_to_pos(pos(59.9139,10.7522),270,100000)",
+  "lon(br_to_pos(pos(0,0),90,111319.49079327357))",
 ];
 
 interface PlotSeries {

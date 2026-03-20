@@ -63,6 +63,7 @@ enum class SpecialForm {
     map,
     guard,
     reduce,
+    timed_loop,
 };
 
 [[nodiscard]] std::optional<SpecialForm> parse_special_form(std::string_view identifier) {
@@ -74,6 +75,9 @@ enum class SpecialForm {
     }
     if (identifier == "reduce") {
         return SpecialForm::reduce;
+    }
+    if (identifier == "timed_loop") {
+        return SpecialForm::timed_loop;
     }
     return std::nullopt;
 }
@@ -269,6 +273,8 @@ private:
             return parse_guard_call();
         case SpecialForm::reduce:
             return parse_reduce_call();
+        case SpecialForm::timed_loop:
+            return parse_timed_loop_call();
         }
 
         throw ParseError("unknown special form");
@@ -425,6 +431,42 @@ private:
             ReduceCall{
                 .list_argument = std::move(list_argument),
                 .reduction_operator = reduction_operator,
+            }};
+    }
+
+    [[nodiscard]] Expression parse_timed_loop_call() {
+        advance();
+        if (current_.kind != TokenKind::left_paren) {
+            throw ParseError("expected '(' after function name");
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("function 'timed_loop' expects timed_loop(expr, count)");
+        }
+
+        auto loop_expression = make_expression(parse_bitwise_or_expression());
+
+        if (current_.kind != TokenKind::comma) {
+            throw ParseError("function 'timed_loop' expects timed_loop(expr, count)");
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("expected expression after ','");
+        }
+
+        auto iteration_count = make_expression(parse_bitwise_or_expression());
+
+        if (current_.kind != TokenKind::right_paren) {
+            throw ParseError("expected ')'");
+        }
+
+        advance();
+        return Expression{
+            TimedLoopCall{
+                .loop_expression = std::move(loop_expression),
+                .iteration_count = std::move(iteration_count),
             }};
     }
 

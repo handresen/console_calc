@@ -42,6 +42,7 @@ enum class Function {
     tand,
     sqrt,
     pow,
+    rand,
     sum,
     len,
     product,
@@ -56,6 +57,7 @@ enum class Function {
     list_mul,
     guard,
     reduce,
+    timed_loop,
     map,
     range,
     geom,
@@ -100,9 +102,14 @@ struct ReduceCall {
     BinaryOperator reduction_operator;
 };
 
+struct TimedLoopCall {
+    std::unique_ptr<Expression> loop_expression;
+    std::unique_ptr<Expression> iteration_count;
+};
+
 struct Expression {
     std::variant<NumberLiteral, PlaceholderExpression, UnaryExpression, BinaryExpression,
-                 ListLiteral, FunctionCall, MapCall, GuardCall, ReduceCall>
+                 ListLiteral, FunctionCall, MapCall, GuardCall, ReduceCall, TimedLoopCall>
         node;
 };
 
