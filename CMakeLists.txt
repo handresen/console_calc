@@ -35,7 +35,9 @@ add_library(console_calc_lib
     src/builtin_function.cpp
     src/error_info.cpp
     src/expression_ast_parser.cpp
+    src/expression_evaluator_builtins.cpp
     src/expression_evaluator.cpp
+    src/expression_evaluator_special_forms.cpp
     src/expression_parser.cpp
     src/expression_tokenizer.cpp
     src/geodesy.cpp
