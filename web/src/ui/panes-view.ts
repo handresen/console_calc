@@ -17,10 +17,13 @@ import { defaults as defaultInteractions } from "ol/interaction/defaults";
 import MouseWheelZoom from "ol/interaction/MouseWheelZoom";
 import { Fill, Stroke, Style, Circle as CircleStyle } from "ol/style";
 import { fromLonLat } from "ol/proj";
+import type { DisplaySettings } from "./display-settings";
+import { formatNumericText } from "./display-settings";
 
 export interface PanesView {
   element: HTMLElement;
   render(snapshot: BindingSnapshot): void;
+  setDisplaySettings(settings: DisplaySettings): void;
 }
 
 const sampleExpressions = [
@@ -155,10 +158,11 @@ function renderFunctionTable(
   container.append(table);
 }
 
-function stackDisplay(entry: BindingStackEntry): string {
-  const formatScalarPreview = (value: number) => Number(value.toPrecision(6)).toString();
+function stackDisplay(entry: BindingStackEntry, settings: DisplaySettings): string {
+  const formatScalarPreview = (value: number) =>
+    formatNumericText(`${value}`, settings.stackDecimals);
   const formatPositionPreview = (value: BindingPositionEntry) =>
-    `pos(${Number(value.latitude_deg.toPrecision(6))}, ${Number(value.longitude_deg.toPrecision(6))})`;
+    `pos(${formatNumericText(`${value.latitude_deg}`, settings.stackDecimals)}, ${formatNumericText(`${value.longitude_deg}`, settings.stackDecimals)})`;
 
   const positionListValues = entry.position_list_values ?? [];
   if (positionListValues.length > 0) {
@@ -175,7 +179,7 @@ function stackDisplay(entry: BindingStackEntry): string {
     return `${entry.level}:{${preview}${suffix}}`;
   }
 
-  return `${entry.level}:${entry.display}`;
+  return `${entry.level}:${formatNumericText(entry.display, settings.stackDecimals)}`;
 }
 
 function definitionDisplay(entry: BindingDefinitionEntry): string {
@@ -467,6 +471,7 @@ function createPane(titleText: string, onToggle?: (expanded: boolean) => void): 
 export function createPanesView(
   onSampleSelected?: (expression: string) => void,
   onClearStack?: () => void,
+  initialDisplaySettings: DisplaySettings = { transcriptDecimals: 8, stackDecimals: 6 },
 ): PanesView {
   const section = document.createElement("section");
   section.className = "panes-view";
@@ -480,6 +485,8 @@ export function createPanesView(
   const mapPanel = document.createElement("section");
   mapPanel.className = "map-panel";
   let latestMapSeries: PositionPlotSeries | null = null;
+  let displaySettings = initialDisplaySettings;
+  let latestSnapshot: BindingSnapshot | null = null;
 
   const status = document.createElement("div");
   status.className = "pane-status";
@@ -500,6 +507,7 @@ export function createPanesView(
   });
 
   functionsPane.body.classList.add("functions-pane-body");
+  const stackTitleLabel = stackPane.title.querySelector<HTMLElement>(".pane-title-label");
 
   const functionTableContainer = document.createElement("div");
   functionTableContainer.className = "function-table-container";
@@ -1153,6 +1161,10 @@ export function createPanesView(
   return {
     element: section,
     render(snapshot) {
+      latestSnapshot = snapshot;
+      if (stackTitleLabel !== null) {
+        stackTitleLabel.textContent = `Stack d${displaySettings.stackDecimals}`;
+      }
       status.textContent = `Mode ${snapshot.display_mode} | stack ${snapshot.stack.length}/${snapshot.max_stack_depth}`;
       stackPane.count.textContent = `${snapshot.stack.length}`;
       clearStackButton.disabled = snapshot.stack.length === 0;
@@ -1162,7 +1174,7 @@ export function createPanesView(
       samplesPane.count.textContent = `${sampleExpressions.length}`;
       renderTextList(
         stackList,
-        snapshot.stack.map((entry) => stackDisplay(entry)),
+        snapshot.stack.map((entry) => stackDisplay(entry, displaySettings)),
       );
       renderTextList(
         definitionsPane.body,
@@ -1177,6 +1189,18 @@ export function createPanesView(
       const series = snapshot.stack.map((entry) => parsePlotSeries(entry)).filter(isPlotSeries);
       renderPlot(series);
       renderMap(series);
+    },
+    setDisplaySettings(settings) {
+      displaySettings = settings;
+      if (stackTitleLabel !== null) {
+        stackTitleLabel.textContent = `Stack d${displaySettings.stackDecimals}`;
+      }
+      if (latestSnapshot !== null) {
+        renderTextList(
+          stackList,
+          latestSnapshot.stack.map((entry) => stackDisplay(entry, displaySettings)),
+        );
+      }
     },
   };
 }

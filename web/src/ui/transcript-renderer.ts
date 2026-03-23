@@ -1,4 +1,5 @@
 import type { BindingCommandResult } from "../bridge/console-wasm";
+import { formatNumericText } from "./display-settings";
 import type { TranscriptView } from "./transcript-view";
 
 function expectedFunctionSignature(
@@ -34,13 +35,20 @@ export function renderTranscriptResult(
   result: BindingCommandResult,
   input?: string,
   elapsedMs?: number,
+  transcriptDecimals = 8,
 ): void {
   let renderedEvent = false;
   let timingRendered = false;
   const timingText = elapsedMs === undefined ? undefined : `${elapsedMs.toFixed(1)} ms`;
+  const isListValueText = (text: string) => text.trimStart().startsWith("{");
 
-  const appendMessage = (text: string, kind: string): void => {
-    transcript.appendMessage(text, kind, timingRendered ? undefined : timingText);
+  const appendMessage = (text: string, kind: string, extraClassName?: string): void => {
+    transcript.appendMessage(
+      formatNumericText(text, transcriptDecimals),
+      kind,
+      timingRendered ? undefined : timingText,
+      extraClassName,
+    );
     timingRendered = true;
   };
 
@@ -51,6 +59,7 @@ export function renderTranscriptResult(
         appendMessage(
           input === undefined ? event.text : `${input} = ${event.text}`,
           "value",
+          isListValueText(event.text) ? "transcript-line-value-list" : undefined,
         );
         break;
       case "error": {
