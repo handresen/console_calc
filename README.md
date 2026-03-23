@@ -60,6 +60,63 @@ This produces:
 The current wasm bridge exports a small C-facing session API for creating a
 session, submitting commands, and retrieving the last command result as JSON.
 
+Run the web frontend during development:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+The Vite app expects the wasm host artifact from the repository root to exist
+first. In local development, open the Vite URL it prints, or the reverse-proxied
+`/cc/` route if you use that setup.
+
+## Running
+
+Native console app:
+
+```bash
+cmake --preset default
+cmake --build --preset default
+./build/default/console_calc
+```
+
+One-shot evaluation:
+
+```bash
+./build/default/console_calc "2 + 3 * 4"
+```
+
+Browser frontend:
+
+```bash
+source ~/emsdk/emsdk_env.sh
+EM_CACHE="$PWD/build/emscripten-cache" cmake --preset emscripten-host
+EM_CACHE="$PWD/build/emscripten-cache" cmake --build --preset emscripten-host
+cd web
+npm install
+npm run dev
+```
+
+## Install As App
+
+The web frontend can be installed as a lightweight standalone app window when
+served from `https` or `localhost`.
+
+Chrome:
+- Open the web app.
+- Use `...` -> `Cast, save, and share` -> `Install page as app`.
+
+Edge:
+- Open the web app.
+- Use `...` -> `Apps` -> `Install this site as an app`.
+
+Safari:
+- Safari does not offer the same Windows-style install flow.
+- On macOS/iOS you can use `Share` -> `Add to Dock` or `Add to Home Screen`
+  when available, but behavior differs from Chrome/Edge app installs.
+
 ## Expression Language
 
 Supported values:
