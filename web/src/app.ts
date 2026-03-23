@@ -65,7 +65,7 @@ export function createApp(root: HTMLElement): void {
     await executeInput(input);
   });
   const panes = createPanesView((expression) => {
-    void executeInput(expression);
+    prompt.submit(expression);
     prompt.focus();
   }, () => {
     void executeInput("clear");

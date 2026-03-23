@@ -4,6 +4,7 @@ export interface PromptView {
   setDepth(depth: number): void;
   setPlaceholder(text: string): void;
   setValue(value: string): void;
+  submit(value: string): void;
   focus(): void;
 }
 
@@ -11,6 +12,25 @@ export function createPromptView(onSubmit: (input: string) => void): PromptView 
   const history: string[] = [];
   let historyIndex = -1;
   let draftInput = "";
+
+  const submitValue = (value: string) => {
+    const trimmedValue = value.trim();
+    if (trimmedValue.length === 0) {
+      return;
+    }
+
+    if (history.at(-1) !== trimmedValue) {
+      history.push(trimmedValue);
+      if (history.length > 100) {
+        history.shift();
+      }
+    }
+
+    historyIndex = -1;
+    draftInput = "";
+    input.value = "";
+    onSubmit(trimmedValue);
+  };
 
   const wrapper = document.createElement("section");
   wrapper.className = "prompt-view";
@@ -61,22 +81,7 @@ export function createPromptView(onSubmit: (input: string) => void): PromptView 
       return;
     }
 
-    const value = input.value.trim();
-    if (value.length === 0) {
-      return;
-    }
-
-    if (history.at(-1) !== value) {
-      history.push(value);
-      if (history.length > 100) {
-        history.shift();
-      }
-    }
-
-    historyIndex = -1;
-    draftInput = "";
-    input.value = "";
-    onSubmit(value);
+    submitValue(input.value);
   });
 
   wrapper.append(promptLabel, input);
@@ -94,6 +99,9 @@ export function createPromptView(onSubmit: (input: string) => void): PromptView 
     setValue(value) {
       input.value = value;
       input.setSelectionRange(input.value.length, input.value.length);
+    },
+    submit(value) {
+      submitValue(value);
     },
     focus() {
       input.focus();
