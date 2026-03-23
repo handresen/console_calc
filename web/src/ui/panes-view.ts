@@ -53,6 +53,7 @@ interface PositionPlotSeries {
 
 type PlotItem = PlotSeries | PositionPlotSeries;
 type PlotPoint = { x: number; y: number };
+const scalarPlotVerticalPadding = 5;
 
 function isPlotSeries(value: PlotItem | null): value is PlotItem {
   return value !== null;
@@ -225,6 +226,10 @@ function buildScalarBounds(values: number[]): { min: number; max: number; range:
   };
 }
 
+function formatScalarAxisLabel(value: number): string {
+  return value.toPrecision(6);
+}
+
 function buildPlotPath(
   values: number[],
   width: number,
@@ -240,10 +245,15 @@ function buildPlotPath(
     return `M 0 ${y} L ${width} ${y}`;
   }
 
+  const plotHeight = height - scalarPlotVerticalPadding * 2;
+
   return values
     .map((value, index) => {
       const x = (index / (values.length - 1)) * width;
-      const y = height - ((value - bounds.min) / bounds.range) * height;
+      const y =
+        height -
+        scalarPlotVerticalPadding -
+        ((value - bounds.min) / bounds.range) * plotHeight;
       return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
     })
     .join(" ");
@@ -263,7 +273,11 @@ function buildZeroAxisPath(
     return "";
   }
 
-  const y = height - ((0 - bounds.min) / bounds.range) * height;
+  const plotHeight = height - scalarPlotVerticalPadding * 2;
+  const y =
+    height -
+    scalarPlotVerticalPadding -
+    ((0 - bounds.min) / bounds.range) * plotHeight;
   return `M 0 ${y.toFixed(2)} L ${width} ${y.toFixed(2)}`;
 }
 
@@ -379,14 +393,19 @@ function toMapCoordinates(points: BindingPositionEntry[]): [number, number][] {
 
 interface PaneElements {
   section: HTMLElement;
+  header: HTMLElement;
   title: HTMLButtonElement;
   body: HTMLElement;
   count: HTMLElement;
+  actions: HTMLElement;
 }
 
 function createPane(titleText: string, onToggle?: (expanded: boolean) => void): PaneElements {
   const section = document.createElement("section");
   section.className = "pane";
+
+  const header = document.createElement("div");
+  header.className = "pane-header";
 
   const title = document.createElement("button");
   title.className = "pane-title";
@@ -405,6 +424,9 @@ function createPane(titleText: string, onToggle?: (expanded: boolean) => void): 
   marker.className = "pane-marker";
   marker.textContent = "+";
 
+  const actions = document.createElement("div");
+  actions.className = "pane-header-actions";
+
   const body = document.createElement("div");
   body.className = "pane-body";
   body.hidden = true;
@@ -417,12 +439,16 @@ function createPane(titleText: string, onToggle?: (expanded: boolean) => void): 
     onToggle?.(!expanded);
   });
 
-  title.append(titleLabel, count, marker);
-  section.append(title, body);
-  return { section, title, body, count };
+  title.append(titleLabel, marker);
+  header.append(title, actions, count);
+  section.append(header, body);
+  return { section, header, title, body, count, actions };
 }
 
-export function createPanesView(onSampleSelected?: (expression: string) => void): PanesView {
+export function createPanesView(
+  onSampleSelected?: (expression: string) => void,
+  onClearStack?: () => void,
+): PanesView {
   const section = document.createElement("section");
   section.className = "panes-view";
 
@@ -459,6 +485,18 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
   const functionTableContainer = document.createElement("div");
   functionTableContainer.className = "function-table-container";
 
+  const clearStackButton = document.createElement("button");
+  clearStackButton.type = "button";
+  clearStackButton.className = "pane-icon-button";
+  clearStackButton.textContent = "×";
+  clearStackButton.setAttribute("aria-label", "Clear stack");
+  clearStackButton.title = "Clear stack";
+  clearStackButton.addEventListener("click", () => {
+    onClearStack?.();
+  });
+
+  const stackList = document.createElement("div");
+
   const samplesList = document.createElement("div");
   samplesList.className = "sample-list";
 
@@ -473,6 +511,8 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     samplesList.append(button);
   }
 
+  stackPane.actions.append(clearStackButton);
+  stackPane.body.append(stackList);
   functionsPane.body.append(functionTableContainer);
   samplesPane.body.append(samplesList);
 
@@ -534,6 +574,9 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
   const plotHover = document.createElementNS("http://www.w3.org/2000/svg", "g");
   plotHover.setAttribute("class", "plot-hover");
 
+  const plotHoverGuide = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  plotHoverGuide.setAttribute("class", "plot-hover-guide");
+
   const plotHoverPoint = document.createElementNS("http://www.w3.org/2000/svg", "circle");
   plotHoverPoint.setAttribute("class", "plot-hover-point");
   plotHoverPoint.setAttribute("r", "3.2");
@@ -546,7 +589,22 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
   const plotHoverLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
   plotHoverLabel.setAttribute("class", "plot-hover-label");
 
-  plotHover.append(plotHoverBubble, plotHoverPoint, plotHoverLabel);
+  const plotHoverXAxisBubble = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  plotHoverXAxisBubble.setAttribute("class", "plot-hover-bubble");
+  plotHoverXAxisBubble.setAttribute("rx", "4");
+  plotHoverXAxisBubble.setAttribute("ry", "4");
+
+  const plotHoverXAxisLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  plotHoverXAxisLabel.setAttribute("class", "plot-hover-label");
+
+  plotHover.append(
+    plotHoverGuide,
+    plotHoverBubble,
+    plotHoverXAxisBubble,
+    plotHoverPoint,
+    plotHoverLabel,
+    plotHoverXAxisLabel,
+  );
   plotHover.style.display = "none";
 
   const createCornerLabel = (x: string, y: string, anchor: string, baseline: string) => {
@@ -724,9 +782,14 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
       return [{ x: width / 2, y: height / 2 }];
     }
 
+    const plotHeight = height - scalarPlotVerticalPadding * 2;
+
     return values.map((value, index) => ({
       x: (index / (values.length - 1)) * width,
-      y: height - ((value - bounds.min) / bounds.range) * height,
+      y:
+        height -
+        scalarPlotVerticalPadding -
+        ((value - bounds.min) / bounds.range) * plotHeight,
     }));
   };
 
@@ -763,6 +826,15 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     return `${point.latitude_deg.toFixed(4)}, ${point.longitude_deg.toFixed(4)}`;
   };
 
+  const formatHoverXAxisLabel = (series: PlotItem, index: number) => {
+    if ("rawValues" in series) {
+      return `${index}`;
+    }
+
+    const point = series.rawPoints[index] ?? { latitude_deg: 0, longitude_deg: 0 };
+    return point.longitude_deg.toFixed(4);
+  };
+
   const showPlotHover = (series: PlotItem, points: PlotPoint[], index: number) => {
     const point = points[index];
     if (point == null) {
@@ -771,9 +843,14 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     }
 
     plotHover.style.display = "";
+    plotHoverGuide.setAttribute(
+      "d",
+      `M ${point.x.toFixed(2)} 174 L ${point.x.toFixed(2)} ${point.y.toFixed(2)}`,
+    );
     plotHoverPoint.setAttribute("cx", point.x.toFixed(2));
     plotHoverPoint.setAttribute("cy", point.y.toFixed(2));
     plotHoverLabel.textContent = formatHoverLabel(series, index);
+    plotHoverXAxisLabel.textContent = formatHoverXAxisLabel(series, index);
 
     const padding = 6;
     const gap = 8;
@@ -807,6 +884,34 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     plotHoverBubble.setAttribute("y", bubbleY.toFixed(2));
     plotHoverBubble.setAttribute("width", bubbleWidth.toFixed(2));
     plotHoverBubble.setAttribute("height", bubbleHeight.toFixed(2));
+
+    const xAxisY = 170;
+    plotHoverXAxisLabel.setAttribute("x", point.x.toFixed(2));
+    plotHoverXAxisLabel.setAttribute("y", xAxisY.toFixed(2));
+    plotHoverXAxisLabel.setAttribute("text-anchor", "middle");
+    plotHoverXAxisLabel.setAttribute("dominant-baseline", "auto");
+
+    const xAxisBounds = plotHoverXAxisLabel.getBBox();
+    let xAxisLabelX = point.x;
+    if (xAxisBounds.x < 4) {
+      xAxisLabelX += 4 - xAxisBounds.x;
+    }
+    if (xAxisBounds.x + xAxisBounds.width > 316) {
+      xAxisLabelX -= xAxisBounds.x + xAxisBounds.width - 316;
+    }
+
+    plotHoverXAxisLabel.setAttribute("x", xAxisLabelX.toFixed(2));
+    const adjustedXAxisBounds = plotHoverXAxisLabel.getBBox();
+    plotHoverXAxisBubble.setAttribute("x", Math.max(2, adjustedXAxisBounds.x - padding).toFixed(2));
+    plotHoverXAxisBubble.setAttribute("y", Math.max(158, adjustedXAxisBounds.y - padding / 2).toFixed(2));
+    plotHoverXAxisBubble.setAttribute(
+      "width",
+      Math.min(316, adjustedXAxisBounds.width + padding * 2).toFixed(2),
+    );
+    plotHoverXAxisBubble.setAttribute(
+      "height",
+      Math.min(18, adjustedXAxisBounds.height + padding).toFixed(2),
+    );
   };
 
   const renderPlot = (seriesList: PlotItem[]) => {
@@ -853,9 +958,9 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
           : "",
       );
       renderPointMarkers(pointsToggle.checked ? points : []);
-      topLeftLabel.textContent = "";
+      topLeftLabel.textContent = formatScalarAxisLabel(scalarBounds.max);
       topRightLabel.textContent = "";
-      bottomLeftLabel.textContent = "";
+      bottomLeftLabel.textContent = formatScalarAxisLabel(scalarBounds.min);
       bottomRightLabel.textContent = "";
       return;
     }
@@ -1031,12 +1136,13 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     render(snapshot) {
       status.textContent = `Mode ${snapshot.display_mode} | stack ${snapshot.stack.length}/${snapshot.max_stack_depth}`;
       stackPane.count.textContent = `${snapshot.stack.length}`;
+      clearStackButton.disabled = snapshot.stack.length === 0;
       definitionsPane.count.textContent = `${snapshot.definitions.length}`;
       constantsPane.count.textContent = `${snapshot.constants.length}`;
       functionsPane.count.textContent = `${snapshot.functions.length}`;
       samplesPane.count.textContent = `${sampleExpressions.length}`;
       renderTextList(
-        stackPane.body,
+        stackList,
         snapshot.stack.map((entry) => stackDisplay(entry)),
       );
       renderTextList(

@@ -67,6 +67,9 @@ export function createApp(root: HTMLElement): void {
   const panes = createPanesView((expression) => {
     void executeInput(expression);
     prompt.focus();
+  }, () => {
+    void executeInput("clear");
+    prompt.focus();
   });
   prompt.setEnabled(false);
 

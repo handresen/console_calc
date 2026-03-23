@@ -184,13 +184,22 @@ body.is-resizing-shell {
   color: #7d7b73;
 }
 
-.pane-title {
+.pane-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 0.6rem;
-  width: 100%;
+  gap: 0.35rem;
   margin: 0 0 0.55rem;
+}
+
+.pane-title {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  width: auto;
+  min-width: 0;
+  margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
@@ -204,6 +213,12 @@ body.is-resizing-shell {
 
 .pane-title-label {
   min-width: 0;
+}
+
+.pane-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .pane-count {
@@ -235,6 +250,30 @@ body.is-resizing-shell {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+}
+
+.pane-icon-button {
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  border: 1px solid rgba(29, 36, 28, 0.12);
+  border-radius: 999px;
+  background: rgba(220, 233, 211, 0.12);
+  color: #5e5a4c;
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pane-icon-button:hover:enabled {
+  background: rgba(220, 233, 211, 0.28);
+  color: #374334;
+}
+
+.pane-icon-button:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .functions-pane-body {
@@ -416,7 +455,7 @@ body.is-resizing-map {
 
 .plot-line {
   stroke: #6f9d73;
-  stroke-width: 2.5;
+  stroke-width: 0.625;
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -429,6 +468,13 @@ body.is-resizing-map {
 
 .plot-hover {
   pointer-events: none;
+}
+
+.plot-hover-guide {
+  stroke: rgba(47, 111, 237, 0.5);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 4;
+  fill: none;
 }
 
 .plot-hover-point {
