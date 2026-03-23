@@ -427,6 +427,29 @@ body.is-resizing-map {
   stroke: none;
 }
 
+.plot-hover {
+  pointer-events: none;
+}
+
+.plot-hover-point {
+  fill: #2f6fed;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 1.2;
+}
+
+.plot-hover-bubble {
+  fill: rgba(250, 247, 239, 0.94);
+  stroke: rgba(29, 36, 28, 0.16);
+  stroke-width: 1;
+}
+
+.plot-hover-label {
+  fill: #1f2731;
+  font-size: 9px;
+  font-family: "Iosevka", "Iosevka Term", "SF Mono", monospace;
+  letter-spacing: -0.03em;
+}
+
 .plot-corner-label {
   fill: rgba(29, 36, 28, 0.52);
   font-size: 8px;

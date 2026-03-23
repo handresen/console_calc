@@ -39,6 +39,7 @@ interface PlotSeries {
   key: string;
   label: string;
   values: number[];
+  rawValues: number[];
   truncated: boolean;
 }
 
@@ -46,10 +47,12 @@ interface PositionPlotSeries {
   key: string;
   label: string;
   points: BindingPositionEntry[];
+  rawPoints: BindingPositionEntry[];
   truncated: boolean;
 }
 
 type PlotItem = PlotSeries | PositionPlotSeries;
+type PlotPoint = { x: number; y: number };
 
 function isPlotSeries(value: PlotItem | null): value is PlotItem {
   return value !== null;
@@ -185,6 +188,7 @@ function parsePlotSeries(entry: BindingStackEntry): PlotItem | null {
       key: `stack-${entry.level}`,
       label: `Stack ${entry.level}`,
       points,
+      rawPoints: positionListValues,
       truncated: positionListValues.length > 500,
     };
   }
@@ -206,11 +210,27 @@ function parsePlotSeries(entry: BindingStackEntry): PlotItem | null {
     key: `stack-${entry.level}`,
     label: `Stack ${entry.level}`,
     values,
+    rawValues: listValues,
     truncated,
   };
 }
 
-function buildPlotPath(values: number[], width: number, height: number): string {
+function buildScalarBounds(values: number[]): { min: number; max: number; range: number } {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  return {
+    min,
+    max,
+    range: max - min || 1,
+  };
+}
+
+function buildPlotPath(
+  values: number[],
+  width: number,
+  height: number,
+  bounds = buildScalarBounds(values),
+): string {
   if (values.length === 0) {
     return "";
   }
@@ -220,33 +240,30 @@ function buildPlotPath(values: number[], width: number, height: number): string 
     return `M 0 ${y} L ${width} ${y}`;
   }
 
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-
   return values
     .map((value, index) => {
       const x = (index / (values.length - 1)) * width;
-      const y = height - ((value - min) / range) * height;
+      const y = height - ((value - bounds.min) / bounds.range) * height;
       return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
     })
     .join(" ");
 }
 
-function buildZeroAxisPath(values: number[], width: number, height: number): string {
+function buildZeroAxisPath(
+  values: number[],
+  width: number,
+  height: number,
+  bounds = buildScalarBounds(values),
+): string {
   if (values.length === 0) {
     return `M 0 ${height} L ${width} ${height}`;
   }
 
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-
-  if (min > 0 || max < 0) {
+  if (bounds.min > 0 || bounds.max < 0) {
     return "";
   }
 
-  const range = max - min || 1;
-  const y = height - ((0 - min) / range) * height;
+  const y = height - ((0 - bounds.min) / bounds.range) * height;
   return `M 0 ${y.toFixed(2)} L ${width} ${y.toFixed(2)}`;
 }
 
@@ -297,12 +314,12 @@ function buildPositionPlotPath(
   points: BindingPositionEntry[],
   width: number,
   height: number,
+  bounds = buildPositionBounds(points),
 ): string {
   if (points.length === 0) {
     return "";
   }
 
-  const bounds = buildPositionBounds(points);
   const rangeX = bounds.maxX - bounds.minX || 1;
   const rangeY = bounds.maxY - bounds.minY || 1;
   const padding = 8;
@@ -323,12 +340,12 @@ function buildPositionReferenceAxes(
   points: BindingPositionEntry[],
   width: number,
   height: number,
+  bounds = buildPositionBounds(points),
 ): { equator: string; primeMeridian: string } {
   if (points.length === 0) {
     return { equator: "", primeMeridian: "" };
   }
 
-  const bounds = buildPositionBounds(points);
   const rangeX = bounds.maxX - bounds.minX || 1;
   const rangeY = bounds.maxY - bounds.minY || 1;
   const padding = 8;
@@ -514,6 +531,24 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
   const plotCornerLabels = document.createElementNS("http://www.w3.org/2000/svg", "g");
   plotCornerLabels.setAttribute("class", "plot-corner-labels");
 
+  const plotHover = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  plotHover.setAttribute("class", "plot-hover");
+
+  const plotHoverPoint = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  plotHoverPoint.setAttribute("class", "plot-hover-point");
+  plotHoverPoint.setAttribute("r", "3.2");
+
+  const plotHoverBubble = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  plotHoverBubble.setAttribute("class", "plot-hover-bubble");
+  plotHoverBubble.setAttribute("rx", "4");
+  plotHoverBubble.setAttribute("ry", "4");
+
+  const plotHoverLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  plotHoverLabel.setAttribute("class", "plot-hover-label");
+
+  plotHover.append(plotHoverBubble, plotHoverPoint, plotHoverLabel);
+  plotHover.style.display = "none";
+
   const createCornerLabel = (x: string, y: string, anchor: string, baseline: string) => {
     const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
     label.setAttribute("x", x);
@@ -543,6 +578,7 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     plotLine,
     plotPoints,
     plotCornerLabels,
+    plotHover,
   );
   plotPane.body.append(plotMeta, plotControls, plotSvg);
 
@@ -656,7 +692,14 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     }),
   });
 
-  const renderPointMarkers = (points: Array<{ x: number; y: number }>) => {
+  let latestPlotSeries: PlotItem | null = null;
+  let latestPlotPoints: PlotPoint[] = [];
+
+  const hidePlotHover = () => {
+    plotHover.style.display = "none";
+  };
+
+  const renderPointMarkers = (points: PlotPoint[]) => {
     plotPoints.replaceChildren();
     for (const point of points) {
       const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -668,7 +711,12 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     }
   };
 
-  const buildScalarPlotPoints = (values: number[], width: number, height: number) => {
+  const buildScalarPlotPoints = (
+    values: number[],
+    width: number,
+    height: number,
+    bounds = buildScalarBounds(values),
+  ): PlotPoint[] => {
     if (values.length === 0) {
       return [];
     }
@@ -676,13 +724,9 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
       return [{ x: width / 2, y: height / 2 }];
     }
 
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const range = max - min || 1;
-
     return values.map((value, index) => ({
       x: (index / (values.length - 1)) * width,
-      y: height - ((value - min) / range) * height,
+      y: height - ((value - bounds.min) / bounds.range) * height,
     }));
   };
 
@@ -690,12 +734,12 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     points: BindingPositionEntry[],
     width: number,
     height: number,
-  ) => {
+    bounds = buildPositionBounds(points),
+  ): PlotPoint[] => {
     if (points.length === 0) {
       return [];
     }
 
-    const bounds = buildPositionBounds(points);
     const rangeX = bounds.maxX - bounds.minX || 1;
     const rangeY = bounds.maxY - bounds.minY || 1;
     const padding = 8;
@@ -709,8 +753,67 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     }));
   };
 
+  const formatHoverLabel = (series: PlotItem, index: number) => {
+    if ("rawValues" in series) {
+      const value = series.rawValues[index] ?? 0;
+      return value.toPrecision(6);
+    }
+
+    const point = series.rawPoints[index] ?? { latitude_deg: 0, longitude_deg: 0 };
+    return `${point.latitude_deg.toFixed(4)}, ${point.longitude_deg.toFixed(4)}`;
+  };
+
+  const showPlotHover = (series: PlotItem, points: PlotPoint[], index: number) => {
+    const point = points[index];
+    if (point == null) {
+      hidePlotHover();
+      return;
+    }
+
+    plotHover.style.display = "";
+    plotHoverPoint.setAttribute("cx", point.x.toFixed(2));
+    plotHoverPoint.setAttribute("cy", point.y.toFixed(2));
+    plotHoverLabel.textContent = formatHoverLabel(series, index);
+
+    const padding = 6;
+    const gap = 8;
+    const preferredX = point.x + gap;
+    const preferredY = point.y - gap;
+
+    plotHoverLabel.setAttribute("x", preferredX.toFixed(2));
+    plotHoverLabel.setAttribute("y", preferredY.toFixed(2));
+
+    const textBounds = plotHoverLabel.getBBox();
+    let textX = preferredX;
+    let textY = preferredY;
+
+    if (textX + textBounds.width > 314) {
+      textX = Math.max(6, point.x - gap - textBounds.width);
+    }
+    if (textY - textBounds.height < 6) {
+      textY = Math.min(174, point.y + gap + textBounds.height * 0.8);
+    }
+
+    plotHoverLabel.setAttribute("x", textX.toFixed(2));
+    plotHoverLabel.setAttribute("y", textY.toFixed(2));
+
+    const adjustedBounds = plotHoverLabel.getBBox();
+    const bubbleX = Math.max(2, adjustedBounds.x - padding);
+    const bubbleY = Math.max(2, adjustedBounds.y - padding / 2);
+    const bubbleWidth = Math.min(316 - bubbleX, adjustedBounds.width + padding * 2);
+    const bubbleHeight = Math.min(176 - bubbleY, adjustedBounds.height + padding);
+
+    plotHoverBubble.setAttribute("x", bubbleX.toFixed(2));
+    plotHoverBubble.setAttribute("y", bubbleY.toFixed(2));
+    plotHoverBubble.setAttribute("width", bubbleWidth.toFixed(2));
+    plotHoverBubble.setAttribute("height", bubbleHeight.toFixed(2));
+  };
+
   const renderPlot = (seriesList: PlotItem[]) => {
     plotPane.count.textContent = `${seriesList.length}`;
+    latestPlotSeries = null;
+    latestPlotPoints = [];
+    hidePlotHover();
 
     if (seriesList.length === 0) {
       plotMeta.textContent = "No plottable list values in stack";
@@ -727,14 +830,27 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
 
     const currentSeries = seriesList[seriesList.length - 1];
     const suffix = currentSeries.truncated ? " | using visible values" : "";
-    if ("values" in currentSeries) {
-      plotMeta.textContent = `${currentSeries.label} | ${currentSeries.values.length} values${suffix}`;
-      plotZeroAxis.setAttribute("d", buildZeroAxisPath(currentSeries.values, 320, 180));
+    if ("rawValues" in currentSeries) {
+      const scalarBounds = buildScalarBounds(currentSeries.rawValues);
+      plotMeta.textContent = `${currentSeries.label} | ${currentSeries.rawValues.length} values${suffix}`;
+      plotZeroAxis.setAttribute(
+        "d",
+        buildZeroAxisPath(currentSeries.rawValues, 320, 180, scalarBounds),
+      );
       plotPrimeMeridian.setAttribute("d", "");
-      const points = buildScalarPlotPoints(currentSeries.values, 320, 180);
+      const points = buildScalarPlotPoints(currentSeries.values, 320, 180, scalarBounds);
+      latestPlotSeries = currentSeries;
+      latestPlotPoints = buildScalarPlotPoints(
+        currentSeries.rawValues,
+        320,
+        180,
+        scalarBounds,
+      );
       plotLine.setAttribute(
         "d",
-        lineToggle.checked ? buildPlotPath(currentSeries.values, 320, 180) : "",
+        lineToggle.checked
+          ? buildPlotPath(currentSeries.values, 320, 180, scalarBounds)
+          : "",
       );
       renderPointMarkers(pointsToggle.checked ? points : []);
       topLeftLabel.textContent = "";
@@ -744,16 +860,18 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
       return;
     }
 
-    plotMeta.textContent = `${currentSeries.label} | ${currentSeries.points.length} positions | lon/x, lat/y${suffix}`;
-    const bounds = buildPositionBounds(currentSeries.points);
-    const referenceAxes = buildPositionReferenceAxes(currentSeries.points, 320, 180);
+    plotMeta.textContent = `${currentSeries.label} | ${currentSeries.rawPoints.length} positions | lon/x, lat/y${suffix}`;
+    const bounds = buildPositionBounds(currentSeries.rawPoints);
+    const referenceAxes = buildPositionReferenceAxes(currentSeries.rawPoints, 320, 180, bounds);
     plotZeroAxis.setAttribute("d", referenceAxes.equator);
     plotPrimeMeridian.setAttribute("d", referenceAxes.primeMeridian);
-    const points = buildPositionPlotPoints(currentSeries.points, 320, 180);
+    const points = buildPositionPlotPoints(currentSeries.points, 320, 180, bounds);
+    latestPlotSeries = currentSeries;
+    latestPlotPoints = buildPositionPlotPoints(currentSeries.rawPoints, 320, 180, bounds);
     plotLine.setAttribute(
       "d",
       lineToggle.checked
-        ? buildPositionPlotPath(currentSeries.points, 320, 180)
+        ? buildPositionPlotPath(currentSeries.points, 320, 180, bounds)
         : "",
     );
     renderPointMarkers(pointsToggle.checked ? points : []);
@@ -841,6 +959,44 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
 
   lineToggle.addEventListener("change", rerenderPlotFromSnapshot);
   pointsToggle.addEventListener("change", rerenderPlotFromSnapshot);
+
+  plotSvg.addEventListener("mousemove", (event) => {
+    if (latestPlotSeries == null || latestPlotPoints.length === 0) {
+      hidePlotHover();
+      return;
+    }
+
+    const bounds = plotSvg.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) {
+      hidePlotHover();
+      return;
+    }
+
+    const x = ((event.clientX - bounds.left) / bounds.width) * 320;
+    let bestIndex = 0;
+
+    if ("rawValues" in latestPlotSeries) {
+      bestIndex =
+        latestPlotSeries.rawValues.length <= 1
+          ? 0
+          : Math.round((Math.max(0, Math.min(320, x)) / 320) * (latestPlotSeries.rawValues.length - 1));
+    } else {
+      let bestDistance = Number.POSITIVE_INFINITY;
+      for (let index = 0; index < latestPlotPoints.length; index += 1) {
+        const distance = Math.abs((latestPlotPoints[index]?.x ?? 0) - x);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestIndex = index;
+        }
+      }
+    }
+
+    showPlotHover(latestPlotSeries, latestPlotPoints, bestIndex);
+  });
+
+  plotSvg.addEventListener("mouseleave", () => {
+    hidePlotHover();
+  });
 
   connectMapLinesToggle.addEventListener("change", () => {
     const stackEntries = (section as HTMLElement).dataset.plotSnapshot;
