@@ -156,6 +156,25 @@ function renderFunctionTable(
 }
 
 function stackDisplay(entry: BindingStackEntry): string {
+  const formatScalarPreview = (value: number) => Number(value.toPrecision(6)).toString();
+  const formatPositionPreview = (value: BindingPositionEntry) =>
+    `pos(${Number(value.latitude_deg.toPrecision(6))}, ${Number(value.longitude_deg.toPrecision(6))})`;
+
+  const positionListValues = entry.position_list_values ?? [];
+  if (positionListValues.length > 0) {
+    const preview = positionListValues.slice(0, 2).map(formatPositionPreview).join(", ");
+    const suffix =
+      positionListValues.length > 2 ? `, ... <${positionListValues.length - 2} more>` : "";
+    return `${entry.level}:{${preview}${suffix}}`;
+  }
+
+  const listValues = entry.list_values ?? [];
+  if (listValues.length > 0 || entry.display.trim() === "{}") {
+    const preview = listValues.slice(0, 2).map(formatScalarPreview).join(", ");
+    const suffix = listValues.length > 2 ? `, ... <${listValues.length - 2} more>` : "";
+    return `${entry.level}:{${preview}${suffix}}`;
+  }
+
   return `${entry.level}:${entry.display}`;
 }
 

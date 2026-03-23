@@ -9,6 +9,9 @@
 The project is intentionally compact and library-first. Parsing and evaluation live in the core library, while REPL behavior stays in the app layer.
 It is also intended to remain a focused personal tool for lightweight calculator workflows, not a general-purpose framework or platform.
 
+Sample screenshot:
+- [console_calc web frontend](docs/images/console_calc.png)
+
 Current build layers:
 - `console_calc_lib`
   core parser, evaluator, values, and builtin metadata
