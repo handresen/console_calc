@@ -86,6 +86,83 @@ export function createApp(root: HTMLElement): void {
   stackInput.step = "1";
   stackField.append(stackLabel, stackInput);
 
+  const previewField = document.createElement("label");
+  previewField.className = "settings-field";
+  const previewLabel = document.createElement("span");
+  previewLabel.textContent = "List preview length";
+  const previewInput = document.createElement("input");
+  previewInput.type = "number";
+  previewInput.min = "1";
+  previewInput.max = "8";
+  previewInput.step = "1";
+  previewField.append(previewLabel, previewInput);
+
+  const clampField = document.createElement("label");
+  clampField.className = "settings-field";
+  const clampLabel = document.createElement("span");
+  clampLabel.textContent = "Transcript list clamp";
+  const clampSelect = document.createElement("select");
+  for (const [value, label] of [
+    ["0", "Off"],
+    ["2", "2 lines"],
+    ["4", "4 lines"],
+  ] as const) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    clampSelect.append(option);
+  }
+  clampField.append(clampLabel, clampSelect);
+
+  const showTimingsField = document.createElement("label");
+  showTimingsField.className = "settings-check";
+  const showTimingsInput = document.createElement("input");
+  showTimingsInput.type = "checkbox";
+  const showTimingsLabel = document.createElement("span");
+  showTimingsLabel.textContent = "Show transcript timings";
+  showTimingsField.append(showTimingsInput, showTimingsLabel);
+
+  const rememberPanesField = document.createElement("label");
+  rememberPanesField.className = "settings-check";
+  const rememberPanesInput = document.createElement("input");
+  rememberPanesInput.type = "checkbox";
+  const rememberPanesLabel = document.createElement("span");
+  rememberPanesLabel.textContent = "Remember pane expansion";
+  rememberPanesField.append(rememberPanesInput, rememberPanesLabel);
+
+  const plotDefaultsGroup = document.createElement("div");
+  plotDefaultsGroup.className = "settings-group";
+  const plotDefaultsTitle = document.createElement("div");
+  plotDefaultsTitle.className = "settings-group-title";
+  plotDefaultsTitle.textContent = "Plot defaults";
+  const plotLineField = document.createElement("label");
+  plotLineField.className = "settings-check";
+  const plotLineInput = document.createElement("input");
+  plotLineInput.type = "checkbox";
+  const plotLineLabel = document.createElement("span");
+  plotLineLabel.textContent = "Show line";
+  plotLineField.append(plotLineInput, plotLineLabel);
+  const plotPointsField = document.createElement("label");
+  plotPointsField.className = "settings-check";
+  const plotPointsInput = document.createElement("input");
+  plotPointsInput.type = "checkbox";
+  const plotPointsLabel = document.createElement("span");
+  plotPointsLabel.textContent = "Show points";
+  plotPointsField.append(plotPointsInput, plotPointsLabel);
+  const mapLinesField = document.createElement("label");
+  mapLinesField.className = "settings-check";
+  const mapLinesInput = document.createElement("input");
+  mapLinesInput.type = "checkbox";
+  const mapLinesLabel = document.createElement("span");
+  mapLinesLabel.textContent = "Connect map lines";
+  mapLinesField.append(mapLinesInput, mapLinesLabel);
+  plotDefaultsGroup.append(
+    plotDefaultsTitle,
+    plotLineField,
+    plotPointsField,
+    mapLinesField,
+  );
+
   const settingsActions = document.createElement("div");
   settingsActions.className = "settings-actions";
   const cancelButton = document.createElement("button");
@@ -98,17 +175,35 @@ export function createApp(root: HTMLElement): void {
   saveButton.textContent = "Save";
   settingsActions.append(cancelButton, saveButton);
 
-  settingsForm.append(settingsHeading, transcriptField, stackField, settingsActions);
+  settingsForm.append(
+    settingsHeading,
+    transcriptField,
+    stackField,
+    previewField,
+    clampField,
+    showTimingsField,
+    rememberPanesField,
+    plotDefaultsGroup,
+    settingsActions,
+  );
   settingsDialog.append(settingsForm);
 
   const syncSettingsInputs = () => {
     transcriptInput.value = `${displaySettings.transcriptDecimals}`;
     stackInput.value = `${displaySettings.stackDecimals}`;
+    previewInput.value = `${displaySettings.listPreviewLength}`;
+    clampSelect.value = `${displaySettings.transcriptListClamp}`;
+    showTimingsInput.checked = displaySettings.showTimings;
+    rememberPanesInput.checked = displaySettings.rememberPaneState;
+    plotLineInput.checked = displaySettings.plotDefaultLine;
+    plotPointsInput.checked = displaySettings.plotDefaultPoints;
+    mapLinesInput.checked = displaySettings.mapDefaultConnectLines;
   };
 
   const applyDisplaySettings = (settings: DisplaySettings) => {
     displaySettings = settings;
     panes.setDisplaySettings(settings);
+    transcript.setDisplaySettings(settings);
     transcript.reformatMessages((text, kind) =>
       kind === "value" || kind === "listing" || kind === "text"
         ? formatNumericText(text, settings.transcriptDecimals)
@@ -165,6 +260,7 @@ export function createApp(root: HTMLElement): void {
     prompt.focus();
   }, displaySettings);
   prompt.setEnabled(false);
+  transcript.setDisplaySettings(displaySettings);
 
   settingsButton.addEventListener("click", () => {
     syncSettingsInputs();
@@ -179,6 +275,8 @@ export function createApp(root: HTMLElement): void {
     event.preventDefault();
     const transcriptDecimals = Number.parseInt(transcriptInput.value, 10);
     const stackDecimals = Number.parseInt(stackInput.value, 10);
+    const listPreviewLength = Number.parseInt(previewInput.value, 10);
+    const transcriptListClamp = Number.parseInt(clampSelect.value, 10) as 0 | 2 | 4;
     const nextSettings = saveDisplaySettings({
       transcriptDecimals: Number.isNaN(transcriptDecimals)
         ? defaultDisplaySettings.transcriptDecimals
@@ -186,6 +284,15 @@ export function createApp(root: HTMLElement): void {
       stackDecimals: Number.isNaN(stackDecimals)
         ? defaultDisplaySettings.stackDecimals
         : stackDecimals,
+      listPreviewLength: Number.isNaN(listPreviewLength)
+        ? defaultDisplaySettings.listPreviewLength
+        : listPreviewLength,
+      transcriptListClamp,
+      showTimings: showTimingsInput.checked,
+      plotDefaultLine: plotLineInput.checked,
+      plotDefaultPoints: plotPointsInput.checked,
+      mapDefaultConnectLines: mapLinesInput.checked,
+      rememberPaneState: rememberPanesInput.checked,
     });
     applyDisplaySettings(nextSettings);
     settingsDialog.close();

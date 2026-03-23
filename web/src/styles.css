@@ -189,6 +189,36 @@ body.is-resizing-shell {
   font: inherit;
 }
 
+.settings-field select {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(29, 36, 28, 0.14);
+  border-radius: 0.45rem;
+  background: rgba(255, 255, 255, 0.7);
+  color: inherit;
+  font: inherit;
+}
+
+.settings-check {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.9rem;
+}
+
+.settings-group {
+  display: grid;
+  gap: 0.45rem;
+  padding-top: 0.1rem;
+}
+
+.settings-group-title {
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5e5a4c;
+}
+
 .settings-actions {
   display: flex;
   justify-content: flex-end;
@@ -239,11 +269,23 @@ body.is-resizing-shell {
   align-items: flex-start;
 }
 
-.transcript-line-value-list .transcript-line-content {
+.transcript-view[data-list-clamp="2"] .transcript-line-value-list .transcript-line-content,
+.transcript-view[data-list-clamp="4"] .transcript-line-value-list .transcript-line-content {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
+}
+
+.transcript-view[data-list-clamp="2"] .transcript-line-value-list .transcript-line-content {
   -webkit-line-clamp: 2;
+}
+
+.transcript-view[data-list-clamp="4"] .transcript-line-value-list .transcript-line-content {
+  -webkit-line-clamp: 4;
+}
+
+.transcript-view[data-show-timings="false"] .transcript-line-meta {
+  display: none;
 }
 
 .transcript-line-error {

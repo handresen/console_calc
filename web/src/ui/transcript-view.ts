@@ -1,9 +1,12 @@
+import type { DisplaySettings } from "./display-settings";
+
 export interface TranscriptView {
   element: HTMLElement;
   appendCommand(input: string): void;
   appendMessage(text: string, kind?: string, metaText?: string, extraClassName?: string): void;
   clear(): void;
   reformatMessages(formatter: (text: string, kind?: string) => string): void;
+  setDisplaySettings(settings: DisplaySettings): void;
   scrollToBottom(): void;
 }
 
@@ -31,6 +34,7 @@ function appendLine(
     const meta = document.createElement("span");
     meta.className = "transcript-line-meta";
     meta.textContent = metaText;
+    meta.dataset.rawText = metaText;
     line.append(meta);
   }
 
@@ -45,6 +49,11 @@ export function createTranscriptView(): TranscriptView {
   const lines = document.createElement("div");
   lines.className = "transcript-lines";
   view.append(lines);
+
+  const applyDisplaySettings = (settings: DisplaySettings) => {
+    view.dataset.listClamp = `${settings.transcriptListClamp}`;
+    view.dataset.showTimings = settings.showTimings ? "true" : "false";
+  };
 
   return {
     element: view,
@@ -75,6 +84,9 @@ export function createTranscriptView(): TranscriptView {
         const kind = line?.dataset.kind;
         contentNode.textContent = formatter(rawText, kind);
       }
+    },
+    setDisplaySettings(settings) {
+      applyDisplaySettings(settings);
     },
     scrollToBottom() {
       view.scrollTop = view.scrollHeight;

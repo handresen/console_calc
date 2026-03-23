@@ -18,7 +18,7 @@ import MouseWheelZoom from "ol/interaction/MouseWheelZoom";
 import { Fill, Stroke, Style, Circle as CircleStyle } from "ol/style";
 import { fromLonLat } from "ol/proj";
 import type { DisplaySettings } from "./display-settings";
-import { formatNumericText } from "./display-settings";
+import { defaultDisplaySettings, formatNumericText } from "./display-settings";
 
 export interface PanesView {
   element: HTMLElement;
@@ -166,16 +166,27 @@ function stackDisplay(entry: BindingStackEntry, settings: DisplaySettings): stri
 
   const positionListValues = entry.position_list_values ?? [];
   if (positionListValues.length > 0) {
-    const preview = positionListValues.slice(0, 2).map(formatPositionPreview).join(", ");
+    const preview = positionListValues
+      .slice(0, settings.listPreviewLength)
+      .map(formatPositionPreview)
+      .join(", ");
     const suffix =
-      positionListValues.length > 2 ? `, ... <${positionListValues.length - 2} more>` : "";
+      positionListValues.length > settings.listPreviewLength
+        ? `, ... <${positionListValues.length - settings.listPreviewLength} more>`
+        : "";
     return `${entry.level}:{${preview}${suffix}}`;
   }
 
   const listValues = entry.list_values ?? [];
   if (listValues.length > 0 || entry.display.trim() === "{}") {
-    const preview = listValues.slice(0, 2).map(formatScalarPreview).join(", ");
-    const suffix = listValues.length > 2 ? `, ... <${listValues.length - 2} more>` : "";
+    const preview = listValues
+      .slice(0, settings.listPreviewLength)
+      .map(formatScalarPreview)
+      .join(", ");
+    const suffix =
+      listValues.length > settings.listPreviewLength
+        ? `, ... <${listValues.length - settings.listPreviewLength} more>`
+        : "";
     return `${entry.level}:{${preview}${suffix}}`;
   }
 
@@ -421,6 +432,8 @@ interface PaneElements {
   body: HTMLElement;
   count: HTMLElement;
   actions: HTMLElement;
+  setExpanded(expanded: boolean): void;
+  isExpanded(): boolean;
 }
 
 function createPane(titleText: string, onToggle?: (expanded: boolean) => void): PaneElements {
@@ -454,24 +467,36 @@ function createPane(titleText: string, onToggle?: (expanded: boolean) => void): 
   body.className = "pane-body";
   body.hidden = true;
 
+  const setExpanded = (expanded: boolean) => {
+    title.setAttribute("aria-expanded", expanded ? "true" : "false");
+    body.hidden = !expanded;
+    marker.textContent = expanded ? "−" : "+";
+    onToggle?.(expanded);
+  };
+
   title.addEventListener("click", () => {
-    const expanded = title.getAttribute("aria-expanded") !== "false";
-    title.setAttribute("aria-expanded", expanded ? "false" : "true");
-    body.hidden = expanded;
-    marker.textContent = expanded ? "+" : "−";
-    onToggle?.(!expanded);
+    setExpanded(title.getAttribute("aria-expanded") === "false");
   });
 
   title.append(titleLabel, marker);
   header.append(title, actions, count);
   section.append(header, body);
-  return { section, header, title, body, count, actions };
+  return {
+    section,
+    header,
+    title,
+    body,
+    count,
+    actions,
+    setExpanded,
+    isExpanded: () => title.getAttribute("aria-expanded") !== "false",
+  };
 }
 
 export function createPanesView(
   onSampleSelected?: (expression: string) => void,
   onClearStack?: () => void,
-  initialDisplaySettings: DisplaySettings = { transcriptDecimals: 8, stackDecimals: 6 },
+  initialDisplaySettings: DisplaySettings = defaultDisplaySettings,
 ): PanesView {
   const section = document.createElement("section");
   section.className = "panes-view";
@@ -487,16 +512,23 @@ export function createPanesView(
   let latestMapSeries: PositionPlotSeries | null = null;
   let displaySettings = initialDisplaySettings;
   let latestSnapshot: BindingSnapshot | null = null;
+  const paneStateStorageKey = "console-calc-pane-state";
 
   const status = document.createElement("div");
   status.className = "pane-status";
 
-  const stackPane = createPane("Stack");
-  const definitionsPane = createPane("Definitions");
-  const constantsPane = createPane("Constants");
-  const functionsPane = createPane("Functions");
-  const samplesPane = createPane("Samples");
-  const plotPane = createPane("Plot");
+  const handlePaneToggle = (expanded: boolean) => {
+    if (displaySettings.rememberPaneState) {
+      persistPaneState();
+    }
+  };
+
+  const stackPane = createPane("Stack", handlePaneToggle);
+  const definitionsPane = createPane("Definitions", handlePaneToggle);
+  const constantsPane = createPane("Constants", handlePaneToggle);
+  const functionsPane = createPane("Functions", handlePaneToggle);
+  const samplesPane = createPane("Samples", handlePaneToggle);
+  const plotPane = createPane("Plot", handlePaneToggle);
   const mapPane = createPane("Map", (expanded) => {
     if (expanded) {
       requestAnimationFrame(() => {
@@ -504,7 +536,43 @@ export function createPanesView(
         applyMapView(latestMapSeries);
       });
     }
+    handlePaneToggle(expanded);
   });
+  const panes = [
+    { key: "stack", pane: stackPane },
+    { key: "definitions", pane: definitionsPane },
+    { key: "constants", pane: constantsPane },
+    { key: "functions", pane: functionsPane },
+    { key: "samples", pane: samplesPane },
+    { key: "plot", pane: plotPane },
+    { key: "map", pane: mapPane },
+  ];
+
+  function persistPaneState() {
+    const state = Object.fromEntries(panes.map(({ key, pane }) => [key, pane.isExpanded()]));
+    localStorage.setItem(paneStateStorageKey, JSON.stringify(state));
+  }
+
+  function restorePaneState() {
+    if (!displaySettings.rememberPaneState) {
+      panes.forEach(({ pane }) => pane.setExpanded(false));
+      return;
+    }
+
+    const rawState = localStorage.getItem(paneStateStorageKey);
+    if (rawState === null) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(rawState) as Record<string, boolean>;
+      for (const { key, pane } of panes) {
+        pane.setExpanded(parsed[key] === true);
+      }
+    } catch {
+      panes.forEach(({ pane }) => pane.setExpanded(false));
+    }
+  }
 
   functionsPane.body.classList.add("functions-pane-body");
   const stackTitleLabel = stackPane.title.querySelector<HTMLElement>(".pane-title-label");
@@ -554,7 +622,7 @@ export function createPanesView(
 
   const lineToggle = document.createElement("input");
   lineToggle.type = "checkbox";
-  lineToggle.checked = true;
+  lineToggle.checked = displaySettings.plotDefaultLine;
 
   const lineToggleText = document.createElement("span");
   lineToggleText.textContent = "Line";
@@ -566,7 +634,7 @@ export function createPanesView(
 
   const pointsToggle = document.createElement("input");
   pointsToggle.type = "checkbox";
-  pointsToggle.checked = false;
+  pointsToggle.checked = displaySettings.plotDefaultPoints;
 
   const pointsToggleText = document.createElement("span");
   pointsToggleText.textContent = "Points";
@@ -675,7 +743,7 @@ export function createPanesView(
 
   const connectMapLinesToggle = document.createElement("input");
   connectMapLinesToggle.type = "checkbox";
-  connectMapLinesToggle.checked = false;
+  connectMapLinesToggle.checked = displaySettings.mapDefaultConnectLines;
 
   const connectMapLinesLabel = document.createElement("span");
   connectMapLinesLabel.textContent = "Connect lines";
@@ -1157,6 +1225,7 @@ export function createPanesView(
   mapPanel.append(mapPane.section);
 
   section.append(infoPanel, plotPanel, mapPanel);
+  restorePaneState();
 
   return {
     element: section,
@@ -1192,14 +1261,26 @@ export function createPanesView(
     },
     setDisplaySettings(settings) {
       displaySettings = settings;
+      lineToggle.checked = displaySettings.plotDefaultLine;
+      pointsToggle.checked = displaySettings.plotDefaultPoints;
+      connectMapLinesToggle.checked = displaySettings.mapDefaultConnectLines;
       if (stackTitleLabel !== null) {
         stackTitleLabel.textContent = `Stack d${displaySettings.stackDecimals}`;
       }
+      if (displaySettings.rememberPaneState) {
+        persistPaneState();
+      }
+      restorePaneState();
       if (latestSnapshot !== null) {
         renderTextList(
           stackList,
           latestSnapshot.stack.map((entry) => stackDisplay(entry, displaySettings)),
         );
+        const series = latestSnapshot.stack
+          .map((entry) => parsePlotSeries(entry))
+          .filter(isPlotSeries);
+        renderPlot(series);
+        renderMap(series);
       }
     },
   };
