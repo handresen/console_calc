@@ -6,8 +6,34 @@ export interface PromptHistory {
   hasEntries(): boolean;
 }
 
+const promptHistoryStorageKey = "console-calc-prompt-history";
+
+function loadEntries(limit: number): string[] {
+  const rawValue = localStorage.getItem(promptHistoryStorageKey);
+  if (rawValue === null) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter((entry): entry is string => typeof entry === "string" && entry.length > 0)
+      .slice(-limit);
+  } catch {
+    return [];
+  }
+}
+
+function saveEntries(entries: string[]): void {
+  localStorage.setItem(promptHistoryStorageKey, JSON.stringify(entries));
+}
+
 export function createPromptHistory(limit = 100): PromptHistory {
-  const entries: string[] = [];
+  const entries: string[] = loadEntries(limit);
   let historyIndex = -1;
   let draftInput = "";
 
@@ -18,6 +44,7 @@ export function createPromptHistory(limit = 100): PromptHistory {
         if (entries.length > limit) {
           entries.shift();
         }
+        saveEntries(entries);
       }
       historyIndex = -1;
       draftInput = "";
