@@ -5,6 +5,9 @@
 The project is intentionally split into a small set of layers with different
 responsibilities:
 
+It is still meant to stay a focused personal tool with clean internal layers,
+not to grow into a general-purpose calculator framework.
+
 1. `console_calc_lib`
    - Core language and value system
    - Tokenization, parsing, AST, evaluation, builtin metadata, scalar/list/position math

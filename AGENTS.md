@@ -3,6 +3,7 @@
 ## Project Overview
 - This repository contains a C++ command-line tool for parsing and evaluating mathematical expressions.
 - The project should start small, remain easy to reason about, and grow by adding parser features in controlled steps.
+- Treat the project as a focused personal tool rather than a general-purpose framework; preserve simplicity and avoid platform-style abstraction unless it clearly supports the existing use case.
 
 ## Stack Decisions
 - Build system: `CMake`

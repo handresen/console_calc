@@ -7,6 +7,7 @@
 - late-bound user definitions in console mode
 
 The project is intentionally compact and library-first. Parsing and evaluation live in the core library, while REPL behavior stays in the app layer.
+It is also intended to remain a focused personal tool for lightweight calculator workflows, not a general-purpose framework or platform.
 
 Current build layers:
 - `console_calc_lib`

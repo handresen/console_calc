@@ -1,0 +1,35 @@
+{
+  "id": "/cc/",
+  "name": "console_calc",
+  "short_name": "console_calc",
+  "description": "A compact calculator console with lists, plotting, and WebAssembly-backed evaluation.",
+  "start_url": "/cc/",
+  "scope": "/cc/",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "background_color": "#f5f2e8",
+  "theme_color": "#d7ceb7",
+  "icons": [
+    {
+      "src": "/calculator-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/calculator-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/calculator-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

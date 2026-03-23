@@ -1,6 +1,8 @@
 # Web Frontend
 
 This directory contains the active browser frontend for `console_calc`.
+It follows the same product intent as the root project: a focused personal tool
+for lightweight use, not a browser framework or generic calculator platform.
 
 Current status:
 
