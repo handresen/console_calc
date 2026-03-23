@@ -462,21 +462,37 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
   const plotMeta = document.createElement("div");
   plotMeta.className = "plot-meta";
 
-  const plotControls = document.createElement("label");
+  const plotControls = document.createElement("div");
   plotControls.className = "plot-controls";
 
-  const connectPointsToggle = document.createElement("input");
-  connectPointsToggle.type = "checkbox";
-  connectPointsToggle.checked = true;
+  const lineToggleLabel = document.createElement("label");
+  lineToggleLabel.className = "plot-toggle";
 
-  const connectPointsLabel = document.createElement("span");
-  connectPointsLabel.textContent = "Connect points";
+  const lineToggle = document.createElement("input");
+  lineToggle.type = "checkbox";
+  lineToggle.checked = true;
 
-  plotControls.append(connectPointsToggle, connectPointsLabel);
+  const lineToggleText = document.createElement("span");
+  lineToggleText.textContent = "Line";
+
+  lineToggleLabel.append(lineToggle, lineToggleText);
+
+  const pointsToggleLabel = document.createElement("label");
+  pointsToggleLabel.className = "plot-toggle";
+
+  const pointsToggle = document.createElement("input");
+  pointsToggle.type = "checkbox";
+  pointsToggle.checked = false;
+
+  const pointsToggleText = document.createElement("span");
+  pointsToggleText.textContent = "Points";
+
+  pointsToggleLabel.append(pointsToggle, pointsToggleText);
+  plotControls.append(lineToggleLabel, pointsToggleLabel);
 
   const plotSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   plotSvg.setAttribute("viewBox", "0 0 320 180");
-  plotSvg.setAttribute("preserveAspectRatio", "none");
+  plotSvg.setAttribute("preserveAspectRatio", "xMidYMid meet");
   plotSvg.classList.add("plot-svg");
 
   const plotGrid = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -646,7 +662,7 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
       const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       circle.setAttribute("cx", point.x.toFixed(2));
       circle.setAttribute("cy", point.y.toFixed(2));
-      circle.setAttribute("r", "2.3");
+      circle.setAttribute("r", "1.6");
       circle.setAttribute("class", "plot-point");
       plotPoints.append(circle);
     }
@@ -718,9 +734,9 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
       const points = buildScalarPlotPoints(currentSeries.values, 320, 180);
       plotLine.setAttribute(
         "d",
-        connectPointsToggle.checked ? buildPlotPath(currentSeries.values, 320, 180) : "",
+        lineToggle.checked ? buildPlotPath(currentSeries.values, 320, 180) : "",
       );
-      renderPointMarkers(points);
+      renderPointMarkers(pointsToggle.checked ? points : []);
       topLeftLabel.textContent = "";
       topRightLabel.textContent = "";
       bottomLeftLabel.textContent = "";
@@ -736,15 +752,26 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     const points = buildPositionPlotPoints(currentSeries.points, 320, 180);
     plotLine.setAttribute(
       "d",
-      connectPointsToggle.checked
+      lineToggle.checked
         ? buildPositionPlotPath(currentSeries.points, 320, 180)
         : "",
     );
-    renderPointMarkers(points);
+    renderPointMarkers(pointsToggle.checked ? points : []);
     topLeftLabel.textContent = formatCornerLabel(bounds.maxY, bounds.minX);
     topRightLabel.textContent = formatCornerLabel(bounds.maxY, bounds.maxX);
     bottomLeftLabel.textContent = formatCornerLabel(bounds.minY, bounds.minX);
     bottomRightLabel.textContent = formatCornerLabel(bounds.minY, bounds.maxX);
+  };
+
+  const rerenderPlotFromSnapshot = () => {
+    const stackEntries = (section as HTMLElement).dataset.plotSnapshot;
+    if (stackEntries == null) {
+      return;
+    }
+    const series = (JSON.parse(stackEntries) as BindingStackEntry[])
+      .map((entry) => parsePlotSeries(entry))
+      .filter(isPlotSeries);
+    renderPlot(series);
   };
 
   const renderMap = (seriesList: PlotItem[]) => {
@@ -812,16 +839,8 @@ export function createPanesView(onSampleSelected?: (expression: string) => void)
     });
   };
 
-  connectPointsToggle.addEventListener("change", () => {
-    const stackEntries = (section as HTMLElement).dataset.plotSnapshot;
-    if (stackEntries == null) {
-      return;
-    }
-    const series = (JSON.parse(stackEntries) as BindingStackEntry[])
-      .map((entry) => parsePlotSeries(entry))
-      .filter(isPlotSeries);
-    renderPlot(series);
-  });
+  lineToggle.addEventListener("change", rerenderPlotFromSnapshot);
+  pointsToggle.addEventListener("change", rerenderPlotFromSnapshot);
 
   connectMapLinesToggle.addEventListener("change", () => {
     const stackEntries = (section as HTMLElement).dataset.plotSnapshot;

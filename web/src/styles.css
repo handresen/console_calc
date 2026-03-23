@@ -336,6 +336,13 @@ body.is-resizing-shell {
   margin-bottom: 0.55rem;
   color: #5e5a4c;
   font-size: 0.88rem;
+  flex-wrap: wrap;
+}
+
+.plot-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .map-meta {
@@ -379,7 +386,8 @@ body.is-resizing-map {
 
 .plot-svg {
   width: 100%;
-  height: 11rem;
+  height: auto;
+  aspect-ratio: 16 / 9;
   border: 1px solid rgba(29, 36, 28, 0.12);
   border-radius: 0.65rem;
   background:
@@ -407,7 +415,7 @@ body.is-resizing-map {
 }
 
 .plot-line {
-  stroke: #2e5d31;
+  stroke: #6f9d73;
   stroke-width: 2.5;
   fill: none;
   stroke-linecap: round;
@@ -415,9 +423,8 @@ body.is-resizing-map {
 }
 
 .plot-point {
-  fill: #2e5d31;
-  stroke: rgba(250, 247, 239, 0.95);
-  stroke-width: 1;
+  fill: #353535;
+  stroke: none;
 }
 
 .plot-corner-label {
