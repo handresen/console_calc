@@ -1,0 +1,217 @@
+#include "expression_expansion_support.h"
+
+#include "console_calc/builtin_function.h"
+#include "console_calc/special_form.h"
+
+#include <cctype>
+#include <stdexcept>
+
+namespace console_calc::detail {
+
+bool is_identifier_start(char ch) {
+    return std::isalpha(static_cast<unsigned char>(ch)) || ch == '_';
+}
+
+bool is_identifier_char(char ch) {
+    return std::isalnum(static_cast<unsigned char>(ch)) || ch == '_';
+}
+
+std::size_t skip_whitespace(std::string_view expression, std::size_t index) {
+    while (index < expression.size() &&
+           std::isspace(static_cast<unsigned char>(expression[index]))) {
+        ++index;
+    }
+
+    return index;
+}
+
+bool is_blank_text(std::string_view text) {
+    return skip_whitespace(text, 0) == text.size();
+}
+
+bool is_followed_by_call(std::string_view expression, std::size_t index) {
+    index = skip_whitespace(expression, index);
+    return index < expression.size() && expression[index] == '(';
+}
+
+namespace {
+
+[[nodiscard]] bool is_radix_digit(char ch, int base) {
+    return base == 16 ? std::isxdigit(static_cast<unsigned char>(ch)) != 0
+                      : (ch == '0' || ch == '1');
+}
+
+}  // namespace
+
+std::size_t consume_radix_literal(std::string_view expression, std::size_t index) {
+    if (index + 2 > expression.size() || expression[index] != '0') {
+        return index;
+    }
+
+    const char prefix = expression[index + 1];
+    if (prefix != 'x' && prefix != 'X' && prefix != 'b' && prefix != 'B') {
+        return index;
+    }
+
+    const int base = (prefix == 'x' || prefix == 'X') ? 16 : 2;
+    std::size_t end = index + 2;
+    while (end < expression.size() && is_radix_digit(expression[end], base)) {
+        ++end;
+    }
+
+    return end > index + 2 ? end : index;
+}
+
+bool is_inside_placeholder_expression(const std::vector<ExpansionFrame>& frames) {
+    for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
+        if (it->kind == ExpansionFrameKind::call &&
+            (it->identifier == "map" || it->identifier == "map_at" ||
+             it->identifier == "list_where") &&
+            it->argument_index == 1) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool is_builtin_or_special_call(std::string_view identifier, bool followed_by_call) {
+    return followed_by_call &&
+           (is_builtin_function_name(identifier) || is_special_form_name(identifier));
+}
+
+std::size_t call_open_paren_index(std::string_view expression, std::size_t index) {
+    const std::size_t open_paren = skip_whitespace(expression, index);
+    return open_paren < expression.size() && expression[open_paren] == '('
+               ? open_paren
+               : std::string_view::npos;
+}
+
+std::size_t find_call_close_paren(std::string_view expression,
+                                  std::size_t open_paren_index) {
+    int paren_depth = 0;
+    int brace_depth = 0;
+    for (std::size_t index = open_paren_index; index < expression.size(); ++index) {
+        const std::size_t radix_end = consume_radix_literal(expression, index);
+        if (radix_end != index) {
+            index = radix_end - 1;
+            continue;
+        }
+
+        switch (expression[index]) {
+        case '(':
+            ++paren_depth;
+            break;
+        case ')':
+            --paren_depth;
+            if (paren_depth == 0) {
+                return index;
+            }
+            break;
+        case '{':
+            ++brace_depth;
+            break;
+        case '}':
+            --brace_depth;
+            break;
+        default:
+            break;
+        }
+
+        if (paren_depth < 0 || brace_depth < 0) {
+            break;
+        }
+    }
+
+    throw std::invalid_argument("expected ')'");
+}
+
+std::string extract_unary_call_argument(std::string_view expression,
+                                        std::size_t open_paren_index,
+                                        std::size_t close_paren_index,
+                                        std::string_view identifier) {
+    std::size_t argument_begin = open_paren_index + 1;
+    int paren_depth = 0;
+    int brace_depth = 0;
+    for (std::size_t index = argument_begin; index < close_paren_index; ++index) {
+        const std::size_t radix_end = consume_radix_literal(expression, index);
+        if (radix_end != index) {
+            index = radix_end - 1;
+            continue;
+        }
+
+        switch (expression[index]) {
+        case '(':
+            ++paren_depth;
+            break;
+        case ')':
+            --paren_depth;
+            break;
+        case '{':
+            ++brace_depth;
+            break;
+        case '}':
+            --brace_depth;
+            break;
+        case ',':
+            if (paren_depth == 0 && brace_depth == 0) {
+                throw std::invalid_argument("function '" + std::string(identifier) +
+                                            "' expects 1 argument");
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    const std::string argument =
+        std::string(expression.substr(argument_begin, close_paren_index - argument_begin));
+    if (is_blank_text(argument)) {
+        throw std::invalid_argument("function '" + std::string(identifier) +
+                                    "' expects 1 argument");
+    }
+    return argument;
+}
+
+std::string substitute_function_parameter(std::string_view expression,
+                                          std::string_view parameter_name,
+                                          std::string_view replacement_expression) {
+    std::string substituted;
+    substituted.reserve(expression.size() + replacement_expression.size());
+
+    std::size_t index = 0;
+    while (index < expression.size()) {
+        const std::size_t radix_end = consume_radix_literal(expression, index);
+        if (radix_end != index) {
+            substituted += std::string(expression.substr(index, radix_end - index));
+            index = radix_end;
+            continue;
+        }
+
+        const char ch = expression[index];
+        if (!is_identifier_start(ch)) {
+            substituted += ch;
+            ++index;
+            continue;
+        }
+
+        std::size_t end = index + 1;
+        while (end < expression.size() && is_identifier_char(expression[end])) {
+            ++end;
+        }
+
+        const std::string_view identifier = expression.substr(index, end - index);
+        if (identifier == parameter_name) {
+            substituted += '(';
+            substituted += replacement_expression;
+            substituted += ')';
+        } else {
+            substituted += std::string(identifier);
+        }
+        index = end;
+    }
+
+    return substituted;
+}
+
+}  // namespace console_calc::detail

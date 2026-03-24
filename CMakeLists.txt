@@ -71,6 +71,7 @@ add_library(console_calc_runtime_lib
     apps/currency_rate_parser.cpp
     apps/currency_rate_provider.cpp
     apps/expression_environment.cpp
+    apps/expression_expansion_support.cpp
 )
 
 target_include_directories(console_calc_runtime_lib
