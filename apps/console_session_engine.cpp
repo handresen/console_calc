@@ -144,12 +144,12 @@ ConsoleCommandResult ConsoleSessionEngine::submit(std::string_view line) {
 
         const std::optional<Value> result_reference = top_result();
         if (command.kind == ConsoleCommandKind::assignment) {
-            const auto assignment = parse_variable_assignment(trimmed);
+            const auto assignment = parse_user_assignment(trimmed);
             if (assignment.has_value()) {
                 if (constants_.contains(assignment->name)) {
                     throw std::invalid_argument("cannot redefine constant: " + assignment->name);
                 }
-                assign_definition(assignment->name, assignment->expression, result_reference);
+                assign_definition(*assignment, result_reference);
                 result.state = state();
                 return result;
             }
@@ -203,15 +203,22 @@ ConsoleCommandResult ConsoleSessionEngine::make_result(bool should_exit) const {
     };
 }
 
-void ConsoleSessionEngine::assign_definition(std::string_view name, std::string_view expression,
+void ConsoleSessionEngine::assign_definition(const UserAssignment& assignment,
                                              const std::optional<Value>& result_reference) {
-    const std::string normalized_expression = normalize_assignment_expression(expression);
+    const std::string normalized_expression =
+        normalize_assignment_expression(assignment.expression);
+    if (assignment.is_function()) {
+        definitions_[assignment.name] = make_function_definition(assignment.parameters,
+                                                                 normalized_expression);
+        return;
+    }
+
     DefinitionTable validation_definitions = definitions_;
-    validation_definitions[std::string(name)] = UserDefinition{normalized_expression};
+    validation_definitions[assignment.name] = make_value_definition(normalized_expression);
     const std::string expanded_expression = expand_expression_identifiers(
         normalized_expression, constants_, validation_definitions, result_reference);
     (void)parser_.evaluate_value(expanded_expression);
-    definitions_[std::string(name)] = UserDefinition{normalized_expression};
+    definitions_[assignment.name] = make_value_definition(normalized_expression);
 }
 
 void ConsoleSessionEngine::refresh_currency_rates(bool report_errors,

@@ -17,8 +17,8 @@ void apply_currency_rate_definitions(DefinitionTable& definitions,
 
         const std::string direct_name = "nok2" + std::string(entry.lower_code);
         const std::string inverse_name = std::string(entry.lower_code) + "2nok";
-        definitions[direct_name] = UserDefinition{format_scalar(found->second)};
-        definitions[inverse_name] = UserDefinition{format_scalar(1.0 / found->second)};
+        definitions[direct_name] = make_value_definition(format_scalar(found->second));
+        definitions[inverse_name] = make_value_definition(format_scalar(1.0 / found->second));
     }
 }
 

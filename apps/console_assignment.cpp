@@ -1,6 +1,7 @@
 #include "console_assignment.h"
 
 #include <cctype>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -24,6 +25,40 @@ namespace {
     }
 
     return std::string(text.substr(begin, end - begin));
+}
+
+[[nodiscard]] std::optional<UserAssignment> parse_assignment_target(std::string_view text) {
+    const std::string trimmed = trim(text);
+    if (trimmed.empty()) {
+        return std::nullopt;
+    }
+
+    if (const std::size_t left_paren = trimmed.find('('); left_paren != std::string::npos) {
+        if (trimmed.back() != ')') {
+            return std::nullopt;
+        }
+        const std::string name = trim(std::string_view(trimmed).substr(0, left_paren));
+        const std::string parameter = trim(std::string_view(trimmed).substr(
+            left_paren + 1, trimmed.size() - left_paren - 2));
+        if (!is_identifier(name) || !is_identifier(parameter)) {
+            return std::nullopt;
+        }
+        return UserAssignment{
+            .name = name,
+            .parameters = {parameter},
+            .expression = {},
+        };
+    }
+
+    if (!is_identifier(trimmed)) {
+        return std::nullopt;
+    }
+
+    return UserAssignment{
+        .name = trimmed,
+        .parameters = {},
+        .expression = {},
+    };
 }
 
 [[nodiscard]] std::vector<std::string> split_top_level_items(std::string_view text) {
@@ -63,22 +98,23 @@ namespace {
 
 }  // namespace
 
-std::optional<VariableAssignment> parse_variable_assignment(std::string_view text) {
+std::optional<UserAssignment> parse_user_assignment(std::string_view text) {
     const std::size_t separator = text.find(':');
     if (separator == std::string_view::npos) {
         return std::nullopt;
     }
 
-    const std::string name = trim(text.substr(0, separator));
+    auto assignment = parse_assignment_target(text.substr(0, separator));
     const std::string expression = trim(text.substr(separator + 1));
-    if (!is_identifier(name)) {
+    if (!assignment.has_value()) {
         return std::nullopt;
     }
     if (expression.empty()) {
         throw std::invalid_argument("expected expression after ':'");
     }
 
-    return VariableAssignment{name, expression};
+    assignment->expression = expression;
+    return assignment;
 }
 
 std::string normalize_assignment_expression(std::string_view expression) {

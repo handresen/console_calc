@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "console_command.h"
+#include "console_assignment.h"
 #include "console_listing.h"
 #include "console_calc/error_info.h"
 #include "currency_rate_provider.h"
@@ -72,7 +73,7 @@ public:
     [[nodiscard]] const ConstantTable& constants() const;
 
 private:
-    void assign_definition(std::string_view name, std::string_view expression,
+    void assign_definition(const UserAssignment& assignment,
                            const std::optional<Value>& result_reference);
     void refresh_currency_rates(bool report_errors, ConsoleCommandResult& result);
     void push_result(Value result);

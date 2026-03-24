@@ -64,6 +64,18 @@ bool expect_binding_value_and_snapshot_flow() {
            !snapshot.functions.empty();
 }
 
+bool expect_binding_function_definition_snapshot() {
+    console_calc::ExpressionParser parser;
+    console_calc::ConsoleBindingFacade facade(parser, default_constants());
+
+    facade.initialize();
+    const auto assignment_result = facade.submit("f(x):x+1");
+    return !assignment_result.should_exit && assignment_result.events.empty() &&
+           assignment_result.snapshot.definitions.size() == 1 &&
+           assignment_result.snapshot.definitions[0].name == "f(x)" &&
+           assignment_result.snapshot.definitions[0].expression == "x+1";
+}
+
 bool expect_binding_listing_and_display_modes() {
     console_calc::ExpressionParser parser;
     console_calc::ConsoleBindingFacade facade(parser, default_constants());
@@ -129,6 +141,9 @@ int main() {
         return EXIT_FAILURE;
     }
     if (!expect_binding_listing_and_display_modes()) {
+        return EXIT_FAILURE;
+    }
+    if (!expect_binding_function_definition_snapshot()) {
         return EXIT_FAILURE;
     }
     if (!expect_binding_currency_and_errors()) {

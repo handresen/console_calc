@@ -478,11 +478,28 @@ sum(vals)
 map(vals, sin(_))
 ```
 
+Unary user functions are also supported:
+
+```text
+f(x):x+1
+f(3)
+f(f(3))
+sum(map(vals, f(_)))
+```
+
 Rules:
 - definition syntax is `name:expression`
+- unary function definition syntax is `name(param):expression`
 - redefining a builtin constant name is rejected
 - redefining an existing user definition replaces it
-- circular references are rejected
+- circular definition references and recursive function bodies are rejected
+- user-defined functions are unary only for now
+- user-defined functions can be used in ordinary expressions and inside `map`, `map_at`, and `list_where`
+- nested calls such as `f(f(3))` are allowed
+
+Planned next step:
+- extend user-defined functions beyond unary-only support
+- see [docs/basic_functions_plan.md](docs/basic_functions_plan.md)
 
 ## Currency Conversions
 

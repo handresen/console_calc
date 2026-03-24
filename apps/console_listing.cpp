@@ -73,6 +73,16 @@ std::string format_console_position_list(const PositionListValue& values) {
     return output;
 }
 
+std::string format_definition_display_name(std::string_view name, const UserDefinition& definition) {
+    if (!is_value_definition(definition)) {
+        const auto& function = as_function_definition(definition);
+        if (function.parameters.size() == 1) {
+            return std::string(name) + "(" + function.parameters[0] + ")";
+        }
+    }
+    return std::string(name);
+}
+
 }  // namespace
 
 std::string format_stack_listing(std::span<const Value> values) {
@@ -123,8 +133,10 @@ std::vector<DefinitionView> definition_views(const DefinitionTable& definitions)
     views.reserve(definitions.size());
     for (const auto& [name, definition] : definitions) {
         views.push_back(DefinitionView{
-            .name = name,
-            .expression = definition.expression,
+            .name = format_definition_display_name(name, definition),
+            .expression = is_value_definition(definition)
+                              ? as_value_definition(definition).expression
+                              : as_function_definition(definition).expression,
         });
     }
 

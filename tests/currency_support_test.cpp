@@ -33,10 +33,13 @@ bool expect_currency_definition_materialization() {
     };
 
     console_calc::apply_currency_rate_definitions(definitions, rates);
-    return definitions.at("nok2usd").expression == "0.10000000000000001" &&
-           definitions.at("usd2nok").expression == "10" &&
-           definitions.at("nok2eur").expression == "0.089999999999999997" &&
-           definitions.at("eur2nok").expression == "11.111111111111111";
+    return console_calc::as_value_definition(definitions.at("nok2usd")).expression ==
+               "0.10000000000000001" &&
+           console_calc::as_value_definition(definitions.at("usd2nok")).expression == "10" &&
+           console_calc::as_value_definition(definitions.at("nok2eur")).expression ==
+               "0.089999999999999997" &&
+           console_calc::as_value_definition(definitions.at("eur2nok")).expression ==
+               "11.111111111111111";
 }
 
 }  // namespace

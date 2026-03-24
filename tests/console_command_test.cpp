@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <string>
 
+#include "console_assignment.h"
 #include "console_command.h"
 #include "console_listing.h"
 #include "expression_environment.h"
@@ -60,9 +61,9 @@ bool expect_constant_and_definition_listing() {
         {"pi", 3.1415926535897931},
     };
     const console_calc::DefinitionTable definitions{
-        {"sx", {"sin(x)"}},
-        {"vals", {"{1, 2, 3}"}},
-        {"x", {"pi+1"}},
+        {"sx", console_calc::make_value_definition("sin(x)")},
+        {"vals", console_calc::make_value_definition("{1, 2, 3}")},
+        {"x", console_calc::make_value_definition("pi+1")},
     };
 
     return console_calc::format_constant_listing(constants) ==
@@ -82,9 +83,9 @@ bool expect_structured_listing_views() {
         {"pi", 3.1415926535897931},
     };
     const console_calc::DefinitionTable definitions{
-        {"sx", {"sin(x)"}},
-        {"vals", {"{1, 2, 3}"}},
-        {"x", {"pi+1"}},
+        {"sx", console_calc::make_value_definition("sin(x)")},
+        {"vals", console_calc::make_value_definition("{1, 2, 3}")},
+        {"x", console_calc::make_value_definition("pi+1")},
     };
     const std::vector<console_calc::Value> stack{
         std::int64_t{2},
@@ -283,8 +284,10 @@ bool expect_expression_identifier_expansion() {
         {"pi", 3.14159265358979323846},
     };
     const console_calc::DefinitionTable definitions{
-        {"x", {"pi + 1"}},
-        {"vals", {"{1, 2, 3}"}},
+        {"x", console_calc::make_value_definition("pi + 1")},
+        {"vals", console_calc::make_value_definition("{1, 2, 3}")},
+        {"f", console_calc::make_function_definition({"arg"}, "arg + 1")},
+        {"p", console_calc::make_function_definition({"x"}, "x % 2 = 1")},
     };
 
     return console_calc::expand_expression_identifiers(
@@ -303,11 +306,36 @@ bool expect_expression_identifier_expansion() {
                "list_where(vals, _ <= 2)", constants, definitions, std::nullopt) ==
                "list_where({1, 2, 3}, _ <= 2)" &&
            console_calc::expand_expression_identifiers(
+               "f(3)", constants, definitions, std::nullopt) ==
+               "((3) + 1)" &&
+           console_calc::expand_expression_identifiers(
+               "f(f(3))", constants, definitions, std::nullopt) ==
+               "((((3) + 1)) + 1)" &&
+           console_calc::expand_expression_identifiers(
+               "map(vals, f(_))", constants, definitions, std::nullopt) ==
+               "map({1, 2, 3}, ((_) + 1))" &&
+           console_calc::expand_expression_identifiers(
+               "list_where(vals, p(_))", constants, definitions, std::nullopt) ==
+               "list_where({1, 2, 3}, ((_) % 2 = 1))" &&
+           console_calc::expand_expression_identifiers(
                "0x10 + 5", constants, definitions, std::nullopt) ==
                "0x10 + 5" &&
            console_calc::expand_expression_identifiers(
                "0b1010 + 1", constants, definitions, std::nullopt) ==
                "0b1010 + 1";
+}
+
+bool expect_user_assignment_parsing() {
+    const auto value_assignment = console_calc::parse_user_assignment("x:pi+1");
+    const auto function_assignment = console_calc::parse_user_assignment("f(x):x+1");
+    const auto invalid_assignment = console_calc::parse_user_assignment("f(x,y):x+y");
+
+    return value_assignment.has_value() && value_assignment->name == "x" &&
+           value_assignment->parameters.empty() &&
+           value_assignment->expression == "pi+1" && function_assignment.has_value() &&
+           function_assignment->name == "f" && function_assignment->parameters.size() == 1 &&
+           function_assignment->parameters[0] == "x" &&
+           function_assignment->expression == "x+1" && !invalid_assignment.has_value();
 }
 
 }  // namespace
@@ -338,6 +366,10 @@ int main() {
     }
 
     if (!expect_expression_identifier_expansion()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_user_assignment_parsing()) {
         return EXIT_FAILURE;
     }
 

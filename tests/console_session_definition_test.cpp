@@ -103,6 +103,19 @@ bool expect_console_mode_unknown_identifier_error() {
                                      "error: unknown identifier: foo\n");
 }
 
+bool expect_console_mode_user_functions() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("f(x):x+1\nf(3)\nf(f(3))\nvals:1,2,3\nsum(map(vals,f(_)))\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) + prompt(0) + "4\n" + prompt(1) + "5\n" + prompt(2) + prompt(2) + "9\n" +
+        prompt(3);
+    return expect_console_transcript("console mode user functions", exit_code, 0,
+                                     output.str(), expected_output, error.str(), "");
+}
+
 }  // namespace
 
 bool expect_console_mode_definition_behaviors() {
@@ -112,7 +125,8 @@ bool expect_console_mode_definition_behaviors() {
            expect_console_mode_self_circular_reference_error() &&
            expect_console_mode_variable_constant_conflict() &&
            expect_console_mode_result_reference_error() &&
-           expect_console_mode_unknown_identifier_error();
+           expect_console_mode_unknown_identifier_error() &&
+           expect_console_mode_user_functions();
 }
 
 }  // namespace console_calc::test

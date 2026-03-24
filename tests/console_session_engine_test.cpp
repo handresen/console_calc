@@ -200,6 +200,26 @@ bool expect_engine_listing_events() {
                console_calc::BuiltinFunctionCategory::list_generation;
 }
 
+bool expect_engine_function_definition_storage() {
+    console_calc::ExpressionParser parser;
+    const console_calc::ConstantTable constants = default_constants();
+    console_calc::ConsoleSessionEngine engine(parser, constants);
+
+    engine.initialize();
+    const auto assignment_result = engine.submit("f(x):x+1");
+    if (assignment_result.should_exit || !assignment_result.events.empty() ||
+        !contains_definition(assignment_result.state.definitions, "f(x)", "x+1") ||
+        !engine.definitions().contains("f") ||
+        console_calc::definition_kind(engine.definitions().at("f")) !=
+            console_calc::UserDefinitionKind::function) {
+        return false;
+    }
+
+    const auto vars_result = engine.submit("vars");
+    return expect_single_definition_listing_event("engine vars with function", vars_result) &&
+           contains_definition(vars_result.events[0].definitions, "f(x)", "x+1");
+}
+
 bool expect_engine_currency_refresh() {
     console_calc::ExpressionParser parser;
     const console_calc::ConstantTable constants = default_constants();
@@ -326,6 +346,10 @@ int main() {
         return EXIT_FAILURE;
     }
     if (!expect_engine_listing_events()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_engine_function_definition_storage()) {
         return EXIT_FAILURE;
     }
     if (!expect_engine_currency_refresh()) {
