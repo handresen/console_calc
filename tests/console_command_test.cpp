@@ -49,6 +49,7 @@ bool expect_builtin_function_listing() {
            listing.find("to_poslist(list)") != std::string::npos &&
            listing.find("map(list, expr[, start[, step[, count]]])") != std::string::npos &&
            listing.find("map_at(list, expr[, start[, step[, count]]])") != std::string::npos &&
+           listing.find("list_where(list, expr)") != std::string::npos &&
            listing.find("fill(expr, count)") != std::string::npos;
 }
 
@@ -136,6 +137,8 @@ bool expect_builtin_function_metadata() {
     const auto fill_info = console_calc::special_form_info(console_calc::Function::fill);
     const auto map_info = console_calc::special_form_info(console_calc::Function::map);
     const auto map_at_info = console_calc::special_form_info(console_calc::Function::map_at);
+    const auto list_where_info =
+        console_calc::special_form_info(console_calc::Function::list_where);
     const auto range_info = console_calc::builtin_function_info(console_calc::Function::range);
     const auto geom_info = console_calc::builtin_function_info(console_calc::Function::geom);
     const auto repeat_info = console_calc::builtin_function_info(console_calc::Function::repeat);
@@ -228,6 +231,11 @@ bool expect_builtin_function_metadata() {
            map_at_info.category == console_calc::BuiltinFunctionCategory::list &&
            map_at_info.signature == "map_at(list, expr[, start[, step[, count]]])" &&
            map_at_info.summary == "map inline expression onto selected list positions" &&
+           list_where_info.name == "list_where" && list_where_info.min_arity == 2 &&
+           list_where_info.max_arity == 2 &&
+           list_where_info.category == console_calc::BuiltinFunctionCategory::list &&
+           list_where_info.signature == "list_where(list, expr)" &&
+           list_where_info.summary == "keep list elements where inline expression is non-zero" &&
            range_info.name == "range" && range_info.min_arity == 2 && range_info.max_arity == 3 &&
            range_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
            range_info.summary == "generate linear series from start" &&
@@ -291,6 +299,9 @@ bool expect_expression_identifier_expansion() {
            console_calc::expand_expression_identifiers(
                "map_at(vals, sin(_) + _)", constants, definitions, std::nullopt) ==
                "map_at({1, 2, 3}, sin(_) + _)" &&
+           console_calc::expand_expression_identifiers(
+               "list_where(vals, _ <= 2)", constants, definitions, std::nullopt) ==
+               "list_where({1, 2, 3}, _ <= 2)" &&
            console_calc::expand_expression_identifiers(
                "0x10 + 5", constants, definitions, std::nullopt) ==
                "0x10 + 5" &&

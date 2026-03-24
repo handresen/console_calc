@@ -231,6 +231,7 @@ pow(e, 1)
 - `reduce(list, op)` reduce a list with a binary operator
 - `map(list, expr[, start[, step[, count]]])` map an inline expression using `_` over a list slice
 - `map_at(list, expr[, start[, step[, count]]])` map an inline expression onto selected list positions
+- `list_where(list, expr)` keep list elements where inline expression is non-zero
 
 ### List Generation Functions
 
@@ -261,11 +262,12 @@ Function notes:
 - `map` uses `step = 1` and maps all remaining matching elements when `count` is omitted
 - `map` requires `step` to be a positive integer
 - `map_at` uses the same slice controls as `map`, but preserves original list length
+- `list_where` keeps original elements whose inline predicate evaluates to a non-zero scalar
 - `pos(lat, lon)` uses the `(lat, lon)` convention in degrees
 - only geo functions accept position values
 - `map({1, 2}, sum)` and `map({1, 2}, pow)` are invalid
 - `map({1, 2}, sin)` is invalid
-- `_` is only valid inside `map(..., expr)`
+- `_` is only valid inside `map(..., expr)`, `map_at(..., expr)`, and `list_where(..., expr)`
 - `guard` evaluates its fallback lazily and can be used inside `map`
 - `timed_loop` evaluates its expression lazily for each iteration
 - `timed_loop` requires `count` to be a non-negative integer
@@ -300,6 +302,7 @@ map({0, 90}, sind(_))         => {0, 1}
 map({1, 2, 3}, _ + 1)         => {2, 3, 4}
 map({10, 20, 30, 40, 50}, _ + 1, 1, 2, 2) => {21, 41}
 map_at({10, 20, 30, 40, 50}, _ + 1, 1, 2, 2) => {10, 21, 30, 41, 50}
+list_where({1, 2, 3, 4, 5}, _ <= 3) => {1, 2, 3}
 map({1, 2, 3}, sin(_) + _)    => {1.84147..., 2.90929..., 3.14112...}
 guard(1 / 0, 0)               => 0
 timed_loop(sin(pi / 3), 1000) => 0.00...

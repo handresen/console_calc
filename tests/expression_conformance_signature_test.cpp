@@ -21,6 +21,8 @@ bool expect_expression_function_signature_errors(ExpressionParser& parser) {
          "function 'map_at' expects map_at(list, expr[, start[, step[, count]]])"},
         {"map({1, 2}, _ + 1, 0, 2, 4, 5)",
          "function 'map' expects map(list, expr[, start[, step[, count]]])"},
+        {"list_where({1, 2}, _ + 1, 0)",
+         "function 'list_where' expects list_where(list, expr)"},
         {"to_poslist()", "function 'to_poslist' expects to_poslist(list)"},
         {"to_list()", "function 'to_list' expects to_list(poslist)"},
         {"rand(1, 2, 3)", "function 'rand' expects rand([min, max])"},

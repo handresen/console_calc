@@ -72,10 +72,11 @@ struct ExpansionFrame {
     return end > index + 2 ? end : index;
 }
 
-[[nodiscard]] bool is_inside_map_expression(const std::vector<ExpansionFrame>& frames) {
+[[nodiscard]] bool is_inside_placeholder_expression(const std::vector<ExpansionFrame>& frames) {
     for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
         if (it->kind == ExpansionFrameKind::call &&
-            (it->identifier == "map" || it->identifier == "map_at") &&
+            (it->identifier == "map" || it->identifier == "map_at" ||
+             it->identifier == "list_where") &&
             it->argument_index == 1) {
             return true;
         }
@@ -200,7 +201,7 @@ std::string expand_expression_identifiers_impl(
         const std::string identifier(expression.substr(index, end - index));
         const bool followed_by_call = is_followed_by_call(expression, end);
 
-        if (identifier == "_" && is_inside_map_expression(frames)) {
+        if (identifier == "_" && is_inside_placeholder_expression(frames)) {
             expanded += identifier;
             pending_call_identifier.reset();
         } else if ((is_builtin_function_name(identifier) || is_special_form_name(identifier)) &&

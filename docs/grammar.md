@@ -32,7 +32,7 @@ Explicitly out of scope for this first version:
   - `,`
 - `identifier`
   - used for builtin function names
-  - `_` is reserved as the current-element placeholder inside `map(..., expr)`
+  - `_` is reserved as the current-element placeholder inside `map(..., expr)`, `map_at(..., expr)`, and `list_where(..., expr)`
 
 ## Grammar
 
@@ -44,9 +44,10 @@ sum        = term , { ( "+" | "-" ) , term } ;
 term       = unary , { ( "*" | "/" | "%" ) , unary } ;
 unary      = [ "-" ] , power ;
 power      = primary , [ "^" , unary ] ;
-primary    = number | function_call | map_call | guard_call | list | "(" , expression , ")" ;
+primary    = number | function_call | map_call | list_where_call | guard_call | list | "(" , expression , ")" ;
 function_call = identifier , "(" , expression , { "," , expression } , ")" ;
 map_call   = "map" , "(" , expression , "," , expression , ")" ;
+list_where_call = "list_where" , "(" , expression , "," , expression , ")" ;
 guard_call = "guard" , "(" , expression , "," , expression , ")" ;
 list       = "{" , expression , { "," , expression } , "}" ;
 number     = mantissa , [ exponent ] ;
@@ -102,6 +103,7 @@ Builtin functions:
 - `reduce(list, op)` reduces a non-empty list left-to-right using a binary operator such as `+` or `*`
 - `map(list, expr[, start[, step[, count]]])` evaluates `expr` over a list slice with `_` bound to the current element
 - `map_at(list, expr[, start[, step[, count]]])` evaluates `expr` at selected list positions and preserves list length
+- `list_where(list, expr)` keeps list elements whose inline expression evaluates to a non-zero scalar
 - `range(start, count[, step])` generates a list beginning at `start`, with `count` elements, incrementing by `step` or by `1` when omitted
 - `geom(start, count[, ratio])` generates a geometric series beginning at `start`, multiplying by `ratio` or by `2` when omitted
 - `repeat(value, count)` repeats `value` `count` times
@@ -117,7 +119,7 @@ Integer-preserving behavior:
 - `sum(list)` and `product(list)` preserve integer results when all inputs remain integral
 - trig functions always return floating-point results
 
-For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map` and `map_at`, the second argument is an expression that uses `_` as the current element placeholder. `_` is only valid inside these mapping forms. Optional `start`, `step`, and `count` arguments use zero-based `start`; `step = 1` by default; and when `count` is omitted, mapping continues over all remaining matching elements. `step` must be a positive integer. `map` returns only mapped elements, while `map_at` preserves original list length and copies untouched elements through. For `timed_loop` and `fill`, `count` must be a non-negative integer. For `rand`, `rand()` uses `[0, 1)`, `rand(max)` uses `[0, max)`, and `rand(min, max)` uses `[min, max)` with finite bounds and `min < max`.
+For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, `map_at`, and `list_where`, the expression argument uses `_` as the current element placeholder. `_` is only valid inside these list forms. Optional `start`, `step`, and `count` arguments use zero-based `start`; `step = 1` by default; and when `count` is omitted, mapping continues over all remaining matching elements. `step` must be a positive integer. `map` returns only mapped elements, while `map_at` preserves original list length and copies untouched elements through. `list_where` keeps the original matching elements and omits the rest. For `timed_loop` and `fill`, `count` must be a non-negative integer. For `rand`, `rand()` uses `[0, 1)`, `rand(max)` uses `[0, max)`, and `rand(min, max)` uses `[min, max)` with finite bounds and `min < max`.
 
 Geo positions are a dedicated value type, separate from scalars and lists. They use the `(lat, lon)` convention in degrees. Only the geo-specific functions accept position values.
 
@@ -155,6 +157,7 @@ Examples:
 - `sum(map({0, 90}, sind(_)))` => `1`
 - `map({10, 20, 30, 40, 50}, _ + 1, 1, 2, 2)` => `{21, 41}`
 - `map_at({10, 20, 30, 40, 50}, _ + 1, 1, 2, 2)` => `{10, 21, 30, 41, 50}`
+- `list_where({1, 2, 3, 4, 5}, _ <= 3)` => `{1, 2, 3}`
 - `sum(map({1, 2, 3}, _ + 1))` => `9`
 - `sum(map({1, 2, 3}, sin(_) + _))` => `7.8918884196934453`
 - `guard(1 / 0, 0)` => `0`

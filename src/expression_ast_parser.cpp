@@ -243,7 +243,7 @@ private:
 
     [[nodiscard]] Expression parse_primary_expression() {
         if (current_.kind == TokenKind::identifier) {
-            if (allow_map_placeholder_ && current_.identifier_text == "_") {
+            if (allow_placeholder_expression_ && current_.identifier_text == "_") {
                 advance();
                 return Expression{PlaceholderExpression{}};
             }
@@ -279,6 +279,8 @@ private:
         case Function::map:
         case Function::map_at:
             return parse_map_call();
+        case Function::list_where:
+            return parse_list_where_call();
         case Function::guard:
             return parse_guard_call();
         case Function::reduce:
@@ -365,10 +367,10 @@ private:
             throw ParseError("function '" + map_name + "' expects " + map_signature);
         }
 
-        const bool previous_allow_map_placeholder = allow_map_placeholder_;
-        allow_map_placeholder_ = true;
+        const bool previous_allow_placeholder_expression = allow_placeholder_expression_;
+        allow_placeholder_expression_ = true;
         auto mapped_expression = make_expression(parse_bitwise_or_expression());
-        allow_map_placeholder_ = previous_allow_map_placeholder;
+        allow_placeholder_expression_ = previous_allow_placeholder_expression;
 
         std::unique_ptr<Expression> start_argument;
         std::unique_ptr<Expression> step_argument;
@@ -408,6 +410,45 @@ private:
                 .step_argument = std::move(step_argument),
                 .count_argument = std::move(count_argument),
                 .preserve_unmapped = (map_function == Function::map_at),
+            }};
+    }
+
+    [[nodiscard]] Expression parse_list_where_call() {
+        const auto filter_signature = std::string(special_form_signature(Function::list_where));
+        advance();
+        if (current_.kind != TokenKind::left_paren) {
+            throw ParseError("expected '(' after function name");
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("function 'list_where' expects " + filter_signature);
+        }
+
+        auto list_argument = make_expression(parse_bitwise_or_expression());
+        if (current_.kind != TokenKind::comma) {
+            throw ParseError("function 'list_where' expects " + filter_signature);
+        }
+
+        advance();
+        if (!starts_operand_expression(current_.kind)) {
+            throw ParseError("function 'list_where' expects " + filter_signature);
+        }
+
+        const bool previous_allow_placeholder_expression = allow_placeholder_expression_;
+        allow_placeholder_expression_ = true;
+        auto predicate_expression = make_expression(parse_bitwise_or_expression());
+        allow_placeholder_expression_ = previous_allow_placeholder_expression;
+
+        if (current_.kind != TokenKind::right_paren) {
+            throw ParseError("function 'list_where' expects " + filter_signature);
+        }
+
+        advance();
+        return Expression{
+            ListWhereCall{
+                .list_argument = std::move(list_argument),
+                .predicate_expression = std::move(predicate_expression),
             }};
     }
 
@@ -593,7 +634,7 @@ private:
     Tokenizer tokenizer_;
     Token current_;
     Token next_;
-    bool allow_map_placeholder_ = false;
+    bool allow_placeholder_expression_ = false;
 };
 
 }  // namespace

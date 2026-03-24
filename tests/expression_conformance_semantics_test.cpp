@@ -39,6 +39,21 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         return false;
     }
 
+    const Value filtered_list = parser.evaluate_value("list_where({1, 2, 3, 4, 5}, _ <= 3)");
+    const auto* filtered_values = std::get_if<ListValue>(&filtered_list);
+    const Value odd_values = parser.evaluate_value("list_where({1, 2, 3, 4, 5}, _ % 2)");
+    const auto* odd_filtered_values = std::get_if<ListValue>(&odd_values);
+    if (filtered_values == nullptr || filtered_values->size() != 3 ||
+        !almost_equal(scalar_to_double((*filtered_values)[0]), 1.0) ||
+        !almost_equal(scalar_to_double((*filtered_values)[1]), 2.0) ||
+        !almost_equal(scalar_to_double((*filtered_values)[2]), 3.0) ||
+        odd_filtered_values == nullptr || odd_filtered_values->size() != 3 ||
+        !almost_equal(scalar_to_double((*odd_filtered_values)[0]), 1.0) ||
+        !almost_equal(scalar_to_double((*odd_filtered_values)[1]), 3.0) ||
+        !almost_equal(scalar_to_double((*odd_filtered_values)[2]), 5.0)) {
+        return false;
+    }
+
     const Value generated_range = parser.evaluate_value("range(2, 4, 3)");
     const auto* generated_values = std::get_if<ListValue>(&generated_range);
     if (generated_values == nullptr || generated_values->size() != 4 ||
@@ -239,6 +254,7 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         "to_poslist({60, 10, 61})",
         "to_list({60, 10})",
         "map({1, 2, 3}, _ + 1, 0, 0)",
+        "list_where(1, _ + 1)",
         "{1, pos(60, 10)}",
         "pow({2, 3}, 2)",
         "lat(1)",

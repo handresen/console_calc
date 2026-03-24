@@ -15,6 +15,7 @@ bool expect_expression_ast_shape(ExpressionParser& parser) {
     using console_calc::Function;
     using console_calc::FunctionCall;
     using console_calc::GuardCall;
+    using console_calc::ListWhereCall;
     using console_calc::ListLiteral;
     using console_calc::MapCall;
     using console_calc::NumberLiteral;
@@ -196,6 +197,24 @@ bool expect_expression_ast_shape(ExpressionParser& parser) {
             start == nullptr || step == nullptr || count == nullptr ||
             !almost_equal(start->value, 1.0) || !almost_equal(step->value, 2.0) ||
             !almost_equal(count->value, 4.0)) {
+            return false;
+        }
+    }
+
+    {
+        const Expression ast = parser.parse("list_where({2, 3, 4, 5}, _ <= 3)");
+        const auto* root = std::get_if<ListWhereCall>(&ast.node);
+        const auto* list =
+            root != nullptr ? std::get_if<ListLiteral>(&root->list_argument->node) : nullptr;
+        const auto* predicate =
+            root != nullptr ? std::get_if<BinaryExpression>(&root->predicate_expression->node)
+                            : nullptr;
+        const auto* rhs =
+            predicate != nullptr ? std::get_if<NumberLiteral>(&predicate->right->node) : nullptr;
+        if (root == nullptr || list == nullptr || list->elements.size() != 4 ||
+            predicate == nullptr || predicate->op != BinaryOperator::less_equal ||
+            !std::holds_alternative<PlaceholderExpression>(predicate->left->node) ||
+            rhs == nullptr || !almost_equal(rhs->value, 3.0)) {
             return false;
         }
     }

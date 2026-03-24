@@ -76,6 +76,8 @@
 "sum(map({2, 3, 4}, cos(_)))", -2.0597829540111997
 "sum(map({1, 2, 3}, _ + 1))", 9.0
 "sum(map({1, 2, 3}, sin(_) + _))", 7.8918884196934453
+"sum(list_where({1, 2, 3, 4, 5}, _ <= 3))", 6.0
+"sum(list_where({1, 2, 3, 4, 5}, _ % 2))", 9.0
 "lat(pos(60, 10))", 60.0
 "lon(pos(60, 10))", 10.0
 "dist(pos(0, 0), pos(0, 1))", 111319.49079327357
@@ -170,6 +172,8 @@
 "map(1, sin(_))", INVALID
 "map({1, 2}, sin())", INVALID
 "map({1, 2}, _ + foo)", INVALID
+"list_where({1, 2}, sin)", INVALID
+"list_where(1, _ + 1)", INVALID
 "{1, pos(60, 10)}", INVALID
 "pos(100, 0)", INVALID
 "lat(1)", INVALID

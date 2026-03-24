@@ -208,7 +208,8 @@ Value evaluate_expression_with_placeholder(const Expression& expression,
                 return to_value(node.value);
             } else if constexpr (std::is_same_v<Node, PlaceholderExpression>) {
                 if (!placeholder_value.has_value()) {
-                    throw EvaluationError("map placeholder '_' can only be used inside map()");
+                    throw EvaluationError(
+                        "placeholder '_' can only be used inside map(), map_at(), or list_where()");
                 }
                 return to_value(*placeholder_value);
             } else if constexpr (std::is_same_v<Node, UnaryExpression>) {
@@ -227,6 +228,8 @@ Value evaluate_expression_with_placeholder(const Expression& expression,
                 return evaluate_builtin_function(node.function, arguments);
             } else if constexpr (std::is_same_v<Node, MapCall>) {
                 return evaluate_map_call(node, placeholder_value);
+            } else if constexpr (std::is_same_v<Node, ListWhereCall>) {
+                return evaluate_list_where_call(node, placeholder_value);
             } else if constexpr (std::is_same_v<Node, GuardCall>) {
                 return evaluate_guard_call(node, placeholder_value);
             } else if constexpr (std::is_same_v<Node, ReduceCall>) {

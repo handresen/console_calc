@@ -61,6 +61,24 @@ Value evaluate_map_call(const MapCall& node,
     return mapped_values;
 }
 
+Value evaluate_list_where_call(const ListWhereCall& node,
+                               const std::optional<ScalarValue>& placeholder_value) {
+    const ListValue input_values =
+        require_list(evaluate_expression_with_placeholder(*node.list_argument, placeholder_value));
+
+    ListValue filtered_values;
+    filtered_values.reserve(input_values.size());
+    for (const auto& input_value : input_values) {
+        const ScalarValue predicate_value = require_scalar_value(
+            evaluate_expression_with_placeholder(*node.predicate_expression, input_value));
+        if (scalar_to_double(predicate_value) != 0.0) {
+            filtered_values.push_back(input_value);
+        }
+    }
+
+    return filtered_values;
+}
+
 Value evaluate_guard_call(const GuardCall& node,
                           const std::optional<ScalarValue>& placeholder_value) {
     try {

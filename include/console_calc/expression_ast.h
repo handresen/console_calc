@@ -66,6 +66,7 @@ enum class Function {
     fill,
     map,
     map_at,
+    list_where,
     range,
     geom,
     repeat,
@@ -105,6 +106,11 @@ struct MapCall {
     bool preserve_unmapped = false;
 };
 
+struct ListWhereCall {
+    std::unique_ptr<Expression> list_argument;
+    std::unique_ptr<Expression> predicate_expression;
+};
+
 struct GuardCall {
     std::unique_ptr<Expression> guarded_expression;
     std::unique_ptr<Expression> fallback_expression;
@@ -127,8 +133,8 @@ struct FillCall {
 
 struct Expression {
     std::variant<NumberLiteral, PlaceholderExpression, UnaryExpression, BinaryExpression,
-                 ListLiteral, FunctionCall, MapCall, GuardCall, ReduceCall, TimedLoopCall,
-                 FillCall>
+                 ListLiteral, FunctionCall, MapCall, ListWhereCall, GuardCall, ReduceCall,
+                 TimedLoopCall, FillCall>
         node;
 };
 

@@ -28,6 +28,8 @@ namespace console_calc::detail {
 [[nodiscard]] Value evaluate_builtin_function(Function function, std::span<const Value> arguments);
 [[nodiscard]] Value evaluate_map_call(const MapCall& node,
                                       const std::optional<ScalarValue>& placeholder_value);
+[[nodiscard]] Value evaluate_list_where_call(const ListWhereCall& node,
+                                             const std::optional<ScalarValue>& placeholder_value);
 [[nodiscard]] Value evaluate_guard_call(const GuardCall& node,
                                         const std::optional<ScalarValue>& placeholder_value);
 [[nodiscard]] Value evaluate_reduce_call(const ReduceCall& node,
