@@ -61,6 +61,8 @@ User-defined functions should use named parameters such as `x`.
 - function definitions are stored late-bound, like existing value definitions
 - calling `f(expr)` or `pair_sum(a, b)` substitutes or binds the arguments into the stored body
   at evaluation time
+- inside `map(...)`, `map_at(...)`, and `list_where(...)`, only `_` is rebound per element;
+  user-defined function parameters still refer to the whole call arguments
 - redefining a function replaces the previous definition of that function name
 - builtin function names and builtin constants remain reserved
 - recursive function bodies should be rejected in v1 to keep expansion and

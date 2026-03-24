@@ -507,6 +507,7 @@ Rules:
 - circular definition references and recursive function bodies are rejected
 - user-defined functions have fixed arity with exact argument matching
 - user-defined functions can be used in ordinary expressions and inside `map`, `map_at`, and `list_where`
+- function parameters are substituted once for the whole call; inside `map`, `map_at`, and `list_where`, only `_` is rebound per list element
 - nested calls such as `f(f(3))` are allowed
 
 Planned next step:
