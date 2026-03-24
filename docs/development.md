@@ -46,6 +46,18 @@ The `host-only` preset is the current build-level guardrail for “WASM-ready”
 work. If a new dependency or source change accidentally pulls terminal-only code
 into the host layer, this preset should catch it.
 
+## Workflow Guardrails
+
+Before larger feature or refactor passes, do a quick worktree scan so it is
+clear which changes belong to the current task and which were already present.
+That matters in this repo because native core work, wasm host work, and web UI
+work often overlap in one checkout.
+
+When verifying changes, wait for the command to finish rather than reading
+partial output as success. In practice that means not reporting green status
+until the relevant native build, `ctest`, wasm build, or `web/` build command
+has exited successfully.
+
 ## Dependencies
 
 The project uses `vcpkg` in manifest mode. Current non-test dependencies include:

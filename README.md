@@ -513,10 +513,6 @@ Rules:
 - function parameters are substituted once for the whole call; inside `map`, `map_at`, and `list_where`, only `_` is rebound per list element
 - nested calls such as `f(f(3))` are allowed
 
-Planned next step:
-- refine user-defined function ergonomics without introducing full lambda syntax
-- see [docs/basic_functions_plan.md](docs/basic_functions_plan.md)
-
 ## Currency Conversions
 
 Console mode can load a small built-in set of NOK-relative currency conversions on launch.
