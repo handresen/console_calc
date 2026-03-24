@@ -6,6 +6,7 @@
 #include "console_assignment.h"
 #include "console_command.h"
 #include "console_listing.h"
+#include "compile_time_constants.h"
 #include "expression_environment.h"
 #include "console_calc/builtin_function.h"
 #include "console_calc/special_form.h"
@@ -318,9 +319,7 @@ bool expect_builtin_function_helpers() {
 }
 
 bool expect_expression_identifier_expansion() {
-    const console_calc::ConstantTable constants{
-        {"pi", 3.14159265358979323846},
-    };
+    const console_calc::ConstantTable constants = console_calc::builtin_constant_table();
     const console_calc::DefinitionTable definitions{
         {"x", console_calc::make_value_definition("pi + 1")},
         {"vals", console_calc::make_value_definition("{1, 2, 3}")},
@@ -376,7 +375,19 @@ bool expect_expression_identifier_expansion() {
            expect_equal("expand 0b1010 + 1",
                         console_calc::expand_expression_identifiers(
                             "0b1010 + 1", constants, definitions, std::nullopt),
-                        "0b1010 + 1");
+                        "0b1010 + 1") &&
+           expect_equal("expand 90*c.deg",
+                        console_calc::expand_expression_identifiers(
+                            "90*c.deg", constants, definitions, std::nullopt),
+                        "90*0.017453292519943295") &&
+           expect_equal("expand m.pi",
+                        console_calc::expand_expression_identifiers(
+                            "m.pi", constants, definitions, std::nullopt),
+                        "3.1415926535897931") &&
+           expect_equal("expand ph.c",
+                        console_calc::expand_expression_identifiers(
+                            "ph.c", constants, definitions, std::nullopt),
+                        "299792458");
 }
 
 bool expect_user_assignment_parsing() {

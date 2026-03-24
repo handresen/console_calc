@@ -3,6 +3,7 @@
 #include <span>
 #include <string_view>
 
+#include "compile_time_constants.h"
 #include "console_calc/console_binding_facade.h"
 #include "console_calc/expression_parser.h"
 #include "currency_rate_provider.h"
@@ -30,11 +31,7 @@ private:
 };
 
 console_calc::ConstantTable default_constants() {
-    return {
-        {"pi", 3.14159265358979323846},
-        {"e", 2.71828182845904523536},
-        {"tau", 6.28318530717958647692},
-    };
+    return console_calc::builtin_constant_table();
 }
 
 bool expect_binding_value_and_snapshot_flow() {
@@ -59,9 +56,18 @@ bool expect_binding_value_and_snapshot_flow() {
     }
 
     const auto snapshot = facade.snapshot();
+    bool has_math = false;
+    bool has_conversion = false;
+    bool has_physical = false;
+    for (const auto& constant : snapshot.constants) {
+        has_math = has_math || constant.name == "m.pi";
+        has_conversion = has_conversion || constant.name == "c.deg";
+        has_physical = has_physical || constant.name == "ph.c";
+    }
+
     return snapshot.stack.size() == 1 && snapshot.stack[0].display == "2" &&
-           snapshot.definitions.size() == 1 && snapshot.constants.size() == 3 &&
-           !snapshot.functions.empty();
+           snapshot.definitions.size() == 1 && snapshot.constants.size() >= 10 &&
+           has_math && has_conversion && has_physical && !snapshot.functions.empty();
 }
 
 bool expect_binding_function_definition_snapshot() {

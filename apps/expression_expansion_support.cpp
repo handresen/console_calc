@@ -17,6 +17,10 @@ bool is_identifier_char(char ch) {
     return std::isalnum(static_cast<unsigned char>(ch)) || ch == '_';
 }
 
+bool is_identifier_path_char(char ch) {
+    return is_identifier_char(ch) || ch == '.';
+}
+
 std::size_t skip_whitespace(std::string_view expression, std::size_t index) {
     while (index < expression.size() &&
            std::isspace(static_cast<unsigned char>(expression[index]))) {
@@ -211,8 +215,20 @@ std::string substitute_function_parameters(std::string_view expression,
         }
 
         std::size_t end = index + 1;
-        while (end < expression.size() && is_identifier_char(expression[end])) {
-            ++end;
+        while (end < expression.size()) {
+            if (is_identifier_char(expression[end])) {
+                ++end;
+                continue;
+            }
+            if (expression[end] == '.' && end + 1 < expression.size() &&
+                is_identifier_start(expression[end + 1])) {
+                end += 2;
+                while (end < expression.size() && is_identifier_char(expression[end])) {
+                    ++end;
+                }
+                continue;
+            }
+            break;
         }
 
         const std::string_view identifier = expression.substr(index, end - index);

@@ -55,7 +55,7 @@
 - `%` preserves integer results for integer operands and otherwise uses floating-point modulo semantics.
 - Comparisons return integer `1` or `0`.
 - `&`, `|`, and `~` require integer-valued operands and should reject non-integer inputs.
-- Builtin constants include `pi`, `e`, and `tau`.
+- Builtin constants include root math aliases `pi`, `e`, and `tau`, plus namespaced builtin constants such as `m.pi`, `c.deg`, and `ph.c`.
 - Builtin scalar functions include arithmetic/trig helpers, `pow`, `rand([min, max])`, and explicit bitwise helpers such as `and`, `or`, `xor`, `nand`, `nor`, `shl`, and `shr`.
 - Builtin position functions include `pos`, `lat`, `lon`, `dist`, `bearing`, `br_to_pos`, `to_list`, and `to_poslist`.
 - Builtin list functions include aggregation (`sum`, `product`, `avg`, `min`, `max`, `len`), slicing (`first`, `drop`), pairwise operations (`list_add`, `list_sub`, `list_mul`, `list_div`), and list generation (`range`, `geom`, `repeat`, `linspace`, `powers`).

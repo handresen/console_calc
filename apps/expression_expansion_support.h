@@ -22,6 +22,7 @@ struct ExpansionFrame {
 
 [[nodiscard]] bool is_identifier_start(char ch);
 [[nodiscard]] bool is_identifier_char(char ch);
+[[nodiscard]] bool is_identifier_path_char(char ch);
 [[nodiscard]] std::size_t skip_whitespace(std::string_view expression, std::size_t index);
 [[nodiscard]] bool is_blank_text(std::string_view text);
 [[nodiscard]] bool is_followed_by_call(std::string_view expression, std::size_t index);

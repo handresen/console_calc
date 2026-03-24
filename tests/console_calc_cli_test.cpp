@@ -1,8 +1,10 @@
+#include <cmath>
 #include <cstdlib>
 #include <sstream>
 #include <string_view>
 #include <vector>
 
+#include "compile_time_constants.h"
 #include "expression_environment.h"
 #include "console_calc_app.h"
 #include "console_calc/expression_parser.h"
@@ -14,9 +16,7 @@ using console_calc::test::expect_console_transcript;
 
 bool expect_expanded_expression_helper() {
     console_calc::ExpressionParser parser;
-    const console_calc::ConstantTable constants{
-        {"pi", 3.14159265358979323846},
-    };
+    const console_calc::ConstantTable constants = console_calc::builtin_constant_table();
     const console_calc::DefinitionTable variables{
         {"x", console_calc::make_value_definition("pi + 1")},
         {"y", console_calc::make_value_definition("sin(x)")},
@@ -30,9 +30,7 @@ bool expect_expanded_expression_helper() {
 
 bool expect_expanded_function_expression_helper() {
     console_calc::ExpressionParser parser;
-    const console_calc::ConstantTable constants{
-        {"pi", 3.14159265358979323846},
-    };
+    const console_calc::ConstantTable constants = console_calc::builtin_constant_table();
     const console_calc::DefinitionTable definitions{
         {"f", console_calc::make_function_definition({"x"}, "x + 1")},
         {"pair_sum", console_calc::make_function_definition({"x", "y"}, "x + y")},
@@ -55,6 +53,25 @@ bool expect_expanded_function_expression_helper() {
            std::get<std::int64_t>(nested_value) == 5 &&
            std::holds_alternative<std::int64_t>(mapped_value) &&
            std::get<std::int64_t>(mapped_value) == 9;
+}
+
+bool expect_namespaced_constant_lookup() {
+    console_calc::ExpressionParser parser;
+    const console_calc::ConstantTable constants = console_calc::builtin_constant_table();
+
+    const auto degree_value = console_calc::evaluate_expanded_expression(
+        parser, "90*c.deg", constants, {}, std::nullopt);
+    const auto math_value = console_calc::evaluate_expanded_expression(
+        parser, "m.pi", constants, {}, std::nullopt);
+    const auto physical_value = console_calc::evaluate_expanded_expression(
+        parser, "ph.c", constants, {}, std::nullopt);
+
+    return std::holds_alternative<double>(degree_value) &&
+           std::fabs(std::get<double>(degree_value) - 1.5707963267948966) < 1e-12 &&
+           std::holds_alternative<double>(math_value) &&
+           std::fabs(std::get<double>(math_value) - 3.1415926535897931) < 1e-12 &&
+           std::holds_alternative<double>(physical_value) &&
+           std::fabs(std::get<double>(physical_value) - 299792458.0) < 1e-6;
 }
 
 bool expect_argument_mode_success() {
@@ -88,6 +105,10 @@ int main() {
     }
 
     if (!expect_expanded_function_expression_helper()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_namespaced_constant_lookup()) {
         return EXIT_FAILURE;
     }
 

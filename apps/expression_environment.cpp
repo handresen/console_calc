@@ -182,8 +182,20 @@ std::string expand_expression_identifiers_impl(
         }
 
         std::size_t end = index + 1;
-        while (end < expression.size() && detail::is_identifier_char(expression[end])) {
-            ++end;
+        while (end < expression.size()) {
+            if (detail::is_identifier_char(expression[end])) {
+                ++end;
+                continue;
+            }
+            if (expression[end] == '.' && end + 1 < expression.size() &&
+                detail::is_identifier_start(expression[end + 1])) {
+                end += 2;
+                while (end < expression.size() && detail::is_identifier_char(expression[end])) {
+                    ++end;
+                }
+                continue;
+            }
+            break;
         }
         const std::string identifier(expression.substr(index, end - index));
         const bool followed_by_call = detail::is_followed_by_call(expression, end);

@@ -187,9 +187,17 @@ sum(map({0, 90}, sind(_))) => 1
 ## Builtin Constants
 
 Available in both one-shot mode and console mode:
-- `pi`
-- `e`
-- `tau`
+- Root math aliases: `pi`, `e`, `tau`
+- Namespaced math aliases: `m.pi`, `m.e`, `m.tau`
+- Conversion factors under `c.*`
+- Physical constants under `ph.*`
+
+Identifiers are case-sensitive. The dotted names are builtin constant names, not general member access.
+
+Useful names include:
+- `c.deg`, `c.rev`, `c.inch`, `c.ft`, `c.yd`, `c.mile`, `c.nmi`
+- `c.lb`, `c.oz`, `c.atm`, `c.bar`, `c.psi`, `c.min`, `c.hr`, `c.day`, `c.liter`
+- `ph.c`, `ph.g0`, `ph.G`, `ph.h`, `ph.hbar`, `ph.kB`, `ph.NA`, `ph.R`, `ph.eCharge`, `ph.eps0`, `ph.mu0`, `ph.sigma`
 
 Examples:
 
@@ -197,6 +205,10 @@ Examples:
 sin(pi / 2)
 tau / 2
 pow(e, 1)
+90*c.deg
+5*c.psi / c.bar
+ph.c
+m.pi
 ```
 
 ## Builtin Functions

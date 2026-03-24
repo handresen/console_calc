@@ -4,6 +4,7 @@
 #include <span>
 #include <string_view>
 
+#include "compile_time_constants.h"
 #include "console_session_engine.h"
 #include "console_test_utils.h"
 #include "console_calc/expression_parser.h"
@@ -38,17 +39,23 @@ private:
 };
 
 console_calc::ConstantTable default_constants() {
-    return {
-        {"pi", 3.14159265358979323846},
-        {"e", 2.71828182845904523536},
-        {"tau", 6.28318530717958647692},
-    };
+    return console_calc::builtin_constant_table();
 }
 
 bool contains_definition(std::span<const console_calc::DefinitionView> definitions,
                          std::string_view name, std::string_view expression) {
     for (const auto& definition : definitions) {
         if (definition.name == name && definition.expression == expression) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool contains_constant(std::span<const console_calc::ConstantView> constants,
+                       std::string_view name) {
+    for (const auto& constant : constants) {
+        if (constant.name == name) {
             return true;
         }
     }
@@ -180,11 +187,14 @@ bool expect_engine_listing_events() {
 
     const auto consts_result = engine.submit("consts");
     if (!expect_single_constant_listing_event("engine consts", consts_result) ||
-        consts_result.events[0].constants.size() != 3 ||
+        consts_result.events[0].constants.size() < 10 ||
         consts_result.events[0].constants[0].name != "e" ||
         !std::holds_alternative<double>(consts_result.events[0].constants[0].value) ||
         std::get<double>(consts_result.events[0].constants[0].value) !=
-            2.7182818284590451) {
+            2.7182818284590451 ||
+        !contains_constant(consts_result.events[0].constants, "m.pi") ||
+        !contains_constant(consts_result.events[0].constants, "c.deg") ||
+        !contains_constant(consts_result.events[0].constants, "ph.c")) {
         return false;
     }
 

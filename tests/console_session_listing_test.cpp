@@ -18,14 +18,14 @@ bool expect_console_mode_list_constants() {
     std::ostringstream output;
     std::ostringstream error;
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
-    const std::string expected_output =
-        prompt(0) +
-        "e:2.7182818284590451\n"
-        "pi:3.1415926535897931\n"
-        "tau:6.2831853071795862\n" +
-        prompt(0);
-    return expect_console_transcript("console mode list constants", exit_code, 0, output.str(),
-                                     expected_output, error.str(), "");
+    const std::string actual_output = output.str();
+    return exit_code == 0 && error.str().empty() &&
+           actual_output.starts_with(prompt(0)) &&
+           actual_output.ends_with(prompt(0)) &&
+           actual_output.find("e:2.7182818284590451\n") != std::string::npos &&
+           actual_output.find("m.pi:3.1415926535897931\n") != std::string::npos &&
+           actual_output.find("c.deg:0.017453292519943295\n") != std::string::npos &&
+           actual_output.find("ph.c:299792458\n") != std::string::npos;
 }
 
 bool expect_console_mode_list_variables_and_functions() {
