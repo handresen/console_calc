@@ -167,10 +167,6 @@ export function renderFunctionTable(
     return;
   }
 
-  const table = document.createElement("table");
-  table.className = "function-table";
-
-  const body = document.createElement("tbody");
   const categoryOrder = ["scalar", "position", "list", "list_generation"];
   const categoryLabels = new Map<string, string>([
     ["scalar", "Scalar functions"],
@@ -199,37 +195,53 @@ export function renderFunctionTable(
       continue;
     }
 
-    const headingRow = document.createElement("tr");
-    headingRow.className = "function-category-row";
+    const section = document.createElement("section");
+    section.className = "pane-group";
 
-    const heading = document.createElement("th");
-    heading.className = "function-category-heading";
-    heading.colSpan = 2;
-    heading.scope = "colgroup";
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "pane-group-toggle";
+    toggle.setAttribute("aria-expanded", "false");
+
+    const marker = document.createElement("span");
+    marker.className = "pane-group-marker";
+    marker.textContent = "+";
+
+    const heading = document.createElement("span");
+    heading.className = "pane-group-heading";
     heading.textContent = categoryLabels.get(category) ?? category;
 
-    headingRow.append(heading);
-    body.append(headingRow);
+    const body = document.createElement("div");
+    body.className = "pane-group-body function-group-body";
+    body.hidden = true;
+
+    toggle.addEventListener("click", () => {
+      const expanded = body.hidden;
+      body.hidden = !expanded;
+      toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+      marker.textContent = expanded ? "−" : "+";
+    });
 
     for (const value of entries) {
-      const row = document.createElement("tr");
+      const row = document.createElement("div");
       row.className = "function-entry-row";
 
-      const signature = document.createElement("td");
+      const signature = document.createElement("div");
       signature.className = "function-signature";
       signature.textContent = value.signature;
 
-      const summary = document.createElement("td");
+      const summary = document.createElement("div");
       summary.className = "function-summary";
       summary.textContent = value.summary;
 
       row.append(signature, summary);
       body.append(row);
     }
-  }
 
-  table.append(body);
-  container.append(table);
+    toggle.append(marker, heading);
+    section.append(toggle, body);
+    container.append(section);
+  }
 }
 
 export function stackDisplay(

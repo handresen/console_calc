@@ -429,6 +429,9 @@ body.is-resizing-shell {
 
 .function-table-container {
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .sample-list {
@@ -491,7 +494,6 @@ body.is-resizing-shell {
   font-size: 0.82rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: #5e5a4c;
 }
 
@@ -510,39 +512,14 @@ body.is-resizing-shell {
   color: #7d7b73;
 }
 
-.function-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-  font-size: 0.95rem;
-}
-
-.function-table td {
-  padding: 0.16rem 0;
-  vertical-align: top;
-}
-
-.function-category-row th {
-  padding: 0.5rem 0 0.2rem;
-  text-align: left;
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #5e5a4c;
-}
-
-.function-category-row:first-child th {
-  padding-top: 0;
-}
-
-.function-entry-row td {
-  padding-left: 0.55rem;
+.function-entry-row {
+  display: grid;
+  grid-template-columns: minmax(0, 40%) minmax(0, 1fr);
+  gap: 0.9rem;
+  padding-left: 1.2rem;
 }
 
 .function-signature {
-  width: 40%;
-  padding-right: 0.9rem;
   color: #1d241c;
   word-break: break-word;
 }
