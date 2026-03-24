@@ -15,10 +15,28 @@ import { OSM, Vector as VectorSource } from "ol/source";
 import { Tile as TileLayer, Vector as VectorLayer } from "ol/layer";
 import { defaults as defaultInteractions } from "ol/interaction/defaults";
 import MouseWheelZoom from "ol/interaction/MouseWheelZoom";
-import { Fill, Stroke, Style, Circle as CircleStyle } from "ol/style";
 import { fromLonLat } from "ol/proj";
+import { Fill, Stroke, Style, Circle as CircleStyle } from "ol/style";
 import type { DisplaySettings } from "./display-settings";
 import { defaultDisplaySettings, formatNumericText } from "./display-settings";
+import { createPane } from "./pane-controls";
+import type { PaneElements } from "./pane-controls";
+import {
+  buildPlotPath,
+  buildPositionBounds,
+  buildPositionPlotPath,
+  buildPositionPlotPoints,
+  buildPositionReferenceAxes,
+  buildScalarBounds,
+  buildScalarPlotPoints,
+  buildZeroAxisPath,
+  formatCornerLabel,
+  formatScalarAxisLabel,
+  isPlotSeries,
+  parsePlotSeries,
+  toMapCoordinates,
+} from "./plot-support";
+import type { PlotItem, PlotPoint, PositionPlotSeries } from "./plot-support";
 
 export interface PanesView {
   element: HTMLElement;
@@ -37,30 +55,6 @@ const sampleExpressions = [
   "br_to_pos(pos(59.9139,10.7522),270,100000)",
   "lon(br_to_pos(pos(0,0),90,111319.49079327357))",
 ];
-
-interface PlotSeries {
-  key: string;
-  label: string;
-  values: number[];
-  rawValues: number[];
-  truncated: boolean;
-}
-
-interface PositionPlotSeries {
-  key: string;
-  label: string;
-  points: BindingPositionEntry[];
-  rawPoints: BindingPositionEntry[];
-  truncated: boolean;
-}
-
-type PlotItem = PlotSeries | PositionPlotSeries;
-type PlotPoint = { x: number; y: number };
-const scalarPlotVerticalPadding = 5;
-
-function isPlotSeries(value: PlotItem | null): value is PlotItem {
-  return value !== null;
-}
 
 function renderTextList(container: HTMLElement, values: string[]): void {
   container.replaceChildren();
@@ -199,298 +193,6 @@ function definitionDisplay(entry: BindingDefinitionEntry): string {
 
 function constantDisplay(entry: BindingConstantEntry): string {
   return `${entry.name}:${entry.value}`;
-}
-
-function parsePlotSeries(entry: BindingStackEntry): PlotItem | null {
-  const positionListValues = entry.position_list_values ?? [];
-  if (positionListValues.length > 0 || entry.display.trim().startsWith("{pos(")) {
-    const maxPositionPoints = 10000;
-    const points =
-      positionListValues.length <= maxPositionPoints
-        ? positionListValues
-        : Array.from({ length: maxPositionPoints }, (_, index) => {
-            const sourceIndex = Math.round(
-              (index / (maxPositionPoints - 1)) * (positionListValues.length - 1),
-            );
-            return (
-              positionListValues[sourceIndex] ?? {
-                latitude_deg: 0,
-                longitude_deg: 0,
-              }
-            );
-          });
-    return {
-      key: `stack-${entry.level}`,
-      label: `Stack ${entry.level}`,
-      points,
-      rawPoints: positionListValues,
-      truncated: positionListValues.length > 500,
-    };
-  }
-
-  const listValues = entry.list_values ?? [];
-  if (listValues.length === 0 && !entry.display.trim().startsWith("{}")) {
-    return null;
-  }
-  const values =
-    listValues.length <= 500
-      ? listValues
-      : Array.from({ length: 500 }, (_, index) => {
-          const sourceIndex = Math.round((index / 499) * (listValues.length - 1));
-          return listValues[sourceIndex] ?? 0;
-        });
-  const truncated = listValues.length > 500;
-
-  return {
-    key: `stack-${entry.level}`,
-    label: `Stack ${entry.level}`,
-    values,
-    rawValues: listValues,
-    truncated,
-  };
-}
-
-function buildScalarBounds(values: number[]): { min: number; max: number; range: number } {
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  return {
-    min,
-    max,
-    range: max - min || 1,
-  };
-}
-
-function formatScalarAxisLabel(value: number): string {
-  return value.toPrecision(6);
-}
-
-function buildPlotPath(
-  values: number[],
-  width: number,
-  height: number,
-  bounds = buildScalarBounds(values),
-): string {
-  if (values.length === 0) {
-    return "";
-  }
-
-  if (values.length === 1) {
-    const y = height / 2;
-    return `M 0 ${y} L ${width} ${y}`;
-  }
-
-  const plotHeight = height - scalarPlotVerticalPadding * 2;
-
-  return values
-    .map((value, index) => {
-      const x = (index / (values.length - 1)) * width;
-      const y =
-        height -
-        scalarPlotVerticalPadding -
-        ((value - bounds.min) / bounds.range) * plotHeight;
-      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(" ");
-}
-
-function buildZeroAxisPath(
-  values: number[],
-  width: number,
-  height: number,
-  bounds = buildScalarBounds(values),
-): string {
-  if (values.length === 0) {
-    return `M 0 ${height} L ${width} ${height}`;
-  }
-
-  if (bounds.min > 0 || bounds.max < 0) {
-    return "";
-  }
-
-  const plotHeight = height - scalarPlotVerticalPadding * 2;
-  const y =
-    height -
-    scalarPlotVerticalPadding -
-    ((0 - bounds.min) / bounds.range) * plotHeight;
-  return `M 0 ${y.toFixed(2)} L ${width} ${y.toFixed(2)}`;
-}
-
-function buildPositionBounds(points: BindingPositionEntry[]): {
-  minX: number;
-  maxX: number;
-  minY: number;
-  maxY: number;
-} {
-  const longitudes = points.map((point) => point.longitude_deg);
-  const latitudes = points.map((point) => point.latitude_deg);
-  const minX = Math.min(...longitudes);
-  const maxX = Math.max(...longitudes);
-  const minY = Math.min(...latitudes);
-  const maxY = Math.max(...latitudes);
-  const spanX = maxX - minX;
-  const spanY = maxY - minY;
-  const paddedSpanX = spanX === 0 ? 0.02 : spanX * 1.08;
-  const paddedSpanY = spanY === 0 ? 0.02 : spanY * 1.14;
-  const unifiedSpan = Math.max(paddedSpanX, paddedSpanY);
-  const centerX = (minX + maxX) / 2;
-  const centerY = (minY + maxY) / 2;
-  const halfSpan = unifiedSpan / 2;
-
-  return {
-    minX: centerX - halfSpan,
-    maxX: centerX + halfSpan,
-    minY: centerY - halfSpan,
-    maxY: centerY + halfSpan,
-  };
-}
-
-function formatLatitude(value: number): string {
-  const suffix = value < 0 ? "S" : "N";
-  return `${Math.abs(value).toFixed(1).padStart(4, "0")}${suffix}`;
-}
-
-function formatLongitude(value: number): string {
-  const suffix = value < 0 ? "W" : "E";
-  return `${Math.abs(value).toFixed(1).padStart(5, "0")}${suffix}`;
-}
-
-function formatCornerLabel(latitude: number, longitude: number): string {
-  return `${formatLatitude(latitude)}-${formatLongitude(longitude)}`;
-}
-
-function buildPositionPlotPath(
-  points: BindingPositionEntry[],
-  width: number,
-  height: number,
-  bounds = buildPositionBounds(points),
-): string {
-  if (points.length === 0) {
-    return "";
-  }
-
-  const rangeX = bounds.maxX - bounds.minX || 1;
-  const rangeY = bounds.maxY - bounds.minY || 1;
-  const padding = 8;
-  const plotWidth = width - padding * 2;
-  const plotHeight = height - padding * 2;
-
-  return points
-    .map((point, index) => {
-      const x = padding + ((point.longitude_deg - bounds.minX) / rangeX) * plotWidth;
-      const y =
-        height - padding - ((point.latitude_deg - bounds.minY) / rangeY) * plotHeight;
-      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(" ");
-}
-
-function buildPositionReferenceAxes(
-  points: BindingPositionEntry[],
-  width: number,
-  height: number,
-  bounds = buildPositionBounds(points),
-): { equator: string; primeMeridian: string } {
-  if (points.length === 0) {
-    return { equator: "", primeMeridian: "" };
-  }
-
-  const rangeX = bounds.maxX - bounds.minX || 1;
-  const rangeY = bounds.maxY - bounds.minY || 1;
-  const padding = 8;
-  const plotWidth = width - padding * 2;
-  const plotHeight = height - padding * 2;
-
-  let equator = "";
-  if (bounds.minY <= 0 && bounds.maxY >= 0) {
-    const y = height - padding - ((0 - bounds.minY) / rangeY) * plotHeight;
-    equator = `M ${padding} ${y.toFixed(2)} L ${(width - padding).toFixed(2)} ${y.toFixed(2)}`;
-  }
-
-  let primeMeridian = "";
-  if (bounds.minX <= 0 && bounds.maxX >= 0) {
-    const x = padding + ((0 - bounds.minX) / rangeX) * plotWidth;
-    primeMeridian = `M ${x.toFixed(2)} ${padding} L ${x.toFixed(2)} ${(height - padding).toFixed(2)}`;
-  }
-
-  return { equator, primeMeridian };
-}
-
-function toMapCoordinates(points: BindingPositionEntry[]): [number, number][] {
-  const maxMercatorLatitude = 85.05112878;
-  return points.map((point) =>
-    fromLonLat([
-      point.longitude_deg,
-      Math.max(-maxMercatorLatitude, Math.min(maxMercatorLatitude, point.latitude_deg)),
-    ]),
-  );
-}
-
-interface PaneElements {
-  section: HTMLElement;
-  header: HTMLElement;
-  title: HTMLButtonElement;
-  body: HTMLElement;
-  count: HTMLElement;
-  actions: HTMLElement;
-  setExpanded(expanded: boolean): void;
-  isExpanded(): boolean;
-}
-
-function createPane(titleText: string, onToggle?: (expanded: boolean) => void): PaneElements {
-  const section = document.createElement("section");
-  section.className = "pane";
-
-  const header = document.createElement("div");
-  header.className = "pane-header";
-
-  const title = document.createElement("button");
-  title.className = "pane-title";
-  title.type = "button";
-  title.setAttribute("aria-expanded", "false");
-
-  const titleLabel = document.createElement("span");
-  titleLabel.className = "pane-title-label";
-  titleLabel.textContent = titleText;
-
-  const count = document.createElement("span");
-  count.className = "pane-count";
-  count.textContent = "0";
-
-  const marker = document.createElement("span");
-  marker.className = "pane-marker";
-  marker.textContent = "+";
-
-  const actions = document.createElement("div");
-  actions.className = "pane-header-actions";
-
-  const body = document.createElement("div");
-  body.className = "pane-body";
-  body.hidden = true;
-
-  const setExpanded = (expanded: boolean) => {
-    title.setAttribute("aria-expanded", expanded ? "true" : "false");
-    body.hidden = !expanded;
-    marker.textContent = expanded ? "−" : "+";
-    onToggle?.(expanded);
-  };
-
-  title.addEventListener("click", () => {
-    setExpanded(title.getAttribute("aria-expanded") === "false");
-  });
-
-  title.append(titleLabel, marker);
-  header.append(title, actions, count);
-  section.append(header, body);
-  return {
-    section,
-    header,
-    title,
-    body,
-    count,
-    actions,
-    setExpanded,
-    isExpanded: () => title.getAttribute("aria-expanded") !== "false",
-  };
 }
 
 export function createPanesView(
@@ -862,53 +564,6 @@ export function createPanesView(
       circle.setAttribute("class", "plot-point");
       plotPoints.append(circle);
     }
-  };
-
-  const buildScalarPlotPoints = (
-    values: number[],
-    width: number,
-    height: number,
-    bounds = buildScalarBounds(values),
-  ): PlotPoint[] => {
-    if (values.length === 0) {
-      return [];
-    }
-    if (values.length === 1) {
-      return [{ x: width / 2, y: height / 2 }];
-    }
-
-    const plotHeight = height - scalarPlotVerticalPadding * 2;
-
-    return values.map((value, index) => ({
-      x: (index / (values.length - 1)) * width,
-      y:
-        height -
-        scalarPlotVerticalPadding -
-        ((value - bounds.min) / bounds.range) * plotHeight,
-    }));
-  };
-
-  const buildPositionPlotPoints = (
-    points: BindingPositionEntry[],
-    width: number,
-    height: number,
-    bounds = buildPositionBounds(points),
-  ): PlotPoint[] => {
-    if (points.length === 0) {
-      return [];
-    }
-
-    const rangeX = bounds.maxX - bounds.minX || 1;
-    const rangeY = bounds.maxY - bounds.minY || 1;
-    const padding = 8;
-    const plotWidth = width - padding * 2;
-    const plotHeight = height - padding * 2;
-
-    return points.map((point) => ({
-      x: padding + ((point.longitude_deg - bounds.minX) / rangeX) * plotWidth,
-      y:
-        height - padding - ((point.latitude_deg - bounds.minY) / rangeY) * plotHeight,
-    }));
   };
 
   const formatHoverLabel = (series: PlotItem, index: number) => {
