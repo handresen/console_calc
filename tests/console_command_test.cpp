@@ -116,12 +116,21 @@ bool expect_structured_listing_views() {
 bool expect_builtin_function_metadata() {
     const auto sum_info = console_calc::builtin_function_info(console_calc::Function::sum);
     const auto abs_info = console_calc::builtin_function_info(console_calc::Function::abs);
+    const auto and_info = console_calc::builtin_function_info(console_calc::Function::bit_and);
+    const auto or_info = console_calc::builtin_function_info(console_calc::Function::bit_or);
+    const auto xor_info = console_calc::builtin_function_info(console_calc::Function::bit_xor);
+    const auto nand_info = console_calc::builtin_function_info(console_calc::Function::bit_nand);
+    const auto nor_info = console_calc::builtin_function_info(console_calc::Function::bit_nor);
+    const auto shl_info = console_calc::builtin_function_info(console_calc::Function::shl);
+    const auto shr_info = console_calc::builtin_function_info(console_calc::Function::shr);
     const auto sqrt_info = console_calc::builtin_function_info(console_calc::Function::sqrt);
     const auto rand_info = console_calc::builtin_function_info(console_calc::Function::rand);
     const auto list_add_info = console_calc::builtin_function_info(console_calc::Function::list_add);
     const auto list_div_info = console_calc::builtin_function_info(console_calc::Function::list_div);
     const auto list_mul_info = console_calc::builtin_function_info(console_calc::Function::list_mul);
     const auto list_sub_info = console_calc::builtin_function_info(console_calc::Function::list_sub);
+    const auto first_info = console_calc::builtin_function_info(console_calc::Function::first);
+    const auto drop_info = console_calc::builtin_function_info(console_calc::Function::drop);
     const auto guard_info = console_calc::special_form_info(console_calc::Function::guard);
     const auto pos_info = console_calc::builtin_function_info(console_calc::Function::pos);
     const auto lat_info = console_calc::builtin_function_info(console_calc::Function::lat);
@@ -148,6 +157,20 @@ bool expect_builtin_function_metadata() {
     return abs_info.name == "abs" && abs_info.min_arity == 1 && abs_info.max_arity == 1 &&
            abs_info.category == console_calc::BuiltinFunctionCategory::scalar &&
            abs_info.summary == "absolute value" && abs_info.mappable &&
+           and_info.name == "and" && and_info.signature == "and(a, b)" &&
+           and_info.summary == "bitwise and" &&
+           or_info.name == "or" && or_info.signature == "or(a, b)" &&
+           or_info.summary == "bitwise or" &&
+           xor_info.name == "xor" && xor_info.signature == "xor(a, b)" &&
+           xor_info.summary == "bitwise exclusive or" &&
+           nand_info.name == "nand" && nand_info.signature == "nand(a, b)" &&
+           nand_info.summary == "bitwise not-and" &&
+           nor_info.name == "nor" && nor_info.signature == "nor(a, b)" &&
+           nor_info.summary == "bitwise not-or" &&
+           shl_info.name == "shl" && shl_info.signature == "shl(x, n)" &&
+           shl_info.summary == "shift left" &&
+           shr_info.name == "shr" && shr_info.signature == "shr(x, n)" &&
+           shr_info.summary == "shift right" &&
            sqrt_info.name == "sqrt" && sqrt_info.min_arity == 1 && sqrt_info.max_arity == 1 &&
            sqrt_info.category == console_calc::BuiltinFunctionCategory::scalar &&
            sqrt_info.summary == "square root" && sqrt_info.mappable &&
@@ -174,6 +197,10 @@ bool expect_builtin_function_metadata() {
            list_sub_info.max_arity == 2 &&
            list_sub_info.category == console_calc::BuiltinFunctionCategory::list &&
            list_sub_info.summary == "subtract matching list elements" &&
+           first_info.name == "first" && first_info.signature == "first(list, n)" &&
+           first_info.summary == "first n list elements" &&
+           drop_info.name == "drop" && drop_info.signature == "drop(list, n)" &&
+           drop_info.summary == "drop first n list elements" &&
            guard_info.name == "guard" && guard_info.min_arity == 2 &&
            guard_info.max_arity == 2 &&
            guard_info.category == console_calc::BuiltinFunctionCategory::scalar &&

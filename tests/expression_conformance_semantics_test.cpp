@@ -9,7 +9,7 @@
 namespace console_calc::test {
 
 bool expect_expression_semantics(ExpressionParser& parser) {
-    const Value first_list = parser.evaluate_value("first(2, {1, 2, 3})");
+    const Value first_list = parser.evaluate_value("first({1, 2, 3}, 2)");
     const auto* first_values = std::get_if<ListValue>(&first_list);
     if (first_values == nullptr || first_values->size() != 2 ||
         !almost_equal(scalar_to_double((*first_values)[0]), 1.0) ||
@@ -17,7 +17,7 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         return false;
     }
 
-    const Value dropped_list = parser.evaluate_value("drop(2, {1, 2, 3, 4})");
+    const Value dropped_list = parser.evaluate_value("drop({1, 2, 3, 4}, 2)");
     const auto* dropped_values = std::get_if<ListValue>(&dropped_list);
     if (dropped_values == nullptr || dropped_values->size() != 2 ||
         !almost_equal(scalar_to_double((*dropped_values)[0]), 3.0) ||
@@ -25,8 +25,8 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         return false;
     }
 
-    if (!almost_equal(parser.evaluate("first(1, {2}) + 3"), 5.0) ||
-        !almost_equal(parser.evaluate("drop(2, {1, 2, 3}) + 4"), 7.0) ||
+    if (!almost_equal(parser.evaluate("first({2}, 1) + 3"), 5.0) ||
+        !almost_equal(parser.evaluate("drop({1, 2, 3}, 2) + 4"), 7.0) ||
         !almost_equal(parser.evaluate("sin({0})"), 0.0)) {
         return false;
     }
@@ -198,6 +198,14 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value integer_modulo = parser.evaluate_value("7 % 3");
     const Value floating_modulo = parser.evaluate_value("7.5 % 2");
     const Value integer_length = parser.evaluate_value("len({1, 2, 3})");
+    const Value bitwise_not = parser.evaluate_value("~5");
+    const Value bitwise_and_fn = parser.evaluate_value("and(6, 3)");
+    const Value bitwise_or_fn = parser.evaluate_value("or(6, 3)");
+    const Value bitwise_xor_fn = parser.evaluate_value("xor(6, 3)");
+    const Value bitwise_nand_fn = parser.evaluate_value("nand(6, 3)");
+    const Value bitwise_nor_fn = parser.evaluate_value("nor(6, 3)");
+    const Value shift_left_fn = parser.evaluate_value("shl(3, 4)");
+    const Value shift_right_fn = parser.evaluate_value("shr(48, 4)");
     const Value equal_true = parser.evaluate_value("3 = 3");
     const Value equal_false = parser.evaluate_value("3 = 4");
     const Value less_true = parser.evaluate_value("2 < 3");
@@ -212,6 +220,14 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         !std::holds_alternative<std::int64_t>(integer_modulo) || std::get<std::int64_t>(integer_modulo) != 1 ||
         !std::holds_alternative<double>(floating_modulo) || !almost_equal(std::get<double>(floating_modulo), 1.5) ||
         !std::holds_alternative<std::int64_t>(integer_length) || std::get<std::int64_t>(integer_length) != 3 ||
+        !std::holds_alternative<std::int64_t>(bitwise_not) || std::get<std::int64_t>(bitwise_not) != -6 ||
+        !std::holds_alternative<std::int64_t>(bitwise_and_fn) || std::get<std::int64_t>(bitwise_and_fn) != 2 ||
+        !std::holds_alternative<std::int64_t>(bitwise_or_fn) || std::get<std::int64_t>(bitwise_or_fn) != 7 ||
+        !std::holds_alternative<std::int64_t>(bitwise_xor_fn) || std::get<std::int64_t>(bitwise_xor_fn) != 5 ||
+        !std::holds_alternative<std::int64_t>(bitwise_nand_fn) || std::get<std::int64_t>(bitwise_nand_fn) != -3 ||
+        !std::holds_alternative<std::int64_t>(bitwise_nor_fn) || std::get<std::int64_t>(bitwise_nor_fn) != -8 ||
+        !std::holds_alternative<std::int64_t>(shift_left_fn) || std::get<std::int64_t>(shift_left_fn) != 48 ||
+        !std::holds_alternative<std::int64_t>(shift_right_fn) || std::get<std::int64_t>(shift_right_fn) != 3 ||
         !std::holds_alternative<std::int64_t>(equal_true) || std::get<std::int64_t>(equal_true) != 1 ||
         !std::holds_alternative<std::int64_t>(equal_false) || std::get<std::int64_t>(equal_false) != 0 ||
         !std::holds_alternative<std::int64_t>(less_true) || std::get<std::int64_t>(less_true) != 1 ||
@@ -257,6 +273,10 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         "list_where(1, _ + 1)",
         "{1, pos(60, 10)}",
         "pow({2, 3}, 2)",
+        "~1.5",
+        "xor(1.5, 1)",
+        "shl(1, -1)",
+        "shr(1, 64)",
         "lat(1)",
         "timed_loop(1 + 2, -1)",
         "rand(1, 1)",

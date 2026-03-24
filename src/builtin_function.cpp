@@ -10,7 +10,7 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<BuiltinFunctionInfo, 35> k_builtin_functions = {{
+constexpr std::array<BuiltinFunctionInfo, 42> k_builtin_functions = {{
     {Function::abs, "abs", 1, 1, BuiltinFunctionCategory::scalar, true, true, "abs(x)", "absolute value"},
     {Function::sin, "sin", 1, 1, BuiltinFunctionCategory::scalar, true, true, "sin(x)", "sine in radians"},
     {Function::cos, "cos", 1, 1, BuiltinFunctionCategory::scalar, true, true, "cos(x)", "cosine in radians"},
@@ -19,6 +19,13 @@ constexpr std::array<BuiltinFunctionInfo, 35> k_builtin_functions = {{
     {Function::cosd, "cosd", 1, 1, BuiltinFunctionCategory::scalar, true, true, "cosd(x)", "cosine in degrees"},
     {Function::tand, "tand", 1, 1, BuiltinFunctionCategory::scalar, true, true, "tand(x)", "tangent in degrees"},
     {Function::sqrt, "sqrt", 1, 1, BuiltinFunctionCategory::scalar, true, true, "sqrt(x)", "square root"},
+    {Function::bit_and, "and", 2, 2, BuiltinFunctionCategory::scalar, true, false, "and(a, b)", "bitwise and"},
+    {Function::bit_or, "or", 2, 2, BuiltinFunctionCategory::scalar, true, false, "or(a, b)", "bitwise or"},
+    {Function::bit_xor, "xor", 2, 2, BuiltinFunctionCategory::scalar, true, false, "xor(a, b)", "bitwise exclusive or"},
+    {Function::bit_nand, "nand", 2, 2, BuiltinFunctionCategory::scalar, true, false, "nand(a, b)", "bitwise not-and"},
+    {Function::bit_nor, "nor", 2, 2, BuiltinFunctionCategory::scalar, true, false, "nor(a, b)", "bitwise not-or"},
+    {Function::shl, "shl", 2, 2, BuiltinFunctionCategory::scalar, true, false, "shl(x, n)", "shift left"},
+    {Function::shr, "shr", 2, 2, BuiltinFunctionCategory::scalar, true, false, "shr(x, n)", "shift right"},
     {Function::pow, "pow", 2, 2, BuiltinFunctionCategory::scalar, true, false, "pow(x, y)", "power"},
     {Function::rand, "rand", 0, 2, BuiltinFunctionCategory::scalar, true, false, "rand([min, max])", "random number in half-open interval"},
     {Function::pos, "pos", 2, 2, BuiltinFunctionCategory::position, true, false, "pos(lat, lon)", "construct WGS84 position in degrees"},
@@ -35,8 +42,8 @@ constexpr std::array<BuiltinFunctionInfo, 35> k_builtin_functions = {{
     {Function::avg, "avg", 1, 1, BuiltinFunctionCategory::list, true, false, "avg(list)", "average of list elements"},
     {Function::min, "min", 1, 1, BuiltinFunctionCategory::list, true, false, "min(list)", "minimum list element"},
     {Function::max, "max", 1, 1, BuiltinFunctionCategory::list, true, false, "max(list)", "maximum list element"},
-    {Function::first, "first", 2, 2, BuiltinFunctionCategory::list, true, false, "first(n, list)", "first n list elements"},
-    {Function::drop, "drop", 2, 2, BuiltinFunctionCategory::list, true, false, "drop(n, list)", "drop first n list elements"},
+    {Function::first, "first", 2, 2, BuiltinFunctionCategory::list, true, false, "first(list, n)", "first n list elements"},
+    {Function::drop, "drop", 2, 2, BuiltinFunctionCategory::list, true, false, "drop(list, n)", "drop first n list elements"},
     {Function::list_add, "list_add", 2, 2, BuiltinFunctionCategory::list, true, false,
      "list_add(a, b)", "add matching list elements"},
     {Function::list_sub, "list_sub", 2, 2, BuiltinFunctionCategory::list, true, false,

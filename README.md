@@ -127,7 +127,7 @@ Supported values:
 - lists like `{1, 2, 3}`
 
 Supported operators:
-- unary `-`
+- unary `-`, `~`
 - binary `+`, `-`, `*`, `/`, `%`, `^`, `=`, `<`, `<=`, `>`, `>=`, `&`, `|`
 
 Grouping:
@@ -136,7 +136,7 @@ Grouping:
 Operator precedence, highest to lowest:
 1. function calls, list literals, parentheses
 2. `^`
-3. unary `-`
+3. unary `-`, `~`
 4. `*`, `/`, `%`
 5. `+`, `-`
 6. `=`, `<`, `<=`, `>`, `>=`
@@ -146,7 +146,8 @@ Operator precedence, highest to lowest:
 Notes:
 - `^` is right-associative
 - `%` uses floating-point modulo
-- `&` and `|` require integer-valued operands
+- `&`, `|`, and `~` are bitwise integer operators and require integer-valued operands
+- explicit bitwise integer helpers are also available: `and`, `or`, `xor`, `nand`, `nor`, `shl`, `shr`
 - plain decimal integers such as `42` are kept as integer values
 - hexadecimal literals such as `0xff` and binary literals such as `0b1010` are kept as integer values
 - decimal values with a fractional part or exponent are floating-point values
@@ -165,15 +166,18 @@ Examples:
 ```text
 2 + 3 * 4           => 14
 -2^2                => -4
+~5                  => -6
 (-2)^2              => 4
 0xff & 0b1010       => 10
+xor(6, 3)           => 5
+shl(3, 4)           => 48
 10 % 3              => 1
 3 = 3               => 1
 2 < 3               => 1
 3 <= 3              => 1
 4 > 8               => 0
 6 & 3 | 8           => 10
-first(1, {2, 3})+4  => 6
+first({2, 3}, 1)+4  => 6
 sum(map({0, 90}, sind(_))) => 1
 ```
 
@@ -203,6 +207,9 @@ pow(e, 1)
 - `cosd(x)`     cosine in degrees
 - `tand(x)`     tangent in degrees
 - `pow(x, y)`   power
+- `and(a, b)` / `or(a, b)` / `xor(a, b)` bitwise integer helpers
+- `nand(a, b)` / `nor(a, b)` bitwise inverted integer helpers
+- `shl(x, n)` / `shr(x, n)` bitwise shift helpers
 - `rand([min, max])` random number in a half-open interval
 - `pos(lat, lon)` construct WGS84 position in degrees
 - `lat(pos)`    extract latitude in degrees
@@ -224,14 +231,14 @@ pow(e, 1)
 - `avg(list)`        average of list elements
 - `min(list)`        minimum list element
 - `max(list)`        maximum list element
-- `first(n, list)`   first `n` list elements
-- `drop(n, list)`    drop first `n` list elements
+- `first(list, n)`   first `n` list elements
+- `drop(list, n)`    drop first `n` list elements
 - `list_div(a, b)`   divide matching list elements
 - `list_mul(a, b)`   multiply matching list elements
 - `reduce(list, op)` reduce a list with a binary operator
 - `map(list, expr[, start[, step[, count]]])` map an inline expression using `_` over a list slice
 - `map_at(list, expr[, start[, step[, count]]])` map an inline expression onto selected list positions
-- `list_where(list, expr)` keep list elements where inline expression is non-zero
+- `list_where(list, expr)` keep list elements where the inline predicate is non-zero
 
 ### List Generation Functions
 
@@ -257,11 +264,13 @@ Function notes:
 - `list_mul` requires both inputs to be lists of equal length
 - `reduce` requires a non-empty list
 - `reduce` uses existing binary operators such as `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|` and does not accept comparison operators
-- `map` accepts an inline expression using `_` as the current element
+- `map` accepts an inline expression using `_` as the current-element placeholder
 - `map` optional `start`, `step`, and `count` arguments use zero-based `start`
 - `map` uses `step = 1` and maps all remaining matching elements when `count` is omitted
 - `map` requires `step` to be a positive integer
 - `map_at` uses the same slice controls as `map`, but preserves original list length
+- comparisons return integer `1` for true and `0` for false
+- predicates treat any non-zero scalar as true
 - `list_where` keeps original elements whose inline predicate evaluates to a non-zero scalar
 - `pos(lat, lon)` uses the `(lat, lon)` convention in degrees
 - only geo functions accept position values
@@ -279,6 +288,7 @@ Function notes:
 - `rand` requires finite bounds and `min < max`
 - `range` requires `count` to be a non-negative integer
 - `range(start, count)` uses a default step of `1`
+- `range` uses `count` as its second argument, not a stop value
 - `range` preserves integer list elements when `start` and `step` are integers
 - `geom` requires `count` to be a non-negative integer
 - `geom(start, count)` uses a default ratio of `2`
@@ -293,8 +303,8 @@ Examples:
 ```text
 sum({1, 2, 3})                => 6
 avg({2, 4, 6})                => 4
-first(2, {10, 20, 30})        => {10, 20}
-drop(1, {10, 20, 30})         => {20, 30}
+first({10, 20, 30}, 2)        => {10, 20}
+drop({10, 20, 30}, 1)         => {20, 30}
 list_div({8, 9}, {2, 3})      => {4, 3}
 list_mul({2, 3}, {4, 5})      => {8, 15}
 reduce({2, 3, 4}, *)          => 24

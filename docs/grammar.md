@@ -7,7 +7,7 @@ This initial grammar exists to exercise the parser pipeline with the smallest us
 Current scope:
 - intrinsic integer and floating-point scalar values
 - integer and floating-point numeric literals
-- unary `-`
+- unary `-`, `~`
 - binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - parentheses for grouping
 - list literals with `{ ... }`
@@ -25,7 +25,7 @@ Explicitly out of scope for this first version:
 - `operator`
   - one of `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - `unary operator`
-  - `-`
+  - `-` or `~`
 - `grouping`
   - `(` `)` and `{` `}`
 - `separator`
@@ -42,7 +42,7 @@ bitwise_or = bitwise_and , { "|" , bitwise_and } ;
 bitwise_and = sum , { "&" , sum } ;
 sum        = term , { ( "+" | "-" ) , term } ;
 term       = unary , { ( "*" | "/" | "%" ) , unary } ;
-unary      = [ "-" ] , power ;
+unary      = [ "-" | "~" ] , power ;
 power      = primary , [ "^" , unary ] ;
 primary    = number | function_call | map_call | list_where_call | guard_call | list | "(" , expression , ")" ;
 function_call = identifier , "(" , expression , { "," , expression } , ")" ;
@@ -68,9 +68,9 @@ Accepted numeric forms include:
 
 ## Evaluation Rule
 
-Expressions use these precedence levels, from highest to lowest: function calls, list literals, and parentheses, `^`, unary `-`, `*` `/` `%`, `+` `-`, `=` `<` `<=` `>` `>=`, `&`, `|`. `^` is right-associative. The other operators are left-associative.
+Expressions use these precedence levels, from highest to lowest: function calls, list literals, and parentheses, `^`, unary `-` `~`, `*` `/` `%`, `+` `-`, `=` `<` `<=` `>` `>=`, `&`, `|`. `^` is right-associative. The other operators are left-associative.
 
-`%` uses floating-point modulo via `fmod`. `&` and `|` require integer-valued operands; non-integer operands are rejected. Division by zero, modulo by zero, and non-finite evaluation results are rejected.
+`%` uses floating-point modulo via `fmod`. `&`, `|`, and unary `~` are bitwise integer operators and require integer-valued operands; non-integer operands are rejected. Division by zero, modulo by zero, and non-finite evaluation results are rejected.
 
 Where a scalar is required, a one-element list is accepted and coerced to that element. Multi-element lists are still rejected in scalar positions. List literals themselves remain flat: each list element must evaluate directly to a scalar, so nested lists are still rejected.
 
@@ -79,6 +79,8 @@ Integer-valued decimal literals such as `42`, hexadecimal literals such as `0xff
 Builtin functions:
 - `sin(x)`, `cos(x)`, `tan(x)` use radians
 - `sind(x)`, `cosd(x)`, `tand(x)` use degrees
+- `and(a, b)`, `or(a, b)`, `xor(a, b)`, `nand(a, b)`, `nor(a, b)` apply explicit bitwise integer operations
+- `shl(x, n)` and `shr(x, n)` shift integer values by `n` bits, with `n` constrained to `0..63`
 - `pow(x, y)` is equivalent to `x ^ y`
 - `rand([min, max])` returns a random floating-point value in a half-open interval
 - `pos(lat, lon)` constructs a WGS84 position from latitude/longitude in degrees
@@ -93,8 +95,8 @@ Builtin functions:
 - `product(list)` multiplies all list values; `product({})` is `1`
 - `avg(list)` returns the arithmetic mean of a non-empty list
 - `min(list)` and `max(list)` require non-empty lists
-- `first(n, list)` returns the first `n` items as a list
-- `drop(n, list)` returns the list without its first `n` items
+- `first(list, n)` returns the first `n` items as a list
+- `drop(list, n)` returns the list without its first `n` items
 - `list_div(list_a, list_b)` divides list elements pairwise and requires equal list lengths
 - `list_mul(list_a, list_b)` multiplies list elements pairwise and requires equal list lengths
 - `guard(expr, fallback)` returns `expr` when it evaluates successfully, otherwise evaluates and returns `fallback`
@@ -119,7 +121,7 @@ Integer-preserving behavior:
 - `sum(list)` and `product(list)` preserve integer results when all inputs remain integral
 - trig functions always return floating-point results
 
-For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, `map_at`, and `list_where`, the expression argument uses `_` as the current element placeholder. `_` is only valid inside these list forms. Optional `start`, `step`, and `count` arguments use zero-based `start`; `step = 1` by default; and when `count` is omitted, mapping continues over all remaining matching elements. `step` must be a positive integer. `map` returns only mapped elements, while `map_at` preserves original list length and copies untouched elements through. `list_where` keeps the original matching elements and omits the rest. For `timed_loop` and `fill`, `count` must be a non-negative integer. For `rand`, `rand()` uses `[0, 1)`, `rand(max)` uses `[0, max)`, and `rand(min, max)` uses `[min, max)` with finite bounds and `min < max`.
+For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, `map_at`, and `list_where`, the expression argument uses `_` as the current-element placeholder. `_` is only valid inside these list forms. Optional `start`, `step`, and `count` arguments use zero-based `start`; `step = 1` by default; and when `count` is omitted, mapping continues over all remaining matching elements. `step` must be a positive integer. `map` returns only mapped elements, while `map_at` preserves original list length and copies untouched elements through. Comparisons return integer `1` for true and `0` for false, and predicate contexts treat any non-zero scalar as true. `list_where` keeps the original matching elements and omits the rest. For `timed_loop` and `fill`, `count` must be a non-negative integer. For `rand`, `rand()` uses `[0, 1)`, `rand(max)` uses `[0, max)`, and `rand(min, max)` uses `[min, max)` with finite bounds and `min < max`. `range` uses `count` as its second argument, not a stop value.
 
 Geo positions are a dedicated value type, separate from scalars and lists. They use the `(lat, lon)` convention in degrees. Only the geo-specific functions accept position values.
 
@@ -136,6 +138,7 @@ Examples:
 - `2 + 3` => `5`
 - `2 + 3 * 4` => `14`
 - `-2^2` => `-4`
+- `~5` => `-6`
 - `(-2)^2` => `4`
 - `2 ^ 3 ^ 2` => `512`
 - `sin(0)` => `0`
@@ -173,13 +176,15 @@ Examples:
 - `sum(geom(3, 4, 3))` => `120`
 - `sum(repeat(2, 4))` => `8`
 - `sum(linspace(1, 4, 4))` => `10`
-- `first(1, {2, 3}) + 4` => `6`
+- `first({2, 3}, 1) + 4` => `6`
 - `10 % 3` => `1`
 - `3 = 3` => `1`
 - `2 < 3` => `1`
 - `3 <= 3` => `1`
 - `4 > 8` => `0`
 - `6 & 3 | 8` => `10`
+- `xor(6, 3)` => `5`
+- `shl(3, 4)` => `48`
 - `(2 + 3) * 4` => `20`
 - `20 / 5 - 1` => `3`
 - `2 * 3 + 4 * 5` => `26`
@@ -207,8 +212,8 @@ Examples:
 - `len({1, 2, 3})`
 - `product({2, 3, 4})`
 - `avg({2, 4, 6})`
-- `first(2, {1, 2, 3})`
-- `drop(1, {1, 2, 3})`
+- `first({1, 2, 3}, 2)`
+- `drop({1, 2, 3}, 1)`
 - `list_div({8, 9}, {2, 3})`
 - `list_mul({1, 2}, {3, 4})`
 - `reduce({2, 3, 4}, +)`
@@ -226,7 +231,7 @@ Examples:
 - `repeat(3, 4)`
 - `linspace(0, 1, 5)`
 - `powers(-1, 4)`
-- `sin(first(1, {0}))`
+- `sin(first({0}, 1))`
 - `sum({1, 2, 3})`
 - `2 ^ 3`
 - `10 % 3`
@@ -245,7 +250,7 @@ Examples:
 - `pow(2)`
 - `sum(1)`
 - `avg({})`
-- `first(1.5, {1, 2})`
+- `first({1, 2}, 1.5)`
 - `drop(1, 2)`
 - `list_div({1, 2}, {3})`
 - `list_mul({1, 2}, {3})`
@@ -272,7 +277,7 @@ Examples:
 - `repeat(1, -1)`
 - `linspace(1, 2)`
 - `powers(2)`
-- `first(2, {1, 2, 3}) + 1`
+- `first({1, 2, 3}, 2) + 1`
 - `1 / 0`
 - `1 % 0`
 - `0 ^ (1 - 2)`

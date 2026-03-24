@@ -89,6 +89,46 @@ template <typename Operation>
     case Function::sqrt:
         return evaluate_unary_scalar_builtin(
             function, scalar_to_double(require_scalar_or_singleton_list_value(arguments[0])));
+    case Function::bit_and:
+        return to_value(static_cast<std::int64_t>(
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[0])) &
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[1]))));
+    case Function::bit_or:
+        return to_value(static_cast<std::int64_t>(
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[0])) |
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[1]))));
+    case Function::bit_xor:
+        return to_value(static_cast<std::int64_t>(
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[0])) ^
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[1]))));
+    case Function::bit_nand:
+        return to_value(static_cast<std::int64_t>(~(
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[0])) &
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[1])))));
+    case Function::bit_nor:
+        return to_value(static_cast<std::int64_t>(~(
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[0])) |
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[1])))));
+    case Function::shl: {
+        const auto value =
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[0]));
+        const auto shift =
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[1]));
+        if (shift < 0 || shift >= 64) {
+            throw EvaluationError("shl() shift must be in range 0..63");
+        }
+        return to_value(static_cast<std::int64_t>(value << shift));
+    }
+    case Function::shr: {
+        const auto value =
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[0]));
+        const auto shift =
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[1]));
+        if (shift < 0 || shift >= 64) {
+            throw EvaluationError("shr() shift must be in range 0..63");
+        }
+        return to_value(static_cast<std::int64_t>(value >> shift));
+    }
     case Function::pow:
         return to_value(power_scalars(
             require_scalar_or_singleton_list_value(arguments[0]),
@@ -243,15 +283,15 @@ template <typename Operation>
     }
     case Function::first: {
         const std::size_t count =
-            require_list_index(require_scalar_or_singleton_list_value(arguments[0]));
-        const ListValue values = require_list(arguments[1]);
+            require_list_index(require_scalar_or_singleton_list_value(arguments[1]));
+        const ListValue values = require_list(arguments[0]);
         const std::size_t result_size = std::min(count, values.size());
         return ListValue(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(result_size));
     }
     case Function::drop: {
         const std::size_t count =
-            require_list_index(require_scalar_or_singleton_list_value(arguments[0]));
-        const ListValue values = require_list(arguments[1]);
+            require_list_index(require_scalar_or_singleton_list_value(arguments[1]));
+        const ListValue values = require_list(arguments[0]);
         const std::size_t skip = std::min(count, values.size());
         return ListValue(values.begin() + static_cast<std::ptrdiff_t>(skip), values.end());
     }
