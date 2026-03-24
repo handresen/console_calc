@@ -128,7 +128,7 @@ Supported values:
 
 Supported operators:
 - unary `-`
-- binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
+- binary `+`, `-`, `*`, `/`, `%`, `^`, `=`, `<`, `<=`, `>`, `>=`, `&`, `|`
 
 Grouping:
 - parentheses `(...)`
@@ -139,8 +139,9 @@ Operator precedence, highest to lowest:
 3. unary `-`
 4. `*`, `/`, `%`
 5. `+`, `-`
-6. `&`
-7. `|`
+6. `=`, `<`, `<=`, `>`, `>=`
+7. `&`
+8. `|`
 
 Notes:
 - `^` is right-associative
@@ -167,6 +168,10 @@ Examples:
 (-2)^2              => 4
 0xff & 0b1010       => 10
 10 % 3              => 1
+3 = 3               => 1
+2 < 3               => 1
+3 <= 3              => 1
+4 > 8               => 0
 6 & 3 | 8           => 10
 first(1, {2, 3})+4  => 6
 sum(map({0, 90}, sind(_))) => 1
@@ -250,7 +255,7 @@ Function notes:
 - `list_div` requires both inputs to be lists of equal length
 - `list_mul` requires both inputs to be lists of equal length
 - `reduce` requires a non-empty list
-- `reduce` uses existing binary operators such as `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
+- `reduce` uses existing binary operators such as `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|` and does not accept comparison operators
 - `map` accepts an inline expression using `_` as the current element
 - `map` optional `start`, `step`, and `count` arguments use zero-based `start`
 - `map` uses `step = 1` and maps all remaining matching elements when `count` is omitted

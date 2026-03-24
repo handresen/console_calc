@@ -67,7 +67,7 @@ Accepted numeric forms include:
 
 ## Evaluation Rule
 
-Expressions use these precedence levels, from highest to lowest: function calls, list literals, and parentheses, `^`, unary `-`, `*` `/` `%`, `+` `-`, `&`, `|`. `^` is right-associative. The other operators are left-associative.
+Expressions use these precedence levels, from highest to lowest: function calls, list literals, and parentheses, `^`, unary `-`, `*` `/` `%`, `+` `-`, `=` `<` `<=` `>` `>=`, `&`, `|`. `^` is right-associative. The other operators are left-associative.
 
 `%` uses floating-point modulo via `fmod`. `&` and `|` require integer-valued operands; non-integer operands are rejected. Division by zero, modulo by zero, and non-finite evaluation results are rejected.
 
@@ -172,6 +172,10 @@ Examples:
 - `sum(linspace(1, 4, 4))` => `10`
 - `first(1, {2, 3}) + 4` => `6`
 - `10 % 3` => `1`
+- `3 = 3` => `1`
+- `2 < 3` => `1`
+- `3 <= 3` => `1`
+- `4 > 8` => `0`
 - `6 & 3 | 8` => `10`
 - `(2 + 3) * 4` => `20`
 - `20 / 5 - 1` => `3`

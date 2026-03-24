@@ -21,6 +21,16 @@ namespace {
         return BinaryOperator::add;
     case TokenKind::minus:
         return BinaryOperator::subtract;
+    case TokenKind::equal:
+        return BinaryOperator::equal;
+    case TokenKind::less:
+        return BinaryOperator::less;
+    case TokenKind::less_equal:
+        return BinaryOperator::less_equal;
+    case TokenKind::greater:
+        return BinaryOperator::greater;
+    case TokenKind::greater_equal:
+        return BinaryOperator::greater_equal;
     case TokenKind::multiply:
         return BinaryOperator::multiply;
     case TokenKind::divide:
@@ -102,9 +112,34 @@ private:
     }
 
     [[nodiscard]] Expression parse_bitwise_and_expression() {
-        Expression expression = parse_additive_expression();
+        Expression expression = parse_comparison_expression();
 
         while (current_.kind == TokenKind::bitwise_and) {
+            const TokenKind op = current_.kind;
+            advance();
+
+            if (!starts_operand_expression(current_.kind)) {
+                throw ParseError("expected number after operator");
+            }
+
+            expression = Expression{
+                BinaryExpression{
+                    .op = to_binary_operator(op),
+                    .left = make_expression(std::move(expression)),
+                    .right = make_expression(parse_comparison_expression()),
+                }};
+        }
+
+        return expression;
+    }
+
+    [[nodiscard]] Expression parse_comparison_expression() {
+        Expression expression = parse_additive_expression();
+
+        while (current_.kind == TokenKind::equal || current_.kind == TokenKind::less ||
+               current_.kind == TokenKind::less_equal ||
+               current_.kind == TokenKind::greater ||
+               current_.kind == TokenKind::greater_equal) {
             const TokenKind op = current_.kind;
             advance();
 

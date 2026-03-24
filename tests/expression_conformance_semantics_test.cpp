@@ -183,13 +183,35 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value integer_modulo = parser.evaluate_value("7 % 3");
     const Value floating_modulo = parser.evaluate_value("7.5 % 2");
     const Value integer_length = parser.evaluate_value("len({1, 2, 3})");
+    const Value equal_true = parser.evaluate_value("3 = 3");
+    const Value equal_false = parser.evaluate_value("3 = 4");
+    const Value less_true = parser.evaluate_value("2 < 3");
+    const Value less_false = parser.evaluate_value("3 < 2");
+    const Value less_equal_true = parser.evaluate_value("3 <= 3");
+    const Value greater_true = parser.evaluate_value("4 > 1");
+    const Value greater_equal_false = parser.evaluate_value("2 >= 5");
     if (!std::holds_alternative<std::int64_t>(integer_sum) || std::get<std::int64_t>(integer_sum) != 3 ||
         !std::holds_alternative<double>(floating_division) || !almost_equal(std::get<double>(floating_division), 0.5) ||
         !std::holds_alternative<std::int64_t>(integer_sum_list) || std::get<std::int64_t>(integer_sum_list) != 6 ||
         !std::holds_alternative<double>(mixed_sum_list) || !almost_equal(std::get<double>(mixed_sum_list), 3.5) ||
         !std::holds_alternative<std::int64_t>(integer_modulo) || std::get<std::int64_t>(integer_modulo) != 1 ||
         !std::holds_alternative<double>(floating_modulo) || !almost_equal(std::get<double>(floating_modulo), 1.5) ||
-        !std::holds_alternative<std::int64_t>(integer_length) || std::get<std::int64_t>(integer_length) != 3) {
+        !std::holds_alternative<std::int64_t>(integer_length) || std::get<std::int64_t>(integer_length) != 3 ||
+        !std::holds_alternative<std::int64_t>(equal_true) || std::get<std::int64_t>(equal_true) != 1 ||
+        !std::holds_alternative<std::int64_t>(equal_false) || std::get<std::int64_t>(equal_false) != 0 ||
+        !std::holds_alternative<std::int64_t>(less_true) || std::get<std::int64_t>(less_true) != 1 ||
+        !std::holds_alternative<std::int64_t>(less_false) || std::get<std::int64_t>(less_false) != 0 ||
+        !std::holds_alternative<std::int64_t>(less_equal_true) ||
+        std::get<std::int64_t>(less_equal_true) != 1 ||
+        !std::holds_alternative<std::int64_t>(greater_true) ||
+        std::get<std::int64_t>(greater_true) != 1 ||
+        !std::holds_alternative<std::int64_t>(greater_equal_false) ||
+        std::get<std::int64_t>(greater_equal_false) != 0 ||
+        !almost_equal(parser.evaluate("1 + 2 = 3"), 1.0) ||
+        !almost_equal(parser.evaluate("1 + 2 = 4"), 0.0) ||
+        !almost_equal(parser.evaluate("1 + 2 < 4"), 1.0) ||
+        !almost_equal(parser.evaluate("1 + 2 < 3"), 0.0) ||
+        !almost_equal(parser.evaluate("5 & 3 < 1"), 0.0)) {
         return false;
     }
 

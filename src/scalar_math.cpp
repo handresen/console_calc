@@ -203,6 +203,26 @@ ScalarValue power_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
     return require_finite_result(std::pow(scalar_to_double(lhs), scalar_to_double(rhs)));
 }
 
+ScalarValue compare_equal_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
+    return static_cast<std::int64_t>(scalar_to_double(lhs) == scalar_to_double(rhs));
+}
+
+ScalarValue compare_less_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
+    return static_cast<std::int64_t>(scalar_to_double(lhs) < scalar_to_double(rhs));
+}
+
+ScalarValue compare_less_equal_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
+    return static_cast<std::int64_t>(scalar_to_double(lhs) <= scalar_to_double(rhs));
+}
+
+ScalarValue compare_greater_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
+    return static_cast<std::int64_t>(scalar_to_double(lhs) > scalar_to_double(rhs));
+}
+
+ScalarValue compare_greater_equal_scalars(const ScalarValue& lhs, const ScalarValue& rhs) {
+    return static_cast<std::int64_t>(scalar_to_double(lhs) >= scalar_to_double(rhs));
+}
+
 ScalarValue negate_scalar(const ScalarValue& value) {
     if (const auto integer = try_get_int64(value); integer.has_value()) {
         if (*integer == std::numeric_limits<std::int64_t>::min()) {
@@ -221,6 +241,16 @@ ScalarValue apply_binary_operator(BinaryOperator op, const ScalarValue& lhs,
         return add_scalars(lhs, rhs);
     case BinaryOperator::subtract:
         return subtract_scalars(lhs, rhs);
+    case BinaryOperator::equal:
+        return compare_equal_scalars(lhs, rhs);
+    case BinaryOperator::less:
+        return compare_less_scalars(lhs, rhs);
+    case BinaryOperator::less_equal:
+        return compare_less_equal_scalars(lhs, rhs);
+    case BinaryOperator::greater:
+        return compare_greater_scalars(lhs, rhs);
+    case BinaryOperator::greater_equal:
+        return compare_greater_equal_scalars(lhs, rhs);
     case BinaryOperator::multiply:
         return multiply_scalars(lhs, rhs);
     case BinaryOperator::divide:

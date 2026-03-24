@@ -97,6 +97,42 @@ bool expect_expression_ast_shape(ExpressionParser& parser) {
     }
 
     {
+        const Expression ast = parser.parse("1 + 2 < 4 & 7");
+        const auto* root = std::get_if<BinaryExpression>(&ast.node);
+        const auto* lhs = root != nullptr ? std::get_if<BinaryExpression>(&root->left->node) : nullptr;
+        const auto* rhs = root != nullptr ? std::get_if<NumberLiteral>(&root->right->node) : nullptr;
+        const auto* comparison_lhs =
+            lhs != nullptr ? std::get_if<BinaryExpression>(&lhs->left->node) : nullptr;
+        const auto* comparison_rhs =
+            lhs != nullptr ? std::get_if<NumberLiteral>(&lhs->right->node) : nullptr;
+        if (root == nullptr || root->op != BinaryOperator::bitwise_and || lhs == nullptr ||
+            lhs->op != BinaryOperator::less || comparison_lhs == nullptr ||
+            comparison_lhs->op != BinaryOperator::add || comparison_rhs == nullptr ||
+            rhs == nullptr || !almost_equal(comparison_rhs->value, 4.0) ||
+            !almost_equal(rhs->value, 7.0)) {
+            return false;
+        }
+    }
+
+    {
+        const Expression ast = parser.parse("1 + 2 = 3 & 7");
+        const auto* root = std::get_if<BinaryExpression>(&ast.node);
+        const auto* lhs = root != nullptr ? std::get_if<BinaryExpression>(&root->left->node) : nullptr;
+        const auto* rhs = root != nullptr ? std::get_if<NumberLiteral>(&root->right->node) : nullptr;
+        const auto* comparison_lhs =
+            lhs != nullptr ? std::get_if<BinaryExpression>(&lhs->left->node) : nullptr;
+        const auto* comparison_rhs =
+            lhs != nullptr ? std::get_if<NumberLiteral>(&lhs->right->node) : nullptr;
+        if (root == nullptr || root->op != BinaryOperator::bitwise_and || lhs == nullptr ||
+            lhs->op != BinaryOperator::equal || comparison_lhs == nullptr ||
+            comparison_lhs->op != BinaryOperator::add || comparison_rhs == nullptr ||
+            rhs == nullptr || !almost_equal(comparison_rhs->value, 3.0) ||
+            !almost_equal(rhs->value, 7.0)) {
+            return false;
+        }
+    }
+
+    {
         const Expression ast = parser.parse("2 | 4 & 1");
         const auto* root = std::get_if<BinaryExpression>(&ast.node);
         const auto* lhs = root != nullptr ? std::get_if<NumberLiteral>(&root->left->node) : nullptr;
@@ -104,6 +140,18 @@ bool expect_expression_ast_shape(ExpressionParser& parser) {
         if (root == nullptr || root->op != BinaryOperator::bitwise_or || lhs == nullptr ||
             rhs == nullptr || rhs->op != BinaryOperator::bitwise_and ||
             !almost_equal(lhs->value, 2.0)) {
+            return false;
+        }
+    }
+
+    {
+        const Expression ast = parser.parse("2 <= 3 > 0");
+        const auto* root = std::get_if<BinaryExpression>(&ast.node);
+        const auto* lhs = root != nullptr ? std::get_if<BinaryExpression>(&root->left->node) : nullptr;
+        const auto* rhs = root != nullptr ? std::get_if<NumberLiteral>(&root->right->node) : nullptr;
+        if (root == nullptr || root->op != BinaryOperator::greater || lhs == nullptr ||
+            lhs->op != BinaryOperator::less_equal || rhs == nullptr ||
+            !almost_equal(rhs->value, 0.0)) {
             return false;
         }
     }

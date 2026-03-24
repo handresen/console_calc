@@ -195,27 +195,7 @@ double require_finite_result(double value) {
         evaluate_expression_with_placeholder(*node.left, placeholder_value));
     const ScalarValue rhs = require_scalar_or_singleton_list_value(
         evaluate_expression_with_placeholder(*node.right, placeholder_value));
-
-    switch (node.op) {
-    case BinaryOperator::add:
-        return to_value(add_scalars(lhs, rhs));
-    case BinaryOperator::subtract:
-        return to_value(subtract_scalars(lhs, rhs));
-    case BinaryOperator::multiply:
-        return to_value(multiply_scalars(lhs, rhs));
-    case BinaryOperator::divide:
-        return to_value(divide_scalars(lhs, rhs));
-    case BinaryOperator::modulo:
-        return to_value(modulo_scalars(lhs, rhs));
-    case BinaryOperator::power:
-        return to_value(power_scalars(lhs, rhs));
-    case BinaryOperator::bitwise_and:
-        return require_integer_operand(lhs) & require_integer_operand(rhs);
-    case BinaryOperator::bitwise_or:
-        return require_integer_operand(lhs) | require_integer_operand(rhs);
-    }
-
-    throw EvaluationError("unknown binary operator");
+    return to_value(apply_binary_operator(node.op, lhs, rhs));
 }
 
 Value evaluate_expression_with_placeholder(const Expression& expression,

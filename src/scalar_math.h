@@ -22,6 +22,12 @@ namespace console_calc {
 [[nodiscard]] ScalarValue divide_scalars(const ScalarValue& lhs, const ScalarValue& rhs);
 [[nodiscard]] ScalarValue modulo_scalars(const ScalarValue& lhs, const ScalarValue& rhs);
 [[nodiscard]] ScalarValue power_scalars(const ScalarValue& lhs, const ScalarValue& rhs);
+[[nodiscard]] ScalarValue compare_equal_scalars(const ScalarValue& lhs, const ScalarValue& rhs);
+[[nodiscard]] ScalarValue compare_less_scalars(const ScalarValue& lhs, const ScalarValue& rhs);
+[[nodiscard]] ScalarValue compare_less_equal_scalars(const ScalarValue& lhs, const ScalarValue& rhs);
+[[nodiscard]] ScalarValue compare_greater_scalars(const ScalarValue& lhs, const ScalarValue& rhs);
+[[nodiscard]] ScalarValue compare_greater_equal_scalars(const ScalarValue& lhs,
+                                                        const ScalarValue& rhs);
 [[nodiscard]] ScalarValue negate_scalar(const ScalarValue& value);
 [[nodiscard]] ScalarValue apply_binary_operator(BinaryOperator op, const ScalarValue& lhs,
                                                 const ScalarValue& rhs);

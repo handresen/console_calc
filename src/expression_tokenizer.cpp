@@ -27,6 +27,23 @@ Token Tokenizer::next() {
     case '-':
         ++position_;
         return {.kind = TokenKind::minus};
+    case '=':
+        ++position_;
+        return {.kind = TokenKind::equal};
+    case '<':
+        ++position_;
+        if (position_ < input_.size() && input_[position_] == '=') {
+            ++position_;
+            return {.kind = TokenKind::less_equal};
+        }
+        return {.kind = TokenKind::less};
+    case '>':
+        ++position_;
+        if (position_ < input_.size() && input_[position_] == '=') {
+            ++position_;
+            return {.kind = TokenKind::greater_equal};
+        }
+        return {.kind = TokenKind::greater};
     case '*':
         ++position_;
         return {.kind = TokenKind::multiply};

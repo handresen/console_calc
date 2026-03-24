@@ -12,6 +12,11 @@ namespace console_calc {
 enum class BinaryOperator {
     add,
     subtract,
+    equal,
+    less,
+    less_equal,
+    greater,
+    greater_equal,
     multiply,
     divide,
     modulo,
