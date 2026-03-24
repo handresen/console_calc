@@ -338,16 +338,16 @@ br_to_pos(home, 270, 1000)
 
 ## Pi Example
 
-You can approximate pi in console mode with the Leibniz series:
+You can approximate pi in console mode with either a compact Leibniz series
+or a faster-converging Nilakantha variant:
 
 ```text
-0> n:10000
-0> denom:range(1, n, 2)
-0> alt:powers(-1, n)
-0> series:list_div(alt, denom)
-0> ppi:sum(series) * 4
-0> ppi
-3.14149
+4*sum(map(range(0,200000),(-1)^_/(2*_+1)))
+3.14159
+
+t(x):4/((2*x)*(2*x+1)*(2*x+2))*((-1)^(x+1))
+3+sum(map(range(1,50000),t(_)))
+3.14159
 ```
 
 Because console definitions are late-bound, changing `n` recomputes the whole chain:
