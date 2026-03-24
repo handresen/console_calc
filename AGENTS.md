@@ -69,6 +69,7 @@
 ## Working Rules For Agents
 - Follow the existing CMake and `vcpkg` structure unless the user asks to replace it.
 - Prefer small, reviewable commits and isolated edits.
+- Do not parallelize git index-mutating commands such as `git add`, `git commit`, or similar staging/commit operations; run them sequentially to avoid stale index locks.
 - When adding dependencies, declare them in `vcpkg.json` and wire them through CMake targets.
 - Keep include paths explicit and target-scoped in CMake.
 - Add tests alongside behavior changes when practical.
