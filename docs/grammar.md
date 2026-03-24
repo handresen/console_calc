@@ -10,6 +10,7 @@ Current scope:
 - unary `-`, `~`
 - binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
 - parentheses for grouping
+- postfix indexing with `[ ... ]`
 - list literals with `{ ... }`
 - function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `pos`, `lat`, `lon`, `dist`, `bearing`, `br_to_pos`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`, `list_div`, `list_mul`, `guard`, `reduce`, `map`, `range`, `geom`, `repeat`, `linspace`, `powers`
 - optional whitespace between tokens
@@ -27,7 +28,7 @@ Explicitly out of scope for this first version:
 - `unary operator`
   - `-` or `~`
 - `grouping`
-  - `(` `)` and `{` `}`
+  - `(` `)`, `{` `}`, and `[` `]`
 - `separator`
   - `,`
 - `identifier`
@@ -43,7 +44,8 @@ bitwise_and = sum , { "&" , sum } ;
 sum        = term , { ( "+" | "-" ) , term } ;
 term       = unary , { ( "*" | "/" | "%" ) , unary } ;
 unary      = [ "-" | "~" ] , power ;
-power      = primary , [ "^" , unary ] ;
+power      = postfix , [ "^" , unary ] ;
+postfix    = primary , { "[" , expression , "]" } ;
 primary    = number | function_call | map_call | list_where_call | guard_call | list | "(" , expression , ")" ;
 function_call = identifier , "(" , expression , { "," , expression } , ")" ;
 map_call   = "map" , "(" , expression , "," , expression , ")" ;
@@ -68,11 +70,11 @@ Accepted numeric forms include:
 
 ## Evaluation Rule
 
-Expressions use these precedence levels, from highest to lowest: function calls, list literals, and parentheses, `^`, unary `-` `~`, `*` `/` `%`, `+` `-`, `=` `<` `<=` `>` `>=`, `&`, `|`. `^` is right-associative. The other operators are left-associative.
+Expressions use these precedence levels, from highest to lowest: function calls, postfix indexing, list literals, and parentheses, `^`, unary `-` `~`, `*` `/` `%`, `+` `-`, `=` `<` `<=` `>` `>=`, `&`, `|`. `^` is right-associative. The other operators are left-associative.
 
 `%` uses floating-point modulo via `fmod`. `&`, `|`, and unary `~` are bitwise integer operators and require integer-valued operands; non-integer operands are rejected. Division by zero, modulo by zero, and non-finite evaluation results are rejected.
 
-Where a scalar is required, a one-element list is accepted and coerced to that element. Multi-element lists are still rejected in scalar positions. List literals themselves remain flat: each list element must evaluate directly to a scalar, so nested lists are still rejected.
+Where a scalar is required, a one-element list is accepted and coerced to that element. Multi-element lists are still rejected in scalar positions. Postfix indexing `expr[index]` works on scalar lists and position lists and requires a non-negative integer index within bounds. List literals themselves remain flat: each list element must evaluate directly to a scalar, so nested lists are still rejected.
 
 Integer-valued decimal literals such as `42`, hexadecimal literals such as `0xff`, and binary literals such as `0b1010` are preserved as intrinsic integer values. Decimal literals with a fractional part or exponent such as `3.14` or `1e3` are evaluated as floating-point values.
 

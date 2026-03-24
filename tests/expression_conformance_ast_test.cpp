@@ -15,6 +15,7 @@ bool expect_expression_ast_shape(ExpressionParser& parser) {
     using console_calc::Function;
     using console_calc::FunctionCall;
     using console_calc::GuardCall;
+    using console_calc::IndexExpression;
     using console_calc::ListWhereCall;
     using console_calc::ListLiteral;
     using console_calc::MapCall;
@@ -188,6 +189,20 @@ bool expect_expression_ast_shape(ExpressionParser& parser) {
         const auto* list = root != nullptr ? std::get_if<ListLiteral>(&root->arguments[0]->node) : nullptr;
         if (root == nullptr || root->function != Function::sum || root->arguments.size() != 1 ||
             list == nullptr || list->elements.size() != 3) {
+            return false;
+        }
+    }
+
+    {
+        const Expression ast = parser.parse("range(10, 3)[1 + 1]");
+        const auto* root = std::get_if<IndexExpression>(&ast.node);
+        const auto* collection =
+            root != nullptr ? std::get_if<FunctionCall>(&root->collection->node) : nullptr;
+        const auto* index =
+            root != nullptr ? std::get_if<BinaryExpression>(&root->index->node) : nullptr;
+        if (root == nullptr || collection == nullptr || collection->function != Function::range ||
+            collection->arguments.size() != 2 || index == nullptr ||
+            index->op != BinaryOperator::add) {
             return false;
         }
     }

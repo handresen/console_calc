@@ -27,6 +27,8 @@ bool expect_expression_semantics(ExpressionParser& parser) {
 
     if (!almost_equal(parser.evaluate("first({2}, 1) + 3"), 5.0) ||
         !almost_equal(parser.evaluate("drop({1, 2, 3}, 2) + 4"), 7.0) ||
+        !almost_equal(parser.evaluate("{1, 2, 3}[1]"), 2.0) ||
+        !almost_equal(parser.evaluate("range(10, 3)[2]"), 12.0) ||
         !almost_equal(parser.evaluate("sin({0})"), 0.0)) {
         return false;
     }
@@ -184,10 +186,14 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const auto* empty_scalars = std::get_if<ListValue>(&empty_scalar_list);
     const Value filled_positions = parser.evaluate_value("fill(pos(60, 10), 2)");
     const auto* position_values = std::get_if<PositionListValue>(&filled_positions);
+    const Value indexed_position = parser.evaluate_value("to_poslist({60, 10, 61, 11})[1]");
+    const auto* indexed_position_value = std::get_if<PositionValue>(&indexed_position);
     if (paired_values == nullptr || paired_values->size() != 2 || flattened_values == nullptr ||
         flattened_values->size() != 4 || empty_positions == nullptr || !empty_positions->empty() ||
         empty_scalars == nullptr || !empty_scalars->empty() || position_values == nullptr ||
-        position_values->size() != 2) {
+        position_values->size() != 2 || indexed_position_value == nullptr ||
+        !almost_equal(indexed_position_value->latitude_deg, 61.0) ||
+        !almost_equal(indexed_position_value->longitude_deg, 11.0)) {
         return false;
     }
 
@@ -273,6 +279,10 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         "list_where(1, _ + 1)",
         "{1, pos(60, 10)}",
         "pow({2, 3}, 2)",
+        "{1, 2}[2]",
+        "{1, 2}[-1]",
+        "{1, 2}[1.5]",
+        "1[0]",
         "~1.5",
         "xor(1.5, 1)",
         "shl(1, -1)",

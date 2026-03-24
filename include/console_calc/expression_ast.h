@@ -43,6 +43,11 @@ struct UnaryExpression {
     std::unique_ptr<Expression> operand;
 };
 
+struct IndexExpression {
+    std::unique_ptr<Expression> collection;
+    std::unique_ptr<Expression> index;
+};
+
 enum class Function {
     abs,
     sin,
@@ -145,9 +150,9 @@ struct FillCall {
 };
 
 struct Expression {
-    std::variant<NumberLiteral, PlaceholderExpression, UnaryExpression, BinaryExpression,
-                 ListLiteral, FunctionCall, MapCall, ListWhereCall, GuardCall, ReduceCall,
-                 TimedLoopCall, FillCall>
+    std::variant<NumberLiteral, PlaceholderExpression, UnaryExpression, IndexExpression,
+                 BinaryExpression, ListLiteral, FunctionCall, MapCall, ListWhereCall,
+                 GuardCall, ReduceCall, TimedLoopCall, FillCall>
         node;
 };
 

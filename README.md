@@ -132,9 +132,10 @@ Supported operators:
 
 Grouping:
 - parentheses `(...)`
+- postfix indexing `expr[index]`
 
 Operator precedence, highest to lowest:
-1. function calls, list literals, parentheses
+1. function calls, postfix indexing, list literals, parentheses
 2. `^`
 3. unary `-`, `~`
 4. `*`, `/`, `%`
@@ -153,6 +154,7 @@ Notes:
 - decimal values with a fractional part or exponent are floating-point values
 - one-element lists are accepted in scalar positions
 - list literals are currently flat; nested lists are rejected
+- postfix indexing works on scalar lists and position lists and requires a non-negative integer index
 
 Current integer-preserving behavior:
 - `+`, `-`, and `*` keep integer results when both inputs are integers and the result fits in 64 bits
@@ -178,6 +180,7 @@ shl(3, 4)           => 48
 4 > 8               => 0
 6 & 3 | 8           => 10
 first({2, 3}, 1)+4  => 6
+{1, 2, 3}[1]        => 2
 sum(map({0, 90}, sind(_))) => 1
 ```
 

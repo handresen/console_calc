@@ -84,6 +84,27 @@ PositionValue require_position(const Value& value) {
     throw EvaluationError("position value required");
 }
 
+std::size_t require_subscript_index(const ScalarValue& value) {
+    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
+        if (*integer < 0) {
+            throw EvaluationError("list index must be a non-negative integer");
+        }
+        return static_cast<std::size_t>(*integer);
+    }
+
+    const double numeric_value = std::get<double>(value);
+    if (!std::isfinite(numeric_value)) {
+        throw EvaluationError("list index must be a non-negative integer");
+    }
+
+    double integral_part = 0.0;
+    if (std::modf(numeric_value, &integral_part) != 0.0 || integral_part < 0.0) {
+        throw EvaluationError("list index must be a non-negative integer");
+    }
+
+    return static_cast<std::size_t>(integral_part);
+}
+
 std::size_t require_list_index(const ScalarValue& value) {
     if (const auto* integer = std::get_if<std::int64_t>(&value)) {
         if (*integer < 0) {
@@ -198,6 +219,30 @@ double require_finite_result(double value) {
     return to_value(apply_binary_operator(node.op, lhs, rhs));
 }
 
+[[nodiscard]] Value evaluate_index_expression(const IndexExpression& node,
+                                              const std::optional<ScalarValue>& placeholder_value) {
+    const Value collection =
+        evaluate_expression_with_placeholder(*node.collection, placeholder_value);
+    const std::size_t index = require_subscript_index(
+        require_scalar_or_singleton_list_value(
+            evaluate_expression_with_placeholder(*node.index, placeholder_value)));
+
+    if (const auto* list = std::get_if<ListValue>(&collection)) {
+        if (index >= list->size()) {
+            throw EvaluationError("list index out of range");
+        }
+        return to_value((*list)[index]);
+    }
+    if (const auto* positions = std::get_if<PositionListValue>(&collection)) {
+        if (index >= positions->size()) {
+            throw EvaluationError("list index out of range");
+        }
+        return (*positions)[index];
+    }
+
+    throw EvaluationError("indexing requires a list value");
+}
+
 Value evaluate_expression_with_placeholder(const Expression& expression,
                                            const std::optional<ScalarValue>& placeholder_value) {
     return std::visit(
@@ -221,6 +266,8 @@ Value evaluate_expression_with_placeholder(const Expression& expression,
                 case UnaryOperator::bitwise_not:
                     return to_value(bitwise_not_scalar(operand));
                 }
+            } else if constexpr (std::is_same_v<Node, IndexExpression>) {
+                return evaluate_index_expression(node, placeholder_value);
             } else if constexpr (std::is_same_v<Node, ListLiteral>) {
                 return evaluate_homogeneous_list_literal(node.elements, placeholder_value);
             } else if constexpr (std::is_same_v<Node, FunctionCall>) {

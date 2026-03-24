@@ -50,6 +50,8 @@ namespace {
     case TokenKind::right_paren:
     case TokenKind::left_brace:
     case TokenKind::right_brace:
+    case TokenKind::left_bracket:
+    case TokenKind::right_bracket:
     case TokenKind::comma:
     case TokenKind::end:
         break;
@@ -227,7 +229,7 @@ private:
     }
 
     [[nodiscard]] Expression parse_power_expression() {
-        Expression expression = parse_primary_expression();
+        Expression expression = parse_postfix_expression();
 
         if (current_.kind == TokenKind::power) {
             advance();
@@ -241,6 +243,26 @@ private:
                     .op = BinaryOperator::power,
                     .left = make_expression(std::move(expression)),
                     .right = make_expression(parse_unary_expression()),
+                }};
+        }
+
+        return expression;
+    }
+
+    [[nodiscard]] Expression parse_postfix_expression() {
+        Expression expression = parse_primary_expression();
+
+        while (current_.kind == TokenKind::left_bracket) {
+            advance();
+            Expression index_expression = parse_bitwise_or_expression();
+            if (current_.kind != TokenKind::right_bracket) {
+                throw ParseError("expected ']'");
+            }
+            advance();
+            expression = Expression{
+                IndexExpression{
+                    .collection = make_expression(std::move(expression)),
+                    .index = make_expression(std::move(index_expression)),
                 }};
         }
 
