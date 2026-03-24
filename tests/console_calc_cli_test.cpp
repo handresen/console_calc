@@ -35,17 +35,22 @@ bool expect_expanded_function_expression_helper() {
     };
     const console_calc::DefinitionTable definitions{
         {"f", console_calc::make_function_definition({"x"}, "x + 1")},
+        {"pair_sum", console_calc::make_function_definition({"x", "y"}, "x + y")},
         {"vals", console_calc::make_value_definition("{1, 2, 3}")},
     };
 
     const auto direct_value =
         console_calc::evaluate_expanded_expression(parser, "f(3)", constants, definitions, std::nullopt);
+    const auto pair_value = console_calc::evaluate_expanded_expression(
+        parser, "pair_sum(2, 5)", constants, definitions, std::nullopt);
     const auto nested_value = console_calc::evaluate_expanded_expression(
         parser, "f(f(3))", constants, definitions, std::nullopt);
     const auto mapped_value = console_calc::evaluate_expanded_expression(
         parser, "sum(map(vals, f(_)))", constants, definitions, std::nullopt);
     return std::holds_alternative<std::int64_t>(direct_value) &&
            std::get<std::int64_t>(direct_value) == 4 &&
+           std::holds_alternative<std::int64_t>(pair_value) &&
+           std::get<std::int64_t>(pair_value) == 7 &&
            std::holds_alternative<std::int64_t>(nested_value) &&
            std::get<std::int64_t>(nested_value) == 5 &&
            std::holds_alternative<std::int64_t>(mapped_value) &&

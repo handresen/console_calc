@@ -213,9 +213,14 @@ Value evaluate_expression_with_placeholder(const Expression& expression,
                 }
                 return to_value(*placeholder_value);
             } else if constexpr (std::is_same_v<Node, UnaryExpression>) {
-                return to_value(negate_scalar(
-                    require_scalar_or_singleton_list_value(
-                        evaluate_expression_with_placeholder(*node.operand, placeholder_value))));
+                const ScalarValue operand = require_scalar_or_singleton_list_value(
+                    evaluate_expression_with_placeholder(*node.operand, placeholder_value));
+                switch (node.op) {
+                case UnaryOperator::negate:
+                    return to_value(negate_scalar(operand));
+                case UnaryOperator::bitwise_not:
+                    return to_value(bitwise_not_scalar(operand));
+                }
             } else if constexpr (std::is_same_v<Node, ListLiteral>) {
                 return evaluate_homogeneous_list_literal(node.elements, placeholder_value);
             } else if constexpr (std::is_same_v<Node, FunctionCall>) {

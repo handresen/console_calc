@@ -12,6 +12,7 @@ enum class TokenKind {
     identifier,
     plus,
     minus,
+    bitwise_not,
     equal,
     less,
     less_equal,

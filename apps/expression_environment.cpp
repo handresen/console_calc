@@ -31,7 +31,8 @@ std::string expand_expression_identifiers_impl(
 }
 
 [[nodiscard]] std::string expand_function_definition_call_expression(
-    std::string_view identifier, const UserDefinition& definition, std::string_view raw_argument,
+    std::string_view identifier, const UserDefinition& definition,
+    std::span<const std::string> raw_arguments,
     const ConstantTable& constants, const DefinitionTable& definitions,
     const std::optional<Value>& result_reference,
     std::unordered_set<std::string>& expansion_stack,
@@ -41,16 +42,24 @@ std::string expand_expression_identifiers_impl(
     }
 
     const auto& function = as_function_definition(definition);
-    if (function.parameters.size() != 1) {
-        throw std::invalid_argument("function '" + std::string(identifier) +
-                                    "' expects 1 argument");
+    if (function.parameters.size() != raw_arguments.size()) {
+        throw std::invalid_argument("function '" + std::string(identifier) + "' expects " +
+                                    std::to_string(function.parameters.size()) + " arguments");
     }
 
-    const std::string expanded_argument =
-        expand_expression_identifiers_impl(raw_argument, constants, definitions, result_reference,
-                                           expansion_stack, allow_placeholder_identifier);
-    const std::string substituted_body = detail::substitute_function_parameter(
-        function.expression, function.parameters[0], expanded_argument);
+    std::vector<std::string> expanded_arguments;
+    expanded_arguments.reserve(raw_arguments.size());
+    for (const auto& raw_argument : raw_arguments) {
+        if (detail::is_blank_text(raw_argument)) {
+            throw std::invalid_argument("function '" + std::string(identifier) +
+                                        "' received an empty argument");
+        }
+        expanded_arguments.push_back(expand_expression_identifiers_impl(
+            raw_argument, constants, definitions, result_reference, expansion_stack,
+            allow_placeholder_identifier));
+    }
+    const std::string substituted_body = detail::substitute_function_parameters(
+        function.expression, function.parameters, expanded_arguments);
     const std::string name(identifier);
     if (!expansion_stack.insert(name).second) {
         throw std::invalid_argument("circular variable reference: " + name);
@@ -195,14 +204,14 @@ std::string expand_expression_identifiers_impl(
                 detail::call_open_paren_index(expression, end);
             const std::size_t close_paren_index =
                 detail::find_call_close_paren(expression, open_paren_index);
-            const std::string raw_argument = detail::extract_unary_call_argument(
-                expression, open_paren_index, close_paren_index, identifier);
+            const std::vector<std::string> raw_arguments = detail::extract_call_arguments(
+                expression, open_paren_index, close_paren_index);
             const bool placeholder_context =
                 allow_placeholder_identifier ||
                 detail::is_inside_placeholder_expression(frames);
             expanded += '(';
             expanded += expand_function_definition_call_expression(
-                identifier, definition, raw_argument, constants, definitions, result_reference,
+                identifier, definition, raw_arguments, constants, definitions, result_reference,
                 expansion_stack, placeholder_context);
             expanded += ')';
             pending_call_identifier.reset();

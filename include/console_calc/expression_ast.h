@@ -25,6 +25,11 @@ enum class BinaryOperator {
     bitwise_or,
 };
 
+enum class UnaryOperator {
+    negate,
+    bitwise_not,
+};
+
 struct Expression;
 
 struct NumberLiteral {
@@ -34,6 +39,7 @@ struct NumberLiteral {
 struct PlaceholderExpression {};
 
 struct UnaryExpression {
+    UnaryOperator op = UnaryOperator::negate;
     std::unique_ptr<Expression> operand;
 };
 
@@ -46,6 +52,13 @@ enum class Function {
     cosd,
     tand,
     sqrt,
+    bit_and,
+    bit_or,
+    bit_xor,
+    bit_nand,
+    bit_nor,
+    shl,
+    shr,
     pow,
     rand,
     sum,

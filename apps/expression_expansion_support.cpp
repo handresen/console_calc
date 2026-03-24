@@ -4,6 +4,7 @@
 #include "console_calc/special_form.h"
 
 #include <cctype>
+#include <span>
 #include <stdexcept>
 
 namespace console_calc::detail {
@@ -39,6 +40,20 @@ namespace {
 [[nodiscard]] bool is_radix_digit(char ch, int base) {
     return base == 16 ? std::isxdigit(static_cast<unsigned char>(ch)) != 0
                       : (ch == '0' || ch == '1');
+}
+
+[[nodiscard]] std::string trim_copy(std::string_view text) {
+    std::size_t begin = 0;
+    while (begin < text.size() && std::isspace(static_cast<unsigned char>(text[begin]))) {
+        ++begin;
+    }
+
+    std::size_t end = text.size();
+    while (end > begin && std::isspace(static_cast<unsigned char>(text[end - 1]))) {
+        --end;
+    }
+
+    return std::string(text.substr(begin, end - begin));
 }
 
 }  // namespace
@@ -126,13 +141,14 @@ std::size_t find_call_close_paren(std::string_view expression,
     throw std::invalid_argument("expected ')'");
 }
 
-std::string extract_unary_call_argument(std::string_view expression,
-                                        std::size_t open_paren_index,
-                                        std::size_t close_paren_index,
-                                        std::string_view identifier) {
+std::vector<std::string> extract_call_arguments(std::string_view expression,
+                                                std::size_t open_paren_index,
+                                                std::size_t close_paren_index) {
     std::size_t argument_begin = open_paren_index + 1;
     int paren_depth = 0;
     int brace_depth = 0;
+    std::vector<std::string> arguments;
+    std::size_t item_begin = argument_begin;
     for (std::size_t index = argument_begin; index < close_paren_index; ++index) {
         const std::size_t radix_end = consume_radix_literal(expression, index);
         if (radix_end != index) {
@@ -155,8 +171,8 @@ std::string extract_unary_call_argument(std::string_view expression,
             break;
         case ',':
             if (paren_depth == 0 && brace_depth == 0) {
-                throw std::invalid_argument("function '" + std::string(identifier) +
-                                            "' expects 1 argument");
+                arguments.push_back(trim_copy(expression.substr(item_begin, index - item_begin)));
+                item_begin = index + 1;
             }
             break;
         default:
@@ -164,20 +180,19 @@ std::string extract_unary_call_argument(std::string_view expression,
         }
     }
 
-    const std::string argument =
-        std::string(expression.substr(argument_begin, close_paren_index - argument_begin));
-    if (is_blank_text(argument)) {
-        throw std::invalid_argument("function '" + std::string(identifier) +
-                                    "' expects 1 argument");
+    if (item_begin < close_paren_index || !arguments.empty()) {
+        arguments.push_back(
+            trim_copy(expression.substr(item_begin, close_paren_index - item_begin)));
     }
-    return argument;
+
+    return arguments;
 }
 
-std::string substitute_function_parameter(std::string_view expression,
-                                          std::string_view parameter_name,
-                                          std::string_view replacement_expression) {
+std::string substitute_function_parameters(std::string_view expression,
+                                           std::span<const std::string> parameter_names,
+                                           std::span<const std::string> replacement_expressions) {
     std::string substituted;
-    substituted.reserve(expression.size() + replacement_expression.size());
+    substituted.reserve(expression.size());
 
     std::size_t index = 0;
     while (index < expression.size()) {
@@ -201,11 +216,18 @@ std::string substitute_function_parameter(std::string_view expression,
         }
 
         const std::string_view identifier = expression.substr(index, end - index);
-        if (identifier == parameter_name) {
-            substituted += '(';
-            substituted += replacement_expression;
-            substituted += ')';
-        } else {
+        bool replaced = false;
+        for (std::size_t parameter_index = 0; parameter_index < parameter_names.size();
+             ++parameter_index) {
+            if (identifier == parameter_names[parameter_index]) {
+                substituted += '(';
+                substituted += replacement_expressions[parameter_index];
+                substituted += ')';
+                replaced = true;
+                break;
+            }
+        }
+        if (!replaced) {
             substituted += std::string(identifier);
         }
         index = end;

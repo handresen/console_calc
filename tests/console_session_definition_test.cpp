@@ -105,13 +105,14 @@ bool expect_console_mode_unknown_identifier_error() {
 
 bool expect_console_mode_user_functions() {
     const std::vector<std::string_view> args;
-    std::istringstream input("f(x):x+1\nf(3)\nf(f(3))\nvals:1,2,3\nsum(map(vals,f(_)))\nq\n");
+    std::istringstream input(
+        "f(x):x+1\npair_sum(x,y):x+y\nf(3)\nf(f(3))\npair_sum(2,5)\nvals:1,2,3\nsum(map(vals,f(_)))\nq\n");
     std::ostringstream output;
     std::ostringstream error;
     const int exit_code = console_calc::run_console_calc(args, input, output, error);
     const std::string expected_output =
-        prompt(0) + prompt(0) + "4\n" + prompt(1) + "5\n" + prompt(2) + prompt(2) + "9\n" +
-        prompt(3);
+        prompt(0) + prompt(0) + prompt(0) + "4\n" + prompt(1) + "5\n" + prompt(2) + "7\n" +
+        prompt(3) + prompt(3) + "9\n" + prompt(4);
     return expect_console_transcript("console mode user functions", exit_code, 0,
                                      output.str(), expected_output, error.str(), "");
 }

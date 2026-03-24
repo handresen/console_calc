@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <vector>
 
 #include "console_calc/expression_parser.h"
@@ -27,6 +28,8 @@ namespace {
     return std::string(text.substr(begin, end - begin));
 }
 
+[[nodiscard]] std::vector<std::string> split_top_level_items(std::string_view text);
+
 [[nodiscard]] std::optional<UserAssignment> parse_assignment_target(std::string_view text) {
     const std::string trimmed = trim(text);
     if (trimmed.empty()) {
@@ -38,14 +41,25 @@ namespace {
             return std::nullopt;
         }
         const std::string name = trim(std::string_view(trimmed).substr(0, left_paren));
-        const std::string parameter = trim(std::string_view(trimmed).substr(
+        const std::string parameters_text = trim(std::string_view(trimmed).substr(
             left_paren + 1, trimmed.size() - left_paren - 2));
-        if (!is_identifier(name) || !is_identifier(parameter)) {
+        if (!is_identifier(name)) {
             return std::nullopt;
+        }
+        const std::vector<std::string> parameters = split_top_level_items(parameters_text);
+        if (parameters.empty()) {
+            return std::nullopt;
+        }
+        std::unordered_set<std::string> seen_parameters;
+        for (const auto& parameter : parameters) {
+            if (!is_identifier(parameter) ||
+                !seen_parameters.insert(parameter).second) {
+                return std::nullopt;
+            }
         }
         return UserAssignment{
             .name = name,
-            .parameters = {parameter},
+            .parameters = parameters,
             .expression = {},
         };
     }

@@ -29,6 +29,7 @@ namespace console_calc {
 [[nodiscard]] ScalarValue compare_greater_equal_scalars(const ScalarValue& lhs,
                                                         const ScalarValue& rhs);
 [[nodiscard]] ScalarValue negate_scalar(const ScalarValue& value);
+[[nodiscard]] ScalarValue bitwise_not_scalar(const ScalarValue& value);
 [[nodiscard]] ScalarValue apply_binary_operator(BinaryOperator op, const ScalarValue& lhs,
                                                 const ScalarValue& rhs);
 

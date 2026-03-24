@@ -27,6 +27,9 @@ Token Tokenizer::next() {
     case '-':
         ++position_;
         return {.kind = TokenKind::minus};
+    case '~':
+        ++position_;
+        return {.kind = TokenKind::bitwise_not};
     case '=':
         ++position_;
         return {.kind = TokenKind::equal};

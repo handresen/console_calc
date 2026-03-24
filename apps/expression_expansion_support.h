@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -30,12 +31,11 @@ struct ExpansionFrame {
 [[nodiscard]] std::size_t call_open_paren_index(std::string_view expression, std::size_t index);
 [[nodiscard]] std::size_t find_call_close_paren(std::string_view expression,
                                                 std::size_t open_paren_index);
-[[nodiscard]] std::string extract_unary_call_argument(std::string_view expression,
-                                                      std::size_t open_paren_index,
-                                                      std::size_t close_paren_index,
-                                                      std::string_view identifier);
-[[nodiscard]] std::string substitute_function_parameter(
-    std::string_view expression, std::string_view parameter_name,
-    std::string_view replacement_expression);
+[[nodiscard]] std::vector<std::string> extract_call_arguments(
+    std::string_view expression, std::size_t open_paren_index,
+    std::size_t close_paren_index);
+[[nodiscard]] std::string substitute_function_parameters(
+    std::string_view expression, std::span<const std::string> parameter_names,
+    std::span<const std::string> replacement_expressions);
 
 }  // namespace console_calc::detail

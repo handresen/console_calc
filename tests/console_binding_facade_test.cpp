@@ -76,6 +76,25 @@ bool expect_binding_function_definition_snapshot() {
            assignment_result.snapshot.definitions[0].expression == "x+1";
 }
 
+bool expect_binding_multi_argument_function_snapshot() {
+    console_calc::ExpressionParser parser;
+    console_calc::ConsoleBindingFacade facade(parser, default_constants());
+
+    facade.initialize();
+    const auto assignment_result = facade.submit("pair_sum(x,y):x+y");
+    if (assignment_result.should_exit || !assignment_result.events.empty() ||
+        assignment_result.snapshot.definitions.size() != 1 ||
+        assignment_result.snapshot.definitions[0].name != "pair_sum(x, y)" ||
+        assignment_result.snapshot.definitions[0].expression != "x+y") {
+        return false;
+    }
+
+    const auto value_result = facade.submit("pair_sum(2,5)");
+    return !value_result.should_exit && value_result.events.size() == 1 &&
+           value_result.events[0].kind == console_calc::BindingEventKind::value &&
+           value_result.events[0].text == "7";
+}
+
 bool expect_binding_listing_and_display_modes() {
     console_calc::ExpressionParser parser;
     console_calc::ConsoleBindingFacade facade(parser, default_constants());
@@ -144,6 +163,9 @@ int main() {
         return EXIT_FAILURE;
     }
     if (!expect_binding_function_definition_snapshot()) {
+        return EXIT_FAILURE;
+    }
+    if (!expect_binding_multi_argument_function_snapshot()) {
         return EXIT_FAILURE;
     }
     if (!expect_binding_currency_and_errors()) {

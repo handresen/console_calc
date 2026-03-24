@@ -220,6 +220,35 @@ bool expect_engine_function_definition_storage() {
            contains_definition(vars_result.events[0].definitions, "f(x)", "x+1");
 }
 
+bool expect_engine_multi_argument_function_definition_storage() {
+    console_calc::ExpressionParser parser;
+    const console_calc::ConstantTable constants = default_constants();
+    console_calc::ConsoleSessionEngine engine(parser, constants);
+
+    engine.initialize();
+    const auto assignment_result = engine.submit("pair_sum(x,y):x+y");
+    if (assignment_result.should_exit || !assignment_result.events.empty() ||
+        !contains_definition(assignment_result.state.definitions, "pair_sum(x, y)", "x+y") ||
+        !engine.definitions().contains("pair_sum") ||
+        console_calc::definition_kind(engine.definitions().at("pair_sum")) !=
+            console_calc::UserDefinitionKind::function) {
+        return false;
+    }
+
+    const auto value_result = engine.submit("pair_sum(2,5)");
+    if (value_result.should_exit ||
+        !expect_single_value_event("engine multi argument function call", value_result) ||
+        !std::holds_alternative<std::int64_t>(*value_result.events[0].value) ||
+        std::get<std::int64_t>(*value_result.events[0].value) != 7) {
+        return false;
+    }
+
+    const auto vars_result = engine.submit("vars");
+    return expect_single_definition_listing_event("engine vars with multi argument function",
+                                                  vars_result) &&
+           contains_definition(vars_result.events[0].definitions, "pair_sum(x, y)", "x+y");
+}
+
 bool expect_engine_currency_refresh() {
     console_calc::ExpressionParser parser;
     const console_calc::ConstantTable constants = default_constants();
@@ -350,6 +379,9 @@ int main() {
     }
 
     if (!expect_engine_function_definition_storage()) {
+        return EXIT_FAILURE;
+    }
+    if (!expect_engine_multi_argument_function_definition_storage()) {
         return EXIT_FAILURE;
     }
     if (!expect_engine_currency_refresh()) {

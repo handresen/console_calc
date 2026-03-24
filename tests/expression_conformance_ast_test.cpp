@@ -23,6 +23,7 @@ bool expect_expression_ast_shape(ExpressionParser& parser) {
     using console_calc::ReduceCall;
     using console_calc::TimedLoopCall;
     using console_calc::UnaryExpression;
+    using console_calc::UnaryOperator;
 
     {
         const Expression ast = parser.parse("2 + 3 * 4");
@@ -64,9 +65,21 @@ bool expect_expression_ast_shape(ExpressionParser& parser) {
             root != nullptr ? std::get_if<BinaryExpression>(&root->operand->node) : nullptr;
         const auto* lhs = operand != nullptr ? std::get_if<NumberLiteral>(&operand->left->node) : nullptr;
         const auto* rhs = operand != nullptr ? std::get_if<NumberLiteral>(&operand->right->node) : nullptr;
-        if (root == nullptr || operand == nullptr || operand->op != BinaryOperator::power ||
+        if (root == nullptr || root->op != UnaryOperator::negate || operand == nullptr ||
+            operand->op != BinaryOperator::power ||
             lhs == nullptr || rhs == nullptr || !almost_equal(lhs->value, 2.0) ||
             !almost_equal(rhs->value, 2.0)) {
+            return false;
+        }
+    }
+
+    {
+        const Expression ast = parser.parse("~2^3");
+        const auto* root = std::get_if<UnaryExpression>(&ast.node);
+        const auto* operand =
+            root != nullptr ? std::get_if<BinaryExpression>(&root->operand->node) : nullptr;
+        if (root == nullptr || root->op != UnaryOperator::bitwise_not || operand == nullptr ||
+            operand->op != BinaryOperator::power) {
             return false;
         }
     }

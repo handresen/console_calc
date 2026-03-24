@@ -1,5 +1,7 @@
 #include <cstdlib>
+#include <iostream>
 #include <string>
+#include <vector>
 
 #include "console_assignment.h"
 #include "console_command.h"
@@ -9,6 +11,15 @@
 #include "console_calc/special_form.h"
 
 namespace {
+
+bool expect_equal(std::string_view context, std::string_view actual, std::string_view expected) {
+    if (actual == expected) {
+        return true;
+    }
+
+    std::cerr << context << "\nexpected: " << expected << "\nactual:   " << actual << '\n';
+    return false;
+}
 
 bool expect_command_classification() {
     using console_calc::ConsoleCommandKind;
@@ -314,55 +325,77 @@ bool expect_expression_identifier_expansion() {
         {"x", console_calc::make_value_definition("pi + 1")},
         {"vals", console_calc::make_value_definition("{1, 2, 3}")},
         {"f", console_calc::make_function_definition({"arg"}, "arg + 1")},
+        {"pair_sum", console_calc::make_function_definition({"a", "b"}, "a + b")},
         {"p", console_calc::make_function_definition({"x"}, "x % 2 = 1")},
     };
 
-    return console_calc::expand_expression_identifiers(
-               "sin(x)", constants, definitions, std::nullopt) ==
-               "sin((3.1415926535897931 + 1))" &&
-           console_calc::expand_expression_identifiers(
-               "sum(vals)", constants, definitions, std::nullopt) ==
-               "sum({1, 2, 3})" &&
-           console_calc::expand_expression_identifiers(
-               "map(vals, sin(_) + _)", constants, definitions, std::nullopt) ==
-               "map({1, 2, 3}, sin(_) + _)" &&
-           console_calc::expand_expression_identifiers(
-               "map_at(vals, sin(_) + _)", constants, definitions, std::nullopt) ==
-               "map_at({1, 2, 3}, sin(_) + _)" &&
-           console_calc::expand_expression_identifiers(
-               "list_where(vals, _ <= 2)", constants, definitions, std::nullopt) ==
-               "list_where({1, 2, 3}, _ <= 2)" &&
-           console_calc::expand_expression_identifiers(
-               "f(3)", constants, definitions, std::nullopt) ==
-               "((3) + 1)" &&
-           console_calc::expand_expression_identifiers(
-               "f(f(3))", constants, definitions, std::nullopt) ==
-               "((((3) + 1)) + 1)" &&
-           console_calc::expand_expression_identifiers(
-               "map(vals, f(_))", constants, definitions, std::nullopt) ==
-               "map({1, 2, 3}, ((_) + 1))" &&
-           console_calc::expand_expression_identifiers(
-               "list_where(vals, p(_))", constants, definitions, std::nullopt) ==
-               "list_where({1, 2, 3}, ((_) % 2 = 1))" &&
-           console_calc::expand_expression_identifiers(
-               "0x10 + 5", constants, definitions, std::nullopt) ==
-               "0x10 + 5" &&
-           console_calc::expand_expression_identifiers(
-               "0b1010 + 1", constants, definitions, std::nullopt) ==
-               "0b1010 + 1";
+    return expect_equal("expand sin(x)",
+                        console_calc::expand_expression_identifiers(
+                            "sin(x)", constants, definitions, std::nullopt),
+                        "sin((3.1415926535897931 + 1))") &&
+           expect_equal("expand sum(vals)",
+                        console_calc::expand_expression_identifiers(
+                            "sum(vals)", constants, definitions, std::nullopt),
+                        "sum({1, 2, 3})") &&
+           expect_equal("expand map(vals, sin(_) + _)",
+                        console_calc::expand_expression_identifiers(
+                            "map(vals, sin(_) + _)", constants, definitions, std::nullopt),
+                        "map({1, 2, 3}, sin(_) + _)") &&
+           expect_equal("expand map_at(vals, sin(_) + _)",
+                        console_calc::expand_expression_identifiers(
+                            "map_at(vals, sin(_) + _)", constants, definitions, std::nullopt),
+                        "map_at({1, 2, 3}, sin(_) + _)") &&
+           expect_equal("expand list_where(vals, _ <= 2)",
+                        console_calc::expand_expression_identifiers(
+                            "list_where(vals, _ <= 2)", constants, definitions, std::nullopt),
+                        "list_where({1, 2, 3}, _ <= 2)") &&
+           expect_equal("expand f(3)",
+                        console_calc::expand_expression_identifiers(
+                            "f(3)", constants, definitions, std::nullopt),
+                        "((3) + 1)") &&
+           expect_equal("expand f(f(3))",
+                        console_calc::expand_expression_identifiers(
+                            "f(f(3))", constants, definitions, std::nullopt),
+                        "((((3) + 1)) + 1)") &&
+           expect_equal("expand pair_sum(2, 5)",
+                        console_calc::expand_expression_identifiers(
+                            "pair_sum(2, 5)", constants, definitions, std::nullopt),
+                        "((2) + (5))") &&
+           expect_equal("expand map(vals, f(_))",
+                        console_calc::expand_expression_identifiers(
+                            "map(vals, f(_))", constants, definitions, std::nullopt),
+                        "map({1, 2, 3}, ((_) + 1))") &&
+           expect_equal("expand list_where(vals, p(_))",
+                        console_calc::expand_expression_identifiers(
+                            "list_where(vals, p(_))", constants, definitions, std::nullopt),
+                        "list_where({1, 2, 3}, ((_) % 2 = 1))") &&
+           expect_equal("expand 0x10 + 5",
+                        console_calc::expand_expression_identifiers(
+                            "0x10 + 5", constants, definitions, std::nullopt),
+                        "0x10 + 5") &&
+           expect_equal("expand 0b1010 + 1",
+                        console_calc::expand_expression_identifiers(
+                            "0b1010 + 1", constants, definitions, std::nullopt),
+                        "0b1010 + 1");
 }
 
 bool expect_user_assignment_parsing() {
     const auto value_assignment = console_calc::parse_user_assignment("x:pi+1");
     const auto function_assignment = console_calc::parse_user_assignment("f(x):x+1");
-    const auto invalid_assignment = console_calc::parse_user_assignment("f(x,y):x+y");
+    const auto multi_function_assignment = console_calc::parse_user_assignment("f(x,y):x+y");
+    const auto invalid_assignment = console_calc::parse_user_assignment("f(x,x):x+y");
 
     return value_assignment.has_value() && value_assignment->name == "x" &&
            value_assignment->parameters.empty() &&
            value_assignment->expression == "pi+1" && function_assignment.has_value() &&
            function_assignment->name == "f" && function_assignment->parameters.size() == 1 &&
            function_assignment->parameters[0] == "x" &&
-           function_assignment->expression == "x+1" && !invalid_assignment.has_value();
+           function_assignment->expression == "x+1" &&
+           multi_function_assignment.has_value() &&
+           multi_function_assignment->name == "f" &&
+           multi_function_assignment->parameters ==
+               std::vector<std::string>({"x", "y"}) &&
+           multi_function_assignment->expression == "x+y" && !invalid_assignment.has_value();
 }
 
 }  // namespace

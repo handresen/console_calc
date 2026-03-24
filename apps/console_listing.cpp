@@ -76,9 +76,16 @@ std::string format_console_position_list(const PositionListValue& values) {
 std::string format_definition_display_name(std::string_view name, const UserDefinition& definition) {
     if (!is_value_definition(definition)) {
         const auto& function = as_function_definition(definition);
-        if (function.parameters.size() == 1) {
-            return std::string(name) + "(" + function.parameters[0] + ")";
+        std::string display_name(name);
+        display_name += '(';
+        for (std::size_t index = 0; index < function.parameters.size(); ++index) {
+            if (index != 0) {
+                display_name += ", ";
+            }
+            display_name += function.parameters[index];
         }
+        display_name += ')';
+        return display_name;
     }
     return std::string(name);
 }

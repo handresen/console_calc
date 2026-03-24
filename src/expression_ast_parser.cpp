@@ -21,6 +21,7 @@ namespace {
         return BinaryOperator::add;
     case TokenKind::minus:
         return BinaryOperator::subtract;
+    case TokenKind::bitwise_not:
     case TokenKind::equal:
         return BinaryOperator::equal;
     case TokenKind::less:
@@ -67,7 +68,8 @@ namespace {
 }
 
 [[nodiscard]] bool starts_operand_expression(TokenKind kind) {
-    return starts_primary_expression(kind) || kind == TokenKind::minus;
+    return starts_primary_expression(kind) || kind == TokenKind::minus ||
+           kind == TokenKind::bitwise_not;
 }
 
 class Parser {
@@ -77,7 +79,7 @@ public:
 
     [[nodiscard]] Expression parse() {
         if (!starts_operand_expression(current_.kind)) {
-            throw ParseError("expression must start with a number, function, '-', '(' or '{'");
+            throw ParseError("expression must start with a number, function, unary operator, '(' or '{'");
         }
 
         Expression expression = parse_bitwise_or_expression();
@@ -204,7 +206,10 @@ private:
     }
 
     [[nodiscard]] Expression parse_unary_expression() {
-        if (current_.kind == TokenKind::minus) {
+        if (current_.kind == TokenKind::minus || current_.kind == TokenKind::bitwise_not) {
+            const UnaryOperator op = current_.kind == TokenKind::minus
+                                         ? UnaryOperator::negate
+                                         : UnaryOperator::bitwise_not;
             advance();
 
             if (!starts_operand_expression(current_.kind)) {
@@ -213,6 +218,7 @@ private:
 
             return Expression{
                 UnaryExpression{
+                    .op = op,
                     .operand = make_expression(parse_unary_expression()),
                 }};
         }

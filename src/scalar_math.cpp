@@ -234,6 +234,10 @@ ScalarValue negate_scalar(const ScalarValue& value) {
     return require_finite_result(-scalar_to_double(value));
 }
 
+ScalarValue bitwise_not_scalar(const ScalarValue& value) {
+    return ~require_integer_operand(value);
+}
+
 ScalarValue apply_binary_operator(BinaryOperator op, const ScalarValue& lhs,
                                   const ScalarValue& rhs) {
     switch (op) {
