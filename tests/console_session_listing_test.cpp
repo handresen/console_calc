@@ -22,10 +22,14 @@ bool expect_console_mode_list_constants() {
     return exit_code == 0 && error.str().empty() &&
            actual_output.starts_with(prompt(0)) &&
            actual_output.ends_with(prompt(0)) &&
-           actual_output.find("e:2.7182818284590451\n") != std::string::npos &&
-           actual_output.find("m.pi:3.1415926535897931\n") != std::string::npos &&
-           actual_output.find("c.deg:0.017453292519943295\n") != std::string::npos &&
-           actual_output.find("ph.c:299792458\n") != std::string::npos;
+           actual_output.find("[root]\n") != std::string::npos &&
+           actual_output.find("[m]\n") != std::string::npos &&
+           actual_output.find("[c]\n") != std::string::npos &&
+           actual_output.find("[ph]\n") != std::string::npos &&
+           actual_output.find("  e:2.7182818284590451\n") != std::string::npos &&
+           actual_output.find("  m.pi:3.1415926535897931\n") != std::string::npos &&
+           actual_output.find("  c.deg:0.017453292519943295\n") != std::string::npos &&
+           actual_output.find("  ph.c:299792458\n") != std::string::npos;
 }
 
 bool expect_console_mode_list_variables_and_functions() {

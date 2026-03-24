@@ -1,5 +1,6 @@
 import type { BindingCommandResult } from "../bridge/console-wasm";
 import { formatNumericText } from "./display-settings";
+import { constantDisplayRows } from "./pane-renderers";
 import type { TranscriptView } from "./transcript-view";
 
 function expectedFunctionSignature(
@@ -84,8 +85,12 @@ export function renderTranscriptResult(
         }
         break;
       case "constant_listing":
-        for (const entry of event.constants) {
-          appendMessage(`${entry.name}:${entry.value}`, "listing");
+        for (const row of constantDisplayRows(event.constants)) {
+          appendMessage(
+            row.text,
+            "listing",
+            row.kind === "heading" ? "transcript-line-listing-heading" : undefined,
+          );
         }
         break;
       case "function_listing":

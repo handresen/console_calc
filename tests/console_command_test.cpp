@@ -68,9 +68,12 @@ bool expect_builtin_function_listing() {
 
 bool expect_constant_and_definition_listing() {
     const console_calc::ConstantTable constants{
+        {"m.pi", 3.1415926535897931},
         {"tau", 6.2831853071795862},
         {"e", 2.7182818284590451},
         {"pi", 3.1415926535897931},
+        {"c.deg", 0.017453292519943295},
+        {"ph.c", 299792458.0},
     };
     const console_calc::DefinitionTable definitions{
         {"sx", console_calc::make_value_definition("sin(x)")},
@@ -79,9 +82,19 @@ bool expect_constant_and_definition_listing() {
     };
 
     return console_calc::format_constant_listing(constants) ==
-               "e:2.7182818284590451\n"
-               "pi:3.1415926535897931\n"
-               "tau:6.2831853071795862\n" &&
+               "[root]\n"
+               "  e:2.7182818284590451\n"
+               "  pi:3.1415926535897931\n"
+               "  tau:6.2831853071795862\n"
+               "\n"
+               "[m]\n"
+               "  m.pi:3.1415926535897931\n"
+               "\n"
+               "[c]\n"
+               "  c.deg:0.017453292519943295\n"
+               "\n"
+               "[ph]\n"
+               "  ph.c:299792458\n" &&
            console_calc::format_definition_listing(definitions) ==
                "sx:sin(x)\n"
                "vals:{1, 2, 3}\n"

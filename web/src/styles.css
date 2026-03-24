@@ -297,6 +297,14 @@ body.is-resizing-shell {
   color: #5e5a4c;
 }
 
+.transcript-line-listing-heading .transcript-line-content {
+  color: #5e5a4c;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .prompt-view {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -451,6 +459,51 @@ body.is-resizing-shell {
 .pane-line,
 .pane-empty {
   font-size: 0.95rem;
+}
+
+.pane-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.pane-group-toggle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pane-group-marker {
+  width: 0.8rem;
+  text-align: center;
+  color: #2e5d31;
+  font-size: 0.9rem;
+}
+
+.pane-group-heading {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5e5a4c;
+}
+
+.pane-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding-left: 1.2rem;
+}
+
+.pane-group-body[hidden] {
+  display: none;
 }
 
 .pane-empty {

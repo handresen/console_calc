@@ -10,8 +10,8 @@ import { defaultDisplaySettings } from "./display-settings";
 import { createPane } from "./pane-controls";
 import { createMapPaneView } from "./map-pane-view";
 import {
-  constantDisplay,
   definitionDisplay,
+  renderConstantList,
   renderFunctionTable,
   renderTextList,
   sampleExpressions,
@@ -174,10 +174,7 @@ export function createPanesView(
         definitionsPane.body,
         snapshot.definitions.map((entry) => definitionDisplay(entry)),
       );
-      renderTextList(
-        constantsPane.body,
-        snapshot.constants.map((entry) => constantDisplay(entry)),
-      );
+      renderConstantList(constantsPane.body, snapshot.constants);
       renderFunctionTable(functionTableContainer, snapshot.functions);
       plotPaneView.render(snapshot.stack);
       mapPaneView.render(snapshot.stack);

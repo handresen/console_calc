@@ -90,6 +90,31 @@ std::string format_definition_display_name(std::string_view name, const UserDefi
     return std::string(name);
 }
 
+std::string_view constant_namespace(std::string_view name) {
+    const std::size_t separator = name.find('.');
+    if (separator == std::string_view::npos) {
+        return "root";
+    }
+    return name.substr(0, separator);
+}
+
+int constant_namespace_order(std::string_view name) {
+    const std::string_view group = constant_namespace(name);
+    if (group == "root") {
+        return 0;
+    }
+    if (group == "m") {
+        return 1;
+    }
+    if (group == "c") {
+        return 2;
+    }
+    if (group == "ph") {
+        return 3;
+    }
+    return 4;
+}
+
 }  // namespace
 
 std::string format_stack_listing(std::span<const Value> values) {
@@ -179,6 +204,11 @@ std::vector<ConstantView> constant_views(const ConstantTable& constants) {
     }
 
     std::sort(views.begin(), views.end(), [](const auto& lhs, const auto& rhs) {
+        const int lhs_order = constant_namespace_order(lhs.name);
+        const int rhs_order = constant_namespace_order(rhs.name);
+        if (lhs_order != rhs_order) {
+            return lhs_order < rhs_order;
+        }
         return lhs.name < rhs.name;
     });
     return views;
@@ -190,7 +220,22 @@ std::string format_constant_listing(const ConstantTable& constants) {
 
 std::string format_constant_listing(std::span<const ConstantView> constants) {
     std::string output;
+    std::string_view current_namespace;
+    bool first_group = true;
     for (const auto& view : constants) {
+        const std::string_view view_namespace = constant_namespace(view.name);
+        if (view_namespace != current_namespace) {
+            if (!first_group) {
+                output += '\n';
+            }
+            output += '[';
+            output += view_namespace;
+            output += "]\n";
+            current_namespace = view_namespace;
+            first_group = false;
+        }
+
+        output += "  ";
         output += view.name;
         output += ':';
         output += format_scalar(view.value);

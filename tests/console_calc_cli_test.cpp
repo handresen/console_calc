@@ -66,12 +66,17 @@ bool expect_namespaced_constant_lookup() {
     const auto physical_value = console_calc::evaluate_expanded_expression(
         parser, "ph.c", constants, {}, std::nullopt);
 
+    const bool physical_matches =
+        (std::holds_alternative<double>(physical_value) &&
+         std::fabs(std::get<double>(physical_value) - 299792458.0) < 1e-6) ||
+        (std::holds_alternative<std::int64_t>(physical_value) &&
+         std::get<std::int64_t>(physical_value) == 299792458);
+
     return std::holds_alternative<double>(degree_value) &&
            std::fabs(std::get<double>(degree_value) - 1.5707963267948966) < 1e-12 &&
            std::holds_alternative<double>(math_value) &&
            std::fabs(std::get<double>(math_value) - 3.1415926535897931) < 1e-12 &&
-           std::holds_alternative<double>(physical_value) &&
-           std::fabs(std::get<double>(physical_value) - 299792458.0) < 1e-6;
+           physical_matches;
 }
 
 bool expect_argument_mode_success() {

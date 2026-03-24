@@ -20,6 +20,17 @@ export const sampleExpressions = [
   "lon(br_to_pos(pos(0,0),90,111319.49079327357))",
 ];
 
+export interface ConstantDisplayRow {
+  kind: "heading" | "entry";
+  text: string;
+}
+
+interface ConstantGroup {
+  namespace: string;
+  label: string;
+  entries: BindingConstantEntry[];
+}
+
 export function renderTextList(container: HTMLElement, values: string[]): void {
   container.replaceChildren();
   if (values.length === 0) {
@@ -35,6 +46,111 @@ export function renderTextList(container: HTMLElement, values: string[]): void {
     line.className = "pane-line";
     line.textContent = value;
     container.append(line);
+  }
+}
+
+function constantNamespace(name: string): string {
+  const separator = name.indexOf(".");
+  return separator === -1 ? "root" : name.slice(0, separator);
+}
+
+function constantNamespaceLabel(namespace: string): string {
+  switch (namespace) {
+    case "root":
+      return "Math (root)";
+    case "m":
+      return "Math (m)";
+    case "c":
+      return "Conversions (c)";
+    case "ph":
+      return "Physical (ph)";
+    default:
+      return namespace;
+  }
+}
+
+function groupConstants(values: BindingConstantEntry[]): ConstantGroup[] {
+  const groups: ConstantGroup[] = [];
+  let currentGroup: ConstantGroup | null = null;
+  for (const value of values) {
+    const namespace = constantNamespace(value.name);
+    if (currentGroup === null || currentGroup.namespace !== namespace) {
+      currentGroup = {
+        namespace,
+        label: constantNamespaceLabel(namespace),
+        entries: [],
+      };
+      groups.push(currentGroup);
+    }
+    currentGroup.entries.push(value);
+  }
+  return groups;
+}
+
+export function constantDisplayRows(
+  values: BindingConstantEntry[],
+): ConstantDisplayRow[] {
+  const rows: ConstantDisplayRow[] = [];
+  for (const group of groupConstants(values)) {
+    rows.push({ kind: "heading", text: group.label });
+    for (const value of group.entries) {
+      rows.push({ kind: "entry", text: constantDisplay(value) });
+    }
+  }
+  return rows;
+}
+
+export function renderConstantList(
+  container: HTMLElement,
+  values: BindingConstantEntry[],
+): void {
+  container.replaceChildren();
+  if (values.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "pane-empty";
+    empty.textContent = "Empty";
+    container.append(empty);
+    return;
+  }
+
+  for (const group of groupConstants(values)) {
+    const section = document.createElement("section");
+    section.className = "pane-group";
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "pane-group-toggle";
+    toggle.setAttribute("aria-expanded", "false");
+
+    const marker = document.createElement("span");
+    marker.className = "pane-group-marker";
+    marker.textContent = "+";
+
+    const label = document.createElement("span");
+    label.className = "pane-group-heading";
+    label.textContent = group.label;
+
+    const body = document.createElement("div");
+    body.className = "pane-group-body";
+    body.hidden = true;
+
+    toggle.addEventListener("click", () => {
+      const expanded = body.hidden;
+      body.hidden = !expanded;
+      toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+      marker.textContent = expanded ? "−" : "+";
+    });
+
+    for (const value of group.entries) {
+      const line = document.createElement("div");
+      line.className = "pane-line";
+      line.textContent = constantDisplay(value);
+      body.append(line);
+    }
+
+    toggle.append(marker, label);
+    section.append(toggle, body);
+    container.append(section);
   }
 }
 
