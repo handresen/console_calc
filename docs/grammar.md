@@ -1,22 +1,30 @@
 # Grammar Notes
 
-## First Test Grammar
+## Language Overview
 
-This initial grammar exists to exercise the parser pipeline with the smallest useful expression language.
+This document describes the current calculator expression language at a practical level.
+It is not intended to be a full compiler-grade formal specification. The EBNF below is
+kept deliberately compact and focuses on the stable parser shape, while the sections on
+evaluation rules and builtin forms capture the higher-level semantics that matter in use.
 
 Current scope:
 - intrinsic integer and floating-point scalar values
-- integer and floating-point numeric literals
+- flat scalar lists and homogeneous position lists
+- geographic positions as a first-class intrinsic value type
+- integer and floating-point numeric literals, including hexadecimal and binary integers
 - unary `-`, `~`
-- binary `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|`
-- parentheses for grouping
+- binary `+`, `-`, `*`, `/`, `%`, `^`, `=`, `<`, `<=`, `>`, `>=`, `&`, `|`
+- function calls
+- parentheses and list literals for grouping and collection construction
 - postfix indexing with `[ ... ]`
-- list literals with `{ ... }`
-- function calls: `sin`, `cos`, `tan`, `sind`, `cosd`, `tand`, `pow`, `pos`, `lat`, `lon`, `dist`, `bearing`, `br_to_pos`, `sum`, `len`, `product`, `avg`, `min`, `max`, `first`, `drop`, `list_div`, `list_mul`, `guard`, `reduce`, `map`, `range`, `geom`, `repeat`, `linspace`, `powers`
+- builtin scalar, list, list-generation, and geo functions
+- special forms such as `map`, `map_at`, `list_where`, `reduce`, `guard`, `timed_loop`, and `fill`
+- case-sensitive builtin constant lookup including namespaced constants such as `m.pi`, `c.deg`, and `ph.c`
+- late-bound console definitions and fixed-arity user-defined functions are part of the wider language surface, but they are expanded in the app layer rather than parsed as core AST forms
 - optional whitespace between tokens
 
-Explicitly out of scope for this first version:
-- variables or constants
+The core parser still does not treat `.` as a general member-access operator. Dotted names
+such as `m.pi` are handled as narrow app-layer builtin constant lookup.
 
 ## Tokens
 
@@ -53,6 +61,7 @@ postfix    = primary , { "[" , expression , "]" } ;
 primary    = number | function_call | map_call | list_where_call | guard_call | list | "(" , expression , ")" ;
 function_call = identifier , "(" , expression , { "," , expression } , ")" ;
 map_call   = "map" , "(" , expression , "," , expression , ")" ;
+map_at_call = "map_at" , "(" , expression , "," , expression , ")" ;
 list_where_call = "list_where" , "(" , expression , "," , expression , ")" ;
 guard_call = "guard" , "(" , expression , "," , expression , ")" ;
 list       = "{" , expression , { "," , expression } , "}" ;
@@ -64,6 +73,11 @@ digits     = digit , { digit } ;
 digit      = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
 operator   = "+" | "-" | "*" | "/" | "%" | "^" | "&" | "|" ;
 ```
+
+Notes on this compact grammar:
+- comparison operators are part of the current language even though the abbreviated EBNF keeps the main recursive-descent shape compact
+- `map_at`, `reduce`, `timed_loop`, and `fill` are current special forms/builtins even when not all optional-argument details are spelled out in the EBNF
+- namespaced constants and user-defined functions are current language features, but they are resolved in the app layer rather than introduced as extra core AST node types here
 
 Accepted numeric forms include:
 - integer literals such as `42`
