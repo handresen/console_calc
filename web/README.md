@@ -15,6 +15,7 @@ Current status:
   - helper panes for stack, definitions, constants, functions, and samples
   - a client-only plot pane for the latest scalar-list or one-level scalar nested-list value on the stack
   - a client-only map pane for the latest position-list or one-level position nested-list value on the stack
+    - closed position paths render as filled semitransparent areas
 - shows per-command timing in the transcript
 - keeps calculator/session semantics in the wasm host layer rather than in the UI
 

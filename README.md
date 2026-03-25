@@ -79,9 +79,10 @@ The Vite app expects the wasm host artifact from the repository root to exist
 first. In local development, open the Vite URL it prints, or the reverse-proxied
 `/cc/` route if you use that setup.
 
-The web UI can plot scalar lists and one-level nested scalar lists as overlaid
-series, and it can map position lists and one-level nested position lists as
-one or more paths from the latest plottable stack entry.
+The web UI plots scalar lists and one-level nested scalar lists as overlaid
+series in the plot pane. Position lists and one-level nested position lists are
+rendered in the map pane from the latest plottable stack entry, and closed
+paths display as filled semitransparent areas.
 
 ## Running
 
