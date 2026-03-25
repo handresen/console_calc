@@ -6,6 +6,7 @@
 
 Across those hosts it supports:
 - scalar, list, position, and position-list values
+- one-level nested scalar lists and one-level nested position lists
 - late-bound user definitions and fixed-arity user functions in console mode
 - helper listings, plotting, and lightweight exploratory workflows in the web UI
 
@@ -77,6 +78,10 @@ npm run dev
 The Vite app expects the wasm host artifact from the repository root to exist
 first. In local development, open the Vite URL it prints, or the reverse-proxied
 `/cc/` route if you use that setup.
+
+The web UI can plot scalar lists and one-level nested scalar lists as overlaid
+series, and it can map position lists and one-level nested position lists as
+one or more paths from the latest plottable stack entry.
 
 ## Running
 

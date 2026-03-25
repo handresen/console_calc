@@ -9,7 +9,7 @@ evaluation rules and builtin forms capture the higher-level semantics that matte
 
 Current scope:
 - intrinsic integer and floating-point scalar values
-- flat scalar lists and homogeneous position lists
+- flat scalar lists, one-level scalar nested lists, homogeneous position lists, and one-level position nested lists
 - geographic positions as a first-class intrinsic value type
 - integer and floating-point numeric literals, including hexadecimal and binary integers
 - unary `-`, `~`
@@ -165,6 +165,11 @@ position as `lat, lon`.
 `to_poslist(list)` converts an even-length scalar list into a position list by
 pairing values as `(lat, lon)`. An odd number of values is invalid, and an
 empty list returns an empty position list.
+
+In the active web host, the latest plottable stack entry is rendered as a plot
+or map group. A scalar list plots as one series, a one-level nested scalar list
+plots as multiple overlaid series on shared axes, a position list maps as one
+path, and a one-level nested position list maps as multiple paths.
 
 Examples:
 - `2 + 3` => `5`

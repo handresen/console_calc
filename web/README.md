@@ -13,14 +13,15 @@ Current status:
   - console-style transcript
   - prompt with history support
   - helper panes for stack, definitions, constants, functions, and samples
-  - a client-only plot pane for the topmost scalar list on the stack
+  - a client-only plot pane for the latest scalar-list or one-level scalar nested-list value on the stack
+  - a client-only map pane for the latest position-list or one-level position nested-list value on the stack
 - shows per-command timing in the transcript
 - keeps calculator/session semantics in the wasm host layer rather than in the UI
 
 Current limits:
 
-- position lists display correctly in the transcript via their formatted value
-- the plot pane is still scalar-list-only and ignores position lists
+- deeper nested lists are still unsupported
+- plot and map grouping currently come from the latest plottable stack entry only
 
 Relevant root-side artifacts:
 
