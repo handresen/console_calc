@@ -93,12 +93,13 @@ Builtin functions:
 - `lat(pos)` and `lon(pos)` extract latitude and longitude in degrees
 - `to_list(poslist)` expands positions into scalar values using `(lat, lon)` order
 - `to_poslist(list)` pairs scalar list values into positions using `(lat, lon)` order
+- `densify_path(poslist, count)` inserts `count` evenly spaced geodesic points per path leg
 - `dist(pos1, pos2)` returns WGS84 ellipsoid distance in meters
 - `dist(poslist)` returns summed WGS84 path length over consecutive positions
 - `bearing(pos1, pos2)` returns initial WGS84 bearing in degrees
 - `br_to_pos(pos, bearing_deg, range_m)` returns a destination position from a start position, bearing, and range in meters
 - `sum(list)` sums a list value
-- `len(list)` returns list length
+- `len(list)` and `len(poslist)` return collection length
 - `product(list)` multiplies all list values; `product({})` is `1`
 - `avg(list)` returns the arithmetic mean of a non-empty list
 - `min(list)` and `max(list)` require non-empty lists
@@ -124,7 +125,7 @@ Integer-preserving behavior:
 - `+`, `-`, and `*` preserve integer results when both operands are integers and the result fits in 64 bits
 - `/` always produces a floating-point result
 - `%` produces an integer result when both operands are integers, otherwise floating-point modulo is used
-- `len(list)` returns an integer
+- `len(list)` and `len(poslist)` return an integer
 - `sum(list)` and `product(list)` preserve integer results when all inputs remain integral
 - trig functions always return floating-point results
 
@@ -158,11 +159,13 @@ Examples:
 - `lon(pos(60, 10))` => `10`
 - `to_list({pos(60, 10), pos(61, 11)})` => `{60, 10, 61, 11}`
 - `to_poslist({60, 10, 61, 11})` => `{pos(60, 10), pos(61, 11)}`
+- `len(densify_path({pos(0, 0), pos(0, 1)}, 2))` => `4`
 - `dist(pos(0, 0), pos(0, 1))` => `111319.4907932264`
 - `dist({pos(0, 0), pos(0, 1), pos(0, 2)})` => `222638.9815864528`
 - `bearing(pos(0, 0), pos(0, 1))` => `90`
 - `lon(br_to_pos(pos(0, 0), 90, 111319.4907932264))` => `1`
 - `len({1, 2, 3})` => `3`
+- `len({pos(0, 0), pos(0, 1)})` => `2`
 - `product({2, 3, 4})` => `24`
 - `avg({2, 4, 6})` => `4`
 - `min({2, -1, 5})` => `-1`
@@ -221,6 +224,7 @@ Examples:
 - `lat(pos(60, 10))`
 - `dist(pos(0, 0), pos(0, 1))`
 - `len({1, 2, 3})`
+- `len({pos(0, 0), pos(0, 1)})`
 - `product({2, 3, 4})`
 - `avg({2, 4, 6})`
 - `first({1, 2, 3}, 2)`

@@ -201,6 +201,15 @@ template <typename Operation>
         }
         return values;
     }
+    case Function::densify_path: {
+        const PositionListValue positions = require_position_list(arguments[0]);
+        const auto inserted_per_leg =
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[1]));
+        if (inserted_per_leg < 0) {
+            throw EvaluationError("densify_path() count must be a non-negative integer");
+        }
+        return densify_wgs84_path(positions, static_cast<std::size_t>(inserted_per_leg));
+    }
     case Function::dist:
         if (arguments.size() == 1U) {
             return wgs84_path_distance(require_position_list(arguments[0]));
@@ -233,8 +242,13 @@ template <typename Operation>
         return to_value(total);
     }
     case Function::len: {
-        const ListValue values = require_list(arguments[0]);
-        return static_cast<std::int64_t>(values.size());
+        if (const auto* values = std::get_if<ListValue>(&arguments[0])) {
+            return static_cast<std::int64_t>(values->size());
+        }
+        if (const auto* positions = std::get_if<PositionListValue>(&arguments[0])) {
+            return static_cast<std::int64_t>(positions->size());
+        }
+        throw EvaluationError("list or position list value required");
     }
     case Function::product: {
         const ListValue values = require_list(arguments[0]);

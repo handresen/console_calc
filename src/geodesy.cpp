@@ -86,6 +86,33 @@ double wgs84_path_distance(const PositionListValue& positions) {
     return total_distance_m;
 }
 
+PositionListValue densify_wgs84_path(const PositionListValue& positions,
+                                     std::size_t inserted_per_leg) {
+    if (positions.size() < 2U || inserted_per_leg == 0U) {
+        return positions;
+    }
+
+    PositionListValue dense_positions;
+    dense_positions.reserve(positions.size() + (positions.size() - 1U) * inserted_per_leg);
+    dense_positions.push_back(positions.front());
+
+    for (std::size_t index = 1; index < positions.size(); ++index) {
+        const PositionValue& start = positions[index - 1U];
+        const PositionValue& end = positions[index];
+        const GeodesicInverseResult leg = wgs84_inverse(start, end);
+        const std::size_t subdivisions = inserted_per_leg + 1U;
+        for (std::size_t step = 1; step <= inserted_per_leg; ++step) {
+            const double fraction =
+                static_cast<double>(step) / static_cast<double>(subdivisions);
+            dense_positions.push_back(
+                wgs84_direct(start, leg.initial_bearing_deg, leg.distance_m * fraction));
+        }
+        dense_positions.push_back(end);
+    }
+
+    return dense_positions;
+}
+
 PositionValue wgs84_direct(const PositionValue& start, double bearing_deg, double distance_m) {
     if (!std::isfinite(bearing_deg)) {
         throw EvaluationError("bearing must be finite");

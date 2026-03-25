@@ -25,6 +25,8 @@ bool expect_expression_function_signature_errors(ExpressionParser& parser) {
          "function 'list_where' expects list_where(list, expr)"},
         {"to_poslist()", "function 'to_poslist' expects to_poslist(list)"},
         {"to_list()", "function 'to_list' expects to_list(poslist)"},
+        {"densify_path({pos(0, 0), pos(0, 1)})",
+         "function 'densify_path' expects densify_path(poslist, count)"},
         {"rand(1, 2, 3)", "function 'rand' expects rand([min, max])"},
     };
 

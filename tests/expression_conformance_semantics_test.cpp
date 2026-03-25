@@ -189,12 +189,21 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const auto* empty_scalars = std::get_if<ListValue>(&empty_scalar_list);
     const Value filled_positions = parser.evaluate_value("fill(pos(60, 10), 2)");
     const auto* position_values = std::get_if<PositionListValue>(&filled_positions);
+    const Value densified_positions =
+        parser.evaluate_value("densify_path({pos(0, 0), pos(0, 1)}, 2)");
+    const auto* densified_values = std::get_if<PositionListValue>(&densified_positions);
     const Value indexed_position = parser.evaluate_value("to_poslist({60, 10, 61, 11})[1]");
     const auto* indexed_position_value = std::get_if<PositionValue>(&indexed_position);
     if (paired_values == nullptr || paired_values->size() != 2 || flattened_values == nullptr ||
         flattened_values->size() != 4 || empty_positions == nullptr || !empty_positions->empty() ||
         empty_scalars == nullptr || !empty_scalars->empty() || position_values == nullptr ||
-        position_values->size() != 2 || indexed_position_value == nullptr ||
+        position_values->size() != 2 || densified_values == nullptr ||
+        densified_values->size() != 4 ||
+        !almost_equal(densified_values->front().longitude_deg, 0.0, 1e-12) ||
+        !almost_equal(densified_values->back().longitude_deg, 1.0, 1e-12) ||
+        !almost_equal(parser.evaluate("dist(densify_path({pos(0, 0), pos(0, 1)}, 2))"),
+                      111319.4907932264, 1e-6) ||
+        indexed_position_value == nullptr ||
         !almost_equal(indexed_position_value->latitude_deg, 61.0) ||
         !almost_equal(indexed_position_value->longitude_deg, 11.0)) {
         return false;
@@ -207,6 +216,7 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value integer_modulo = parser.evaluate_value("7 % 3");
     const Value floating_modulo = parser.evaluate_value("7.5 % 2");
     const Value integer_length = parser.evaluate_value("len({1, 2, 3})");
+    const Value position_length = parser.evaluate_value("len({pos(0, 0), pos(0, 1)})");
     const Value bitwise_not = parser.evaluate_value("~5");
     const Value bitwise_and_fn = parser.evaluate_value("and(6, 3)");
     const Value bitwise_or_fn = parser.evaluate_value("or(6, 3)");
@@ -229,6 +239,7 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         !std::holds_alternative<std::int64_t>(integer_modulo) || std::get<std::int64_t>(integer_modulo) != 1 ||
         !std::holds_alternative<double>(floating_modulo) || !almost_equal(std::get<double>(floating_modulo), 1.5) ||
         !std::holds_alternative<std::int64_t>(integer_length) || std::get<std::int64_t>(integer_length) != 3 ||
+        !std::holds_alternative<std::int64_t>(position_length) || std::get<std::int64_t>(position_length) != 2 ||
         !std::holds_alternative<std::int64_t>(bitwise_not) || std::get<std::int64_t>(bitwise_not) != -6 ||
         !std::holds_alternative<std::int64_t>(bitwise_and_fn) || std::get<std::int64_t>(bitwise_and_fn) != 2 ||
         !std::holds_alternative<std::int64_t>(bitwise_or_fn) || std::get<std::int64_t>(bitwise_or_fn) != 7 ||

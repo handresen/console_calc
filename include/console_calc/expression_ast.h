@@ -95,6 +95,7 @@ enum class Function {
     lon,
     to_poslist,
     to_list,
+    densify_path,
     dist,
     bearing,
     br_to_pos,
