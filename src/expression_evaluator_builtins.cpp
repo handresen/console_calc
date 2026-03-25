@@ -202,6 +202,9 @@ template <typename Operation>
         return values;
     }
     case Function::dist:
+        if (arguments.size() == 1U) {
+            return wgs84_path_distance(require_position_list(arguments[0]));
+        }
         return wgs84_inverse(require_position(arguments[0]), require_position(arguments[1]))
             .distance_m;
     case Function::bearing:

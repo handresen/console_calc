@@ -250,8 +250,10 @@ bool expect_builtin_function_metadata() {
            to_poslist_info.signature == "to_poslist(list)" &&
            !to_poslist_info.scalar_arguments &&
            dist_info.name == "dist" &&
+           dist_info.min_arity == 1 &&
+           dist_info.max_arity == 2 &&
            dist_info.category == console_calc::BuiltinFunctionCategory::position &&
-           dist_info.signature == "dist(pos1, pos2)" &&
+           dist_info.signature == "dist(pos1, pos2) / dist(poslist)" &&
            !dist_info.scalar_arguments &&
            bearing_info.name == "bearing" &&
            bearing_info.category == console_calc::BuiltinFunctionCategory::position &&

@@ -232,6 +232,7 @@ m.pi
 - `to_list(poslist)` expand positions into a scalar list using `(lat, lon)` order
 - `to_poslist(list)` pair scalar list values into positions
 - `dist(pos1, pos2)` WGS84 ellipsoid distance in meters
+- `dist(poslist)` summed WGS84 path length over consecutive positions
 - `bearing(pos1, pos2)` initial WGS84 bearing in degrees
 - `br_to_pos(pos, bearing_deg, range_m)` destination position from bearing and range
 - `guard(expr, fallback)` evaluate `fallback` only if `expr` fails
@@ -340,6 +341,7 @@ rand(10, 20)                  => 13.7...
 map(range(-2, 5), guard(1 / _, 0))
 sum(map({1, 2, 3}, sin(_)))   => 1.89189...
 dist(pos(0, 0), pos(0, 1))    => 111319.490793...
+dist({pos(0, 0), pos(0, 1), pos(0, 2)}) => 222638.981586...
 bearing(pos(0, 0), pos(0, 1)) => 90
 lon(br_to_pos(pos(0, 0), 90, 111319.4907932264)) => 1
 range(10, 4)                  => {10, 11, 12, 13}

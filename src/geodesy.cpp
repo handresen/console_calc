@@ -74,6 +74,18 @@ GeodesicInverseResult wgs84_inverse(const PositionValue& start, const PositionVa
     };
 }
 
+double wgs84_path_distance(const PositionListValue& positions) {
+    if (positions.size() < 2U) {
+        return 0.0;
+    }
+
+    double total_distance_m = 0.0;
+    for (std::size_t index = 1; index < positions.size(); ++index) {
+        total_distance_m += wgs84_inverse(positions[index - 1U], positions[index]).distance_m;
+    }
+    return total_distance_m;
+}
+
 PositionValue wgs84_direct(const PositionValue& start, double bearing_deg, double distance_m) {
     if (!std::isfinite(bearing_deg)) {
         throw EvaluationError("bearing must be finite");

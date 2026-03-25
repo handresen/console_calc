@@ -26,6 +26,10 @@ struct GeodesicInverseResult {
 [[nodiscard]] GeodesicInverseResult wgs84_inverse(const PositionValue& start,
                                                  const PositionValue& end);
 
+// Sum the WGS84 ellipsoidal path length over consecutive points in a position list.
+// Lists with fewer than two points have zero path length.
+[[nodiscard]] double wgs84_path_distance(const PositionListValue& positions);
+
 // Solve the WGS84 direct geodesic problem: destination from start, initial bearing, and range.
 // Implementation uses Vincenty's iterative direct formula on the WGS84 ellipsoid.
 // Assumptions:

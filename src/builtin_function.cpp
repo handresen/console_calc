@@ -33,7 +33,7 @@ constexpr std::array<BuiltinFunctionInfo, 42> k_builtin_functions = {{
     {Function::lon, "lon", 1, 1, BuiltinFunctionCategory::position, false, false, "lon(pos)", "extract longitude in degrees"},
     {Function::to_poslist, "to_poslist", 1, 1, BuiltinFunctionCategory::position, false, false, "to_poslist(list)", "pair scalar list values into positions"},
     {Function::to_list, "to_list", 1, 1, BuiltinFunctionCategory::position, false, false, "to_list(poslist)", "expand positions into lat lon scalar list"},
-    {Function::dist, "dist", 2, 2, BuiltinFunctionCategory::position, false, false, "dist(pos1, pos2)", "WGS84 ellipsoid distance in meters"},
+    {Function::dist, "dist", 1, 2, BuiltinFunctionCategory::position, false, false, "dist(pos1, pos2) / dist(poslist)", "WGS84 ellipsoid distance or path length in meters"},
     {Function::bearing, "bearing", 2, 2, BuiltinFunctionCategory::position, false, false, "bearing(pos1, pos2)", "initial WGS84 bearing in degrees"},
     {Function::br_to_pos, "br_to_pos", 3, 3, BuiltinFunctionCategory::position, false, false, "br_to_pos(pos, bearing_deg, range_m)", "destination position from bearing and range"},
     {Function::sum, "sum", 1, 1, BuiltinFunctionCategory::list, true, false, "sum(list)", "sum list elements"},

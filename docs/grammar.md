@@ -94,6 +94,7 @@ Builtin functions:
 - `to_list(poslist)` expands positions into scalar values using `(lat, lon)` order
 - `to_poslist(list)` pairs scalar list values into positions using `(lat, lon)` order
 - `dist(pos1, pos2)` returns WGS84 ellipsoid distance in meters
+- `dist(poslist)` returns summed WGS84 path length over consecutive positions
 - `bearing(pos1, pos2)` returns initial WGS84 bearing in degrees
 - `br_to_pos(pos, bearing_deg, range_m)` returns a destination position from a start position, bearing, and range in meters
 - `sum(list)` sums a list value
@@ -158,6 +159,7 @@ Examples:
 - `to_list({pos(60, 10), pos(61, 11)})` => `{60, 10, 61, 11}`
 - `to_poslist({60, 10, 61, 11})` => `{pos(60, 10), pos(61, 11)}`
 - `dist(pos(0, 0), pos(0, 1))` => `111319.4907932264`
+- `dist({pos(0, 0), pos(0, 1), pos(0, 2)})` => `222638.9815864528`
 - `bearing(pos(0, 0), pos(0, 1))` => `90`
 - `lon(br_to_pos(pos(0, 0), 90, 111319.4907932264))` => `1`
 - `len({1, 2, 3})` => `3`

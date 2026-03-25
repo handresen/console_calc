@@ -148,6 +148,9 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         !almost_equal(parser.evaluate("lat(pos(60, 10))"), 60.0) ||
         !almost_equal(parser.evaluate("lon(pos(60, 10))"), 10.0) ||
         !almost_equal(parser.evaluate("dist(pos(0, 0), pos(0, 1))"), 111319.4907932264, 1e-6) ||
+        !almost_equal(parser.evaluate("dist({pos(0, 0), pos(0, 1), pos(0, 2)})"),
+                      222638.9815864528, 1e-6) ||
+        !almost_equal(parser.evaluate("dist({pos(60, 10)})"), 0.0, 1e-12) ||
         !almost_equal(parser.evaluate("bearing(pos(0, 0), pos(0, 1))"), 90.0, 1e-9) ||
         !almost_equal(parser.evaluate("lat(br_to_pos(pos(0, 0), 90, 111319.4907932264))"), 0.0, 1e-8) ||
         !almost_equal(parser.evaluate("lon(br_to_pos(pos(0, 0), 90, 111319.4907932264))"), 1.0, 1e-8)) {
