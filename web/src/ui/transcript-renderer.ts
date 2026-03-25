@@ -31,18 +31,23 @@ function countTopLevelItems(content: string): number {
 }
 
 function splitTopLevelInnerLists(payload: string): string[] | null {
-  if (!payload.startsWith("{{") || !payload.endsWith("}}")) {
+  if (!payload.startsWith("{") || !payload.endsWith("}")) {
     return null;
   }
 
   const inner = payload.slice(1, -1);
+  const trimmedInner = inner.trim();
+  if (!trimmedInner.startsWith("{") || !trimmedInner.endsWith("}")) {
+    return null;
+  }
+
   const lists: string[] = [];
   let segmentStart = -1;
   let braceDepth = 0;
   let parenDepth = 0;
 
-  for (let index = 0; index < inner.length; index += 1) {
-    const char = inner[index];
+  for (let index = 0; index < trimmedInner.length; index += 1) {
+    const char = trimmedInner[index];
     if (char === "(") {
       parenDepth += 1;
       continue;
@@ -64,13 +69,73 @@ function splitTopLevelInnerLists(payload: string): string[] | null {
     if (char === "}") {
       braceDepth -= 1;
       if (braceDepth === 0 && segmentStart >= 0) {
-        lists.push(inner.slice(segmentStart, index + 1));
+        lists.push(trimmedInner.slice(segmentStart, index + 1));
         segmentStart = -1;
       }
     }
   }
 
   return lists.length > 0 ? lists : null;
+}
+
+function compactListWhitespace(text: string): string {
+  return text
+    .replace(/\s+/g, " ")
+    .replace(/\{\s+/g, "{")
+    .replace(/\s+\}/g, "}")
+    .replace(/\s*,\s*/g, ", ")
+    .trim();
+}
+
+function extractBalancedBraceSlice(text: string, startIndex: number): string | null {
+  if (text[startIndex] !== "{") {
+    return null;
+  }
+
+  let braceDepth = 0;
+  let parenDepth = 0;
+  for (let index = startIndex; index < text.length; index += 1) {
+    const char = text[index];
+    if (char === "(") {
+      parenDepth += 1;
+      continue;
+    }
+    if (char === ")") {
+      parenDepth = Math.max(0, parenDepth - 1);
+      continue;
+    }
+    if (parenDepth > 0) {
+      continue;
+    }
+    if (char === "{") {
+      braceDepth += 1;
+    } else if (char === "}") {
+      braceDepth -= 1;
+      if (braceDepth === 0) {
+        return text.slice(startIndex, index + 1);
+      }
+    }
+  }
+
+  return null;
+}
+
+function findNextMultiListStart(text: string, cursor: number): number {
+  for (let index = cursor; index < text.length; index += 1) {
+    if (text[index] !== "{") {
+      continue;
+    }
+
+    let nextIndex = index + 1;
+    while (nextIndex < text.length && /\s/.test(text[nextIndex] ?? "")) {
+      nextIndex += 1;
+    }
+    if (text[nextIndex] === "{") {
+      return index;
+    }
+  }
+
+  return -1;
 }
 
 function summarizeMultiListPayload(payload: string): string {
@@ -88,44 +153,43 @@ function summarizeMultiListPayload(payload: string): string {
     0,
   );
 
-  let preview = "{";
-  let shown = 0;
-  for (const innerList of innerLists) {
-    const candidate = `${preview}${shown === 0 ? "" : ","}${innerList}`;
-    if (
-      shown >= 2 ||
-      `${candidate},<${innerLists.length - shown - 1} more lists, ${totalItems} items total>}`
-        .length > maxTranscriptMultiListChars
-    ) {
-      break;
-    }
-    preview = candidate;
-    shown += 1;
-  }
-
-  if (shown === 0) {
-    shown = 1;
-    preview = `{${innerLists[0]}`;
-  }
-
-  const remaining = innerLists.length - shown;
-  if (remaining <= 0) {
-    return payload;
-  }
-
-  return `${preview},<${remaining} more lists, ${totalItems} items total>}`;
+  const summarySuffix = `<${Math.max(0, innerLists.length - 1)} more lists, ${totalItems} items total>}`;
+  const previewBudget = Math.max(8, maxTranscriptMultiListChars - summarySuffix.length - 1);
+  const compactPayload = compactListWhitespace(payload);
+  const rawPreview = compactPayload.slice(0, previewBudget).trimEnd();
+  const shownInnerLists = (rawPreview.match(/\{/g) ?? []).length - 1;
+  const remaining = Math.max(0, innerLists.length - Math.max(1, shownInnerLists));
+  const adjustedSuffix = `<${remaining} more lists, ${totalItems} items total>}`;
+  const adjustedBudget = Math.max(8, maxTranscriptMultiListChars - adjustedSuffix.length - 1);
+  let preview = compactPayload.slice(0, adjustedBudget).trimEnd();
+  preview = preview.replace(/,+\s*$/, "");
+  return `${preview},${adjustedSuffix}`;
 }
 
 export function formatTranscriptText(text: string, decimals: number): string {
   const formatted = formatNumericText(text, decimals);
-  const multiListIndex = formatted.indexOf("{{");
-  if (multiListIndex < 0) {
-    return formatted;
+  let output = "";
+  let cursor = 0;
+
+  while (cursor < formatted.length) {
+    const multiListIndex = findNextMultiListStart(formatted, cursor);
+    if (multiListIndex < 0) {
+      output += formatted.slice(cursor);
+      break;
+    }
+
+    output += formatted.slice(cursor, multiListIndex);
+    const payload = extractBalancedBraceSlice(formatted, multiListIndex);
+    if (payload === null) {
+      output += formatted.slice(multiListIndex);
+      break;
+    }
+
+    output += summarizeMultiListPayload(payload);
+    cursor = multiListIndex + payload.length;
   }
 
-  const prefix = formatted.slice(0, multiListIndex);
-  const payload = formatted.slice(multiListIndex);
-  return `${prefix}${summarizeMultiListPayload(payload)}`;
+  return output;
 }
 
 function expectedFunctionSignature(
