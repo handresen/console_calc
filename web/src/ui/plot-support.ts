@@ -71,46 +71,6 @@ function samplePositionValues(
 }
 
 export function parsePlotGroup(entry: BindingStackEntry): PlotGroup | null {
-  const multiPositionListValues = entry.multi_position_list_values ?? [];
-  if (multiPositionListValues.length > 0) {
-    return {
-      key: `stack-${entry.level}`,
-      label: `Stack ${entry.level}`,
-      kind: "position",
-      items: multiPositionListValues.map((points, index) => {
-        const sampled = samplePositionValues(points);
-        return {
-          kind: "position",
-          key: `stack-${entry.level}-pos-${index}`,
-          label: `Stack ${entry.level}[${index}]`,
-          points: sampled.points,
-          rawPoints: points,
-          truncated: sampled.truncated,
-        } satisfies PositionPlotSeries;
-      }),
-    };
-  }
-
-  const positionListValues = entry.position_list_values ?? [];
-  if (positionListValues.length > 0 || entry.display.trim().startsWith("{pos(")) {
-    const sampled = samplePositionValues(positionListValues);
-    return {
-      key: `stack-${entry.level}`,
-      label: `Stack ${entry.level}`,
-      kind: "position",
-      items: [
-        {
-          kind: "position",
-          key: `stack-${entry.level}`,
-          label: `Stack ${entry.level}`,
-          points: sampled.points,
-          rawPoints: positionListValues,
-          truncated: sampled.truncated,
-        },
-      ],
-    };
-  }
-
   const multiListValues = entry.multi_list_values ?? [];
   if (multiListValues.length > 0) {
     return {
@@ -151,6 +111,50 @@ export function parsePlotGroup(entry: BindingStackEntry): PlotGroup | null {
       },
     ],
   };
+}
+
+export function parseMapGroup(entry: BindingStackEntry): PlotGroup | null {
+  const multiPositionListValues = entry.multi_position_list_values ?? [];
+  if (multiPositionListValues.length > 0) {
+    return {
+      key: `stack-${entry.level}`,
+      label: `Stack ${entry.level}`,
+      kind: "position",
+      items: multiPositionListValues.map((points, index) => {
+        const sampled = samplePositionValues(points);
+        return {
+          kind: "position",
+          key: `stack-${entry.level}-pos-${index}`,
+          label: `Stack ${entry.level}[${index}]`,
+          points: sampled.points,
+          rawPoints: points,
+          truncated: sampled.truncated,
+        } satisfies PositionPlotSeries;
+      }),
+    };
+  }
+
+  const positionListValues = entry.position_list_values ?? [];
+  if (positionListValues.length > 0 || entry.display.trim().startsWith("{pos(")) {
+    const sampled = samplePositionValues(positionListValues);
+    return {
+      key: `stack-${entry.level}`,
+      label: `Stack ${entry.level}`,
+      kind: "position",
+      items: [
+        {
+          kind: "position",
+          key: `stack-${entry.level}`,
+          label: `Stack ${entry.level}`,
+          points: sampled.points,
+          rawPoints: positionListValues,
+          truncated: sampled.truncated,
+        },
+      ],
+    };
+  }
+
+  return parsePlotGroup(entry);
 }
 
 export function buildScalarBounds(values: number[]): {
@@ -312,6 +316,19 @@ export function buildPositionPlotPath(
       return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
     })
     .join(" ");
+}
+
+export function isClosedPositionSeries(series: PositionPlotSeries): boolean {
+  if (series.rawPoints.length < 4) {
+    return false;
+  }
+
+  const first = series.rawPoints[0];
+  const last = series.rawPoints[series.rawPoints.length - 1];
+  return (
+    first?.latitude_deg === last?.latitude_deg &&
+    first?.longitude_deg === last?.longitude_deg
+  );
 }
 
 export function buildPositionReferenceAxes(

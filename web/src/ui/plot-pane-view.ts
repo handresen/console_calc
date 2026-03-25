@@ -4,21 +4,15 @@ import { createPane } from "./pane-controls";
 import type { PaneElements } from "./pane-controls";
 import {
   buildPlotPath,
-  buildPositionGroupBounds,
-  buildPositionBounds,
-  buildPositionPlotPath,
-  buildPositionPlotPoints,
-  buildPositionReferenceAxes,
   buildScalarGroupBounds,
   buildScalarBounds,
   buildScalarPlotPoints,
   buildZeroAxisPath,
-  formatCornerLabel,
   formatScalarAxisLabel,
   isPlotGroup,
   parsePlotGroup,
 } from "./plot-support";
-import type { PlotGroup, PlotItem, PlotPoint, PlotSeries, PositionPlotSeries } from "./plot-support";
+import type { PlotGroup, PlotItem, PlotPoint, PlotSeries } from "./plot-support";
 
 export interface PlotPaneView {
   pane: PaneElements;
@@ -190,10 +184,11 @@ export function createPlotPaneView(
 
   const renderLinePaths = (seriesList: PlotItem[], paths: string[]) => {
     plotLines.replaceChildren();
-    seriesList.forEach((series, seriesIndex) => {
+    seriesList.forEach((_, seriesIndex) => {
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("class", `plot-line plot-series-${seriesIndex % 6}`);
       path.setAttribute("d", paths[seriesIndex] ?? "");
+      path.setAttribute("fill", "none");
       plotLines.append(path);
     });
   };
@@ -326,81 +321,41 @@ export function createPlotPaneView(
     const suffix = currentGroup.items.some((series) => series.truncated)
       ? " | using visible values"
       : "";
-    if (currentGroup.kind === "scalar") {
-      const scalarSeries = currentGroup.items as PlotSeries[];
-      const scalarBounds = buildScalarGroupBounds(scalarSeries);
-      const totalValues = scalarSeries.reduce(
-        (sum, series) => sum + series.rawValues.length,
-        0,
-      );
-      plotMeta.textContent = `${currentGroup.label} | ${scalarSeries.length} series | ${totalValues} values${suffix}`;
-      plotZeroAxis.setAttribute(
-        "d",
-        buildZeroAxisPath(
-          scalarSeries.flatMap((series) => series.rawValues),
-          320,
-          180,
-          scalarBounds,
-        ),
-      );
-      plotPrimeMeridian.setAttribute("d", "");
-      const pointsList = scalarSeries.map((series) =>
-        buildScalarPlotPoints(series.values, 320, 180, scalarBounds),
-      );
-      latestHoverSeries = scalarSeries[scalarSeries.length - 1] ?? null;
-      latestPlotPoints = latestHoverSeries
-        ? buildScalarPlotPoints(latestHoverSeries.rawValues, 320, 180, scalarBounds)
-        : [];
-      renderLinePaths(
-        scalarSeries,
-        lineToggle.checked
-          ? scalarSeries.map((series) => buildPlotPath(series.values, 320, 180, scalarBounds))
-          : scalarSeries.map(() => ""),
-      );
-      renderPointMarkers(scalarSeries, pointsToggle.checked ? pointsList : scalarSeries.map(() => []));
-      topLeftLabel.textContent = formatScalarAxisLabel(scalarBounds.max);
-      topRightLabel.textContent = "";
-      bottomLeftLabel.textContent = formatScalarAxisLabel(scalarBounds.min);
-      bottomRightLabel.textContent = "";
-      return;
-    }
-
-    const positionSeries = currentGroup.items as PositionPlotSeries[];
-    const totalPositions = positionSeries.reduce(
-      (sum, series) => sum + series.rawPoints.length,
+    const scalarSeries = currentGroup.items as PlotSeries[];
+    const scalarBounds = buildScalarGroupBounds(scalarSeries);
+    const totalValues = scalarSeries.reduce(
+      (sum, series) => sum + series.rawValues.length,
       0,
     );
-    plotMeta.textContent = `${currentGroup.label} | ${positionSeries.length} paths | ${totalPositions} positions | lon/x, lat/y${suffix}`;
-    const bounds = buildPositionGroupBounds(positionSeries);
-    const referenceAxes = buildPositionReferenceAxes(
-      positionSeries.flatMap((series) => series.rawPoints),
-      320,
-      180,
-      bounds,
+    plotMeta.textContent = `${currentGroup.label} | ${scalarSeries.length} series | ${totalValues} values${suffix}`;
+    plotZeroAxis.setAttribute(
+      "d",
+      buildZeroAxisPath(
+        scalarSeries.flatMap((series) => series.rawValues),
+        320,
+        180,
+        scalarBounds,
+      ),
     );
-    plotZeroAxis.setAttribute("d", referenceAxes.equator);
-    plotPrimeMeridian.setAttribute("d", referenceAxes.primeMeridian);
-    const pointsList = positionSeries.map((series) =>
-      buildPositionPlotPoints(series.points, 320, 180, bounds),
+    plotPrimeMeridian.setAttribute("d", "");
+    const pointsList = scalarSeries.map((series) =>
+      buildScalarPlotPoints(series.values, 320, 180, scalarBounds),
     );
-    latestHoverSeries = positionSeries[positionSeries.length - 1] ?? null;
+    latestHoverSeries = scalarSeries[scalarSeries.length - 1] ?? null;
     latestPlotPoints = latestHoverSeries
-      ? buildPositionPlotPoints(latestHoverSeries.rawPoints, 320, 180, bounds)
+      ? buildScalarPlotPoints(latestHoverSeries.rawValues, 320, 180, scalarBounds)
       : [];
     renderLinePaths(
-      positionSeries,
+      scalarSeries,
       lineToggle.checked
-        ? positionSeries.map((series) => buildPositionPlotPath(series.points, 320, 180, bounds))
-        : positionSeries.map(() => ""),
+        ? scalarSeries.map((series) => buildPlotPath(series.values, 320, 180, scalarBounds))
+        : scalarSeries.map(() => ""),
     );
-    renderPointMarkers(
-      positionSeries,
-      pointsToggle.checked ? pointsList : positionSeries.map(() => []),
-    );
-    topLeftLabel.textContent = formatCornerLabel(bounds.maxY, bounds.minX);
-    topRightLabel.textContent = formatCornerLabel(bounds.maxY, bounds.maxX);
-    bottomLeftLabel.textContent = formatCornerLabel(bounds.minY, bounds.minX);
-    bottomRightLabel.textContent = formatCornerLabel(bounds.minY, bounds.maxX);
+    renderPointMarkers(scalarSeries, pointsToggle.checked ? pointsList : scalarSeries.map(() => []));
+    topLeftLabel.textContent = formatScalarAxisLabel(scalarBounds.max);
+    topRightLabel.textContent = "";
+    bottomLeftLabel.textContent = formatScalarAxisLabel(scalarBounds.min);
+    bottomRightLabel.textContent = "";
   };
 
   const rerenderPlot = () => {

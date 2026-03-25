@@ -13,7 +13,7 @@ import { Circle as CircleStyle, Fill, Stroke, Style } from "ol/style";
 import type { DisplaySettings } from "./display-settings";
 import { createPane } from "./pane-controls";
 import type { PaneElements } from "./pane-controls";
-import { isPlotGroup, parsePlotGroup, toMapCoordinates } from "./plot-support";
+import { isPlotGroup, parseMapGroup, toMapCoordinates } from "./plot-support";
 import type { PlotGroup, PositionPlotSeries } from "./plot-support";
 
 export interface MapPaneView {
@@ -211,7 +211,7 @@ export function createMapPaneView(
   };
 
   const rerenderMap = () => {
-    renderMap(latestStack.map((entry) => parsePlotGroup(entry)).filter(isPlotGroup));
+    renderMap(latestStack.map((entry) => parseMapGroup(entry)).filter(isPlotGroup));
   };
 
   const applyMapHeight = (height: number) => {
