@@ -233,6 +233,7 @@ m.pi
 - `to_poslist(list)` pair scalar list values into positions
 - `densify_path(poslist, count)` insert `count` evenly spaced geodesic points per path leg
 - `simplify_path(poslist, tolerance_m)` remove path points whose deviation stays within the tolerance
+- `compress_path(poslist, count[, max_points])` remove path points to reach an exact count while preserving endpoints
 - `dist(pos1, pos2)` WGS84 ellipsoid distance in meters
 - `dist(poslist)` summed WGS84 path length over consecutive positions
 - `bearing(pos1, pos2)` initial WGS84 bearing in degrees
@@ -344,6 +345,7 @@ map(range(-2, 5), guard(1 / _, 0))
 sum(map({1, 2, 3}, sin(_)))   => 1.89189...
 len(densify_path({pos(0, 0), pos(0, 1)}, 2)) => 4
 len(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0)) => 2
+len(compress_path(densify_path({pos(0, 0), pos(0, 1)}, 4), 2)) => 2
 dist(pos(0, 0), pos(0, 1))    => 111319.490793...
 dist({pos(0, 0), pos(0, 1), pos(0, 2)}) => 222638.981586...
 bearing(pos(0, 0), pos(0, 1)) => 90

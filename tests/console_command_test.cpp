@@ -167,6 +167,8 @@ bool expect_builtin_function_metadata() {
         console_calc::builtin_function_info(console_calc::Function::densify_path);
     const auto simplify_path_info =
         console_calc::builtin_function_info(console_calc::Function::simplify_path);
+    const auto compress_path_info =
+        console_calc::builtin_function_info(console_calc::Function::compress_path);
     const auto dist_info = console_calc::builtin_function_info(console_calc::Function::dist);
     const auto bearing_info = console_calc::builtin_function_info(console_calc::Function::bearing);
     const auto br_to_pos_info = console_calc::builtin_function_info(console_calc::Function::br_to_pos);
@@ -265,6 +267,12 @@ bool expect_builtin_function_metadata() {
            simplify_path_info.category == console_calc::BuiltinFunctionCategory::position &&
            simplify_path_info.signature == "simplify_path(poslist, tolerance_m)" &&
            !simplify_path_info.scalar_arguments &&
+           compress_path_info.name == "compress_path" &&
+           compress_path_info.min_arity == 2 &&
+           compress_path_info.max_arity == 3 &&
+           compress_path_info.category == console_calc::BuiltinFunctionCategory::position &&
+           compress_path_info.signature == "compress_path(poslist, count[, max_points])" &&
+           !compress_path_info.scalar_arguments &&
            dist_info.name == "dist" &&
            dist_info.min_arity == 1 &&
            dist_info.max_arity == 2 &&

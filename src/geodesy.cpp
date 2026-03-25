@@ -55,6 +55,12 @@ struct ProjectedPoint {
     double y_m = 0.0;
 };
 
+struct CompressionCandidate {
+    std::size_t index = 0;
+    double penalty_m = 0.0;
+    double neighbor_distance_m = 0.0;
+};
+
 [[nodiscard]] ProjectedPoint project_to_local_plane(const PositionValue& point, double ref_lat_deg,
                                                     double ref_lon_deg) {
     constexpr double k_earth_radius_m = 6371008.8;
@@ -118,6 +124,19 @@ void mark_simplified_points(std::span<const PositionValue> positions, std::size_
         mark_simplified_points(positions, start_index, split_index, tolerance_m, keep);
         mark_simplified_points(positions, split_index, end_index, tolerance_m, keep);
     }
+}
+
+[[nodiscard]] double merged_span_penalty_m(std::span<const PositionValue> positions,
+                                           std::size_t start_index,
+                                           std::size_t end_index) {
+    double penalty_m = 0.0;
+    for (std::size_t index = start_index + 1U; index < end_index; ++index) {
+        penalty_m = std::max(
+            penalty_m,
+            point_to_segment_distance_m(positions[index], positions[start_index],
+                                        positions[end_index]));
+    }
+    return penalty_m;
 }
 
 }  // namespace
@@ -215,6 +234,95 @@ PositionListValue simplify_wgs84_path(const PositionListValue& positions, double
         }
     }
     return simplified;
+}
+
+PositionListValue compress_wgs84_path(const PositionListValue& positions,
+                                      std::size_t target_count, std::size_t max_points) {
+    if (positions.size() > max_points) {
+        throw EvaluationError("compress_path() supports at most " +
+                              std::to_string(max_points) + " positions");
+    }
+    if (positions.empty()) {
+        if (target_count != 0U) {
+            throw EvaluationError("compress_path() target count must match empty path");
+        }
+        return positions;
+    }
+    if (positions.size() == 1U) {
+        if (target_count != 1U) {
+            throw EvaluationError("compress_path() target count must be 1 for a single-point path");
+        }
+        return positions;
+    }
+    if (target_count < 2U || target_count > positions.size()) {
+        throw EvaluationError("compress_path() target count must be in range 2..path length");
+    }
+    if (target_count == positions.size()) {
+        return positions;
+    }
+
+    std::vector<bool> active(positions.size(), true);
+    std::size_t active_count = positions.size();
+
+    while (active_count > target_count) {
+        bool found_candidate = false;
+        CompressionCandidate best{};
+
+        std::size_t prev_active = 0U;
+        for (std::size_t index = 1U; index + 1U < positions.size(); ++index) {
+            if (!active[index]) {
+                continue;
+            }
+
+            std::size_t next_active = index + 1U;
+            while (next_active < positions.size() && !active[next_active]) {
+                ++next_active;
+            }
+            if (next_active >= positions.size()) {
+                break;
+            }
+
+            const double penalty_m =
+                merged_span_penalty_m(positions, prev_active, next_active);
+            const double neighbor_distance_m =
+                wgs84_inverse(positions[prev_active], positions[index]).distance_m +
+                wgs84_inverse(positions[index], positions[next_active]).distance_m;
+
+            const CompressionCandidate candidate{
+                .index = index,
+                .penalty_m = penalty_m,
+                .neighbor_distance_m = neighbor_distance_m,
+            };
+
+            if (!found_candidate || candidate.penalty_m < best.penalty_m ||
+                (candidate.penalty_m == best.penalty_m &&
+                 candidate.neighbor_distance_m < best.neighbor_distance_m) ||
+                (candidate.penalty_m == best.penalty_m &&
+                 candidate.neighbor_distance_m == best.neighbor_distance_m &&
+                 candidate.index < best.index)) {
+                best = candidate;
+                found_candidate = true;
+            }
+
+            prev_active = index;
+        }
+
+        if (!found_candidate) {
+            throw EvaluationError("compress_path() could not reach requested target count");
+        }
+
+        active[best.index] = false;
+        --active_count;
+    }
+
+    PositionListValue compressed;
+    compressed.reserve(target_count);
+    for (std::size_t index = 0; index < positions.size(); ++index) {
+        if (active[index]) {
+            compressed.push_back(positions[index]);
+        }
+    }
+    return compressed;
 }
 
 PositionValue wgs84_direct(const PositionValue& start, double bearing_deg, double distance_m) {

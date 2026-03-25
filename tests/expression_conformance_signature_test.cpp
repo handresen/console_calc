@@ -29,6 +29,8 @@ bool expect_expression_function_signature_errors(ExpressionParser& parser) {
          "function 'densify_path' expects densify_path(poslist, count)"},
         {"simplify_path({pos(0, 0), pos(0, 1)})",
          "function 'simplify_path' expects simplify_path(poslist, tolerance_m)"},
+        {"compress_path({pos(0, 0), pos(0, 1)})",
+         "function 'compress_path' expects compress_path(poslist, count[, max_points])"},
         {"rand(1, 2, 3)", "function 'rand' expects rand([min, max])"},
     };
 

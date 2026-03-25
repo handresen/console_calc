@@ -10,7 +10,7 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<BuiltinFunctionInfo, 44> k_builtin_functions = {{
+constexpr std::array<BuiltinFunctionInfo, 45> k_builtin_functions = {{
     {Function::abs, "abs", 1, 1, BuiltinFunctionCategory::scalar, true, true, "abs(x)", "absolute value"},
     {Function::sin, "sin", 1, 1, BuiltinFunctionCategory::scalar, true, true, "sin(x)", "sine in radians"},
     {Function::cos, "cos", 1, 1, BuiltinFunctionCategory::scalar, true, true, "cos(x)", "cosine in radians"},
@@ -35,6 +35,7 @@ constexpr std::array<BuiltinFunctionInfo, 44> k_builtin_functions = {{
     {Function::to_list, "to_list", 1, 1, BuiltinFunctionCategory::position, false, false, "to_list(poslist)", "expand positions into lat lon scalar list"},
     {Function::densify_path, "densify_path", 2, 2, BuiltinFunctionCategory::position, false, false, "densify_path(poslist, count)", "insert evenly spaced geodesic points per leg"},
     {Function::simplify_path, "simplify_path", 2, 2, BuiltinFunctionCategory::position, false, false, "simplify_path(poslist, tolerance_m)", "remove path points within tolerance"},
+    {Function::compress_path, "compress_path", 2, 3, BuiltinFunctionCategory::position, false, false, "compress_path(poslist, count[, max_points])", "remove path points to reach an exact count"},
     {Function::dist, "dist", 1, 2, BuiltinFunctionCategory::position, false, false, "dist(pos1, pos2) / dist(poslist)", "WGS84 ellipsoid distance or path length in meters"},
     {Function::bearing, "bearing", 2, 2, BuiltinFunctionCategory::position, false, false, "bearing(pos1, pos2)", "initial WGS84 bearing in degrees"},
     {Function::br_to_pos, "br_to_pos", 3, 3, BuiltinFunctionCategory::position, false, false, "br_to_pos(pos, bearing_deg, range_m)", "destination position from bearing and range"},

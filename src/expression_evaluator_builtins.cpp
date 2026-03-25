@@ -214,6 +214,24 @@ template <typename Operation>
         return simplify_wgs84_path(
             require_position_list(arguments[0]),
             scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])));
+    case Function::compress_path: {
+        constexpr std::int64_t k_default_max_points = 5000;
+        const PositionListValue positions = require_position_list(arguments[0]);
+        const auto target_count =
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[1]));
+        const auto max_points =
+            arguments.size() == 3U
+                ? require_integer_operand(require_scalar_or_singleton_list_value(arguments[2]))
+                : k_default_max_points;
+        if (target_count < 0) {
+            throw EvaluationError("compress_path() target count must be non-negative");
+        }
+        if (max_points < 0) {
+            throw EvaluationError("compress_path() max_points must be non-negative");
+        }
+        return compress_wgs84_path(positions, static_cast<std::size_t>(target_count),
+                                   static_cast<std::size_t>(max_points));
+    }
     case Function::dist:
         if (arguments.size() == 1U) {
             return wgs84_path_distance(require_position_list(arguments[0]));
@@ -250,7 +268,7 @@ template <typename Operation>
             return static_cast<std::int64_t>(values->size());
         }
         if (const auto* positions = std::get_if<PositionListValue>(&arguments[0])) {
-        return static_cast<std::int64_t>(positions->size());
+            return static_cast<std::int64_t>(positions->size());
         }
         throw EvaluationError("list or position list value required");
     }

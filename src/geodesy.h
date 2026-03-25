@@ -33,6 +33,9 @@ struct GeodesicInverseResult {
                                                    std::size_t inserted_per_leg);
 [[nodiscard]] PositionListValue simplify_wgs84_path(const PositionListValue& positions,
                                                     double tolerance_m);
+[[nodiscard]] PositionListValue compress_wgs84_path(const PositionListValue& positions,
+                                                    std::size_t target_count,
+                                                    std::size_t max_points);
 
 // Solve the WGS84 direct geodesic problem: destination from start, initial bearing, and range.
 // Implementation uses Vincenty's iterative direct formula on the WGS84 ellipsoid.
