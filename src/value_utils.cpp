@@ -11,6 +11,9 @@ ValueKind value_kind(const Value& value) {
     if (std::holds_alternative<ListValue>(value)) {
         return ValueKind::scalar_list;
     }
+    if (std::holds_alternative<MultiListValue>(value)) {
+        return ValueKind::multi_scalar_list;
+    }
     if (std::holds_alternative<PositionValue>(value)) {
         return ValueKind::position;
     }
@@ -23,6 +26,8 @@ std::string_view value_kind_name(ValueKind kind) {
         return "scalar";
     case ValueKind::scalar_list:
         return "scalar list";
+    case ValueKind::multi_scalar_list:
+        return "multi scalar list";
     case ValueKind::position:
         return "position";
     case ValueKind::position_list:
@@ -39,6 +44,10 @@ bool is_scalar_list_value(const Value& value) {
     return value_kind(value) == ValueKind::scalar_list;
 }
 
+bool is_multi_scalar_list_value(const Value& value) {
+    return value_kind(value) == ValueKind::multi_scalar_list;
+}
+
 bool is_position_value(const Value& value) {
     return value_kind(value) == ValueKind::position;
 }
@@ -49,7 +58,8 @@ bool is_position_list_value(const Value& value) {
 
 bool is_collection_value(const Value& value) {
     const ValueKind kind = value_kind(value);
-    return kind == ValueKind::scalar_list || kind == ValueKind::position_list;
+    return kind == ValueKind::scalar_list || kind == ValueKind::multi_scalar_list ||
+           kind == ValueKind::position_list;
 }
 
 }  // namespace console_calc

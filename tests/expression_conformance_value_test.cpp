@@ -1,5 +1,6 @@
 #include "expression_conformance_checks.h"
 
+#include "console_calc/expression_error.h"
 #include <exception>
 #include <variant>
 
@@ -26,6 +27,19 @@ bool expect_expression_value_api(ExpressionParser& parser) {
     if (!almost_equal(scalar_to_double((*list_value)[0]), 1.0) ||
         !almost_equal(scalar_to_double((*list_value)[1]), 2.0) ||
         !almost_equal(scalar_to_double((*list_value)[2]), 3.0)) {
+        return false;
+    }
+
+    const Value multi_list = parser.evaluate_value("{{1, 2}, {3, 4}}");
+    const auto* multi_list_value = std::get_if<MultiListValue>(&multi_list);
+    if (multi_list_value == nullptr || value_kind(multi_list) != ValueKind::multi_scalar_list ||
+        !is_multi_scalar_list_value(multi_list) || !is_collection_value(multi_list) ||
+        multi_list_value->size() != 2 || (*multi_list_value)[0].size() != 2 ||
+        (*multi_list_value)[1].size() != 2 ||
+        !almost_equal(scalar_to_double((*multi_list_value)[0][0]), 1.0) ||
+        !almost_equal(scalar_to_double((*multi_list_value)[0][1]), 2.0) ||
+        !almost_equal(scalar_to_double((*multi_list_value)[1][0]), 3.0) ||
+        !almost_equal(scalar_to_double((*multi_list_value)[1][1]), 4.0)) {
         return false;
     }
 
@@ -65,6 +79,14 @@ bool expect_expression_value_api(ExpressionParser& parser) {
 
     try {
         (void)parser.evaluate_value("sum({})");
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.evaluate_value("{{{1}}}");
+        return false;
+    } catch (const EvaluationError&) {
     } catch (const std::exception&) {
         return false;
     }

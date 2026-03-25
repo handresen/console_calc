@@ -156,8 +156,8 @@ Notes:
 - hexadecimal literals such as `0xff` and binary literals such as `0b1010` are kept as integer values
 - decimal values with a fractional part or exponent are floating-point values
 - one-element lists are accepted in scalar positions
-- list literals are currently flat; nested lists are rejected
-- postfix indexing works on scalar lists and position lists and requires a non-negative integer index
+- list literals support scalars, position lists, and one-level scalar nested lists like `{{1, 2}, {3, 4}}`; deeper nesting is still rejected
+- postfix indexing works on scalar lists, one-level scalar nested lists, and position lists and requires a non-negative integer index
 
 Current integer-preserving behavior:
 - `+`, `-`, and `*` keep integer results when both inputs are integers and the result fits in 64 bits

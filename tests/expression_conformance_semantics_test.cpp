@@ -48,6 +48,7 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     if (!almost_equal(parser.evaluate("first({2}, 1) + 3"), 5.0) ||
         !almost_equal(parser.evaluate("drop({1, 2, 3}, 2) + 4"), 7.0) ||
         !almost_equal(parser.evaluate("{1, 2, 3}[1]"), 2.0) ||
+        !almost_equal(parser.evaluate("{{1, 2}, {3, 4}}[1][0]"), 3.0) ||
         !almost_equal(parser.evaluate("range(10, 3)[2]"), 12.0) ||
         !almost_equal(parser.evaluate("sin({0})"), 0.0)) {
         return false;

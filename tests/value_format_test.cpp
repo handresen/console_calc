@@ -58,6 +58,22 @@ bool expect_position_list_display() {
            "{pos(60, 10), pos(61, 11)}";
 }
 
+bool expect_multi_list_display() {
+    using console_calc::IntegerDisplayMode;
+    using console_calc::MultiListValue;
+    using console_calc::ScalarValue;
+
+    const MultiListValue values{
+        {ScalarValue{std::int64_t{1}}, ScalarValue{2.5}},
+        {ScalarValue{std::int64_t{3}}, ScalarValue{std::int64_t{4}}},
+    };
+
+    return console_calc::format_multi_list(values, IntegerDisplayMode::decimal) ==
+               "{{1, 2.5}, {3, 4}}" &&
+           console_calc::format_multi_list(values, IntegerDisplayMode::hexadecimal) ==
+               "{{0x1, 2.5}, {0x3, 0x4}}";
+}
+
 }  // namespace
 
 int main() {
@@ -74,6 +90,10 @@ int main() {
     }
 
     if (!expect_position_list_display()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_multi_list_display()) {
         return EXIT_FAILURE;
     }
 

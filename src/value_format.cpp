@@ -68,6 +68,22 @@ std::string format_list(const ListValue& values, IntegerDisplayMode mode) {
     return result;
 }
 
+std::string format_multi_list(const MultiListValue& values) {
+    return format_multi_list(values, IntegerDisplayMode::decimal);
+}
+
+std::string format_multi_list(const MultiListValue& values, IntegerDisplayMode mode) {
+    std::string result = "{";
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        if (index != 0) {
+            result += ", ";
+        }
+        result += format_list(values[index], mode);
+    }
+    result += '}';
+    return result;
+}
+
 std::string format_position_list(const PositionListValue& values) {
     std::string result = "{";
     for (std::size_t index = 0; index < values.size(); ++index) {
@@ -95,6 +111,8 @@ std::string format_value(const Value& value, IntegerDisplayMode mode) {
         return format_position(std::get<PositionValue>(value));
     case ValueKind::scalar_list:
         return format_list(std::get<ListValue>(value), mode);
+    case ValueKind::multi_scalar_list:
+        return format_multi_list(std::get<MultiListValue>(value), mode);
     case ValueKind::position_list:
         return format_position_list(std::get<PositionListValue>(value));
     }
