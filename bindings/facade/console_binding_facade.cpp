@@ -39,6 +39,26 @@ std::vector<double> to_binding_list_values(const Value& value) {
     return output;
 }
 
+std::vector<std::vector<double>> to_binding_multi_list_values(const Value& value) {
+    if (!std::holds_alternative<MultiListValue>(value)) {
+        return {};
+    }
+
+    std::vector<std::vector<double>> output;
+    const auto& lists = std::get<MultiListValue>(value);
+    output.reserve(lists.size());
+    for (const auto& list : lists) {
+        std::vector<double> row;
+        row.reserve(list.size());
+        for (const auto& scalar : list) {
+            row.push_back(std::visit(
+                [](const auto raw_value) { return static_cast<double>(raw_value); }, scalar));
+        }
+        output.push_back(std::move(row));
+    }
+    return output;
+}
+
 std::optional<BindingPositionEntry> to_binding_position(const Value& value) {
     if (const auto* position = std::get_if<PositionValue>(&value)) {
         return BindingPositionEntry{
@@ -63,6 +83,29 @@ std::vector<BindingPositionEntry> to_binding_position_list_values(const Value& v
             .latitude_deg = position.latitude_deg,
             .longitude_deg = position.longitude_deg,
         });
+    }
+    return output;
+}
+
+std::vector<std::vector<BindingPositionEntry>> to_binding_multi_position_list_values(
+    const Value& value) {
+    if (!std::holds_alternative<MultiPositionListValue>(value)) {
+        return {};
+    }
+
+    std::vector<std::vector<BindingPositionEntry>> output;
+    const auto& lists = std::get<MultiPositionListValue>(value);
+    output.reserve(lists.size());
+    for (const auto& list : lists) {
+        std::vector<BindingPositionEntry> row;
+        row.reserve(list.size());
+        for (const auto& position : list) {
+            row.push_back(BindingPositionEntry{
+                .latitude_deg = position.latitude_deg,
+                .longitude_deg = position.longitude_deg,
+            });
+        }
+        output.push_back(std::move(row));
     }
     return output;
 }
@@ -100,8 +143,10 @@ BindingStackEntry to_binding_entry(const StackEntryView& entry, IntegerDisplayMo
         .level = entry.level,
         .display = format_console_value(entry.value, mode),
         .list_values = to_binding_list_values(entry.value),
+        .multi_list_values = to_binding_multi_list_values(entry.value),
         .position = to_binding_position(entry.value),
         .position_list_values = to_binding_position_list_values(entry.value),
+        .multi_position_list_values = to_binding_multi_position_list_values(entry.value),
     };
 }
 

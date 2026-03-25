@@ -252,31 +252,63 @@ export function stackDisplay(
     formatNumericText(`${value}`, settings.stackDecimals);
   const formatPositionPreview = (value: BindingPositionEntry) =>
     `pos(${formatNumericText(`${value.latitude_deg}`, settings.stackDecimals)}, ${formatNumericText(`${value.longitude_deg}`, settings.stackDecimals)})`;
-
-  const positionListValues = entry.position_list_values ?? [];
-  if (positionListValues.length > 0) {
-    const preview = positionListValues
-      .slice(0, settings.listPreviewLength)
-      .map(formatPositionPreview)
-      .join(", ");
-    const suffix =
-      positionListValues.length > settings.listPreviewLength
-        ? `, ... <${positionListValues.length - settings.listPreviewLength} more>`
-        : "";
-    return `${entry.level}:{${preview}${suffix}}`;
-  }
-
-  const listValues = entry.list_values ?? [];
-  if (listValues.length > 0 || entry.display.trim() === "{}") {
-    const preview = listValues
+  const formatScalarListPreview = (values: number[]) => {
+    const preview = values
       .slice(0, settings.listPreviewLength)
       .map(formatScalarPreview)
       .join(", ");
     const suffix =
-      listValues.length > settings.listPreviewLength
-        ? `, ... <${listValues.length - settings.listPreviewLength} more>`
+      values.length > settings.listPreviewLength
+        ? `, ... <${values.length - settings.listPreviewLength} more>`
+        : "";
+    return `{${preview}${suffix}}`;
+  };
+  const formatPositionListPreview = (values: BindingPositionEntry[]) => {
+    const preview = values
+      .slice(0, settings.listPreviewLength)
+      .map(formatPositionPreview)
+      .join(", ");
+    const suffix =
+      values.length > settings.listPreviewLength
+        ? `, ... <${values.length - settings.listPreviewLength} more>`
+        : "";
+    return `{${preview}${suffix}}`;
+  };
+
+  const multiPositionListValues = entry.multi_position_list_values ?? [];
+  if (multiPositionListValues.length > 0) {
+    const preview = multiPositionListValues
+      .slice(0, settings.listPreviewLength)
+      .map(formatPositionListPreview)
+      .join(", ");
+    const suffix =
+      multiPositionListValues.length > settings.listPreviewLength
+        ? `, ... <${multiPositionListValues.length - settings.listPreviewLength} more>`
         : "";
     return `${entry.level}:{${preview}${suffix}}`;
+  }
+
+  const multiListValues = entry.multi_list_values ?? [];
+  if (multiListValues.length > 0) {
+    const preview = multiListValues
+      .slice(0, settings.listPreviewLength)
+      .map(formatScalarListPreview)
+      .join(", ");
+    const suffix =
+      multiListValues.length > settings.listPreviewLength
+        ? `, ... <${multiListValues.length - settings.listPreviewLength} more>`
+        : "";
+    return `${entry.level}:{${preview}${suffix}}`;
+  }
+
+  const positionListValues = entry.position_list_values ?? [];
+  if (positionListValues.length > 0) {
+    return `${entry.level}:${formatPositionListPreview(positionListValues)}`;
+  }
+
+  const listValues = entry.list_values ?? [];
+  if (listValues.length > 0 || entry.display.trim() === "{}") {
+    return `${entry.level}:${formatScalarListPreview(listValues)}`;
   }
 
   return `${entry.level}:${formatNumericText(entry.display, settings.stackDecimals)}`;

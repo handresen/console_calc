@@ -152,6 +152,16 @@ void append_stack_json(JsonWriter& json, std::span<const BindingStackEntry> stac
             json.value(value);
         }
         json.end_array();
+        json.key("multi_list_values");
+        json.begin_array();
+        for (const auto& list : entry.multi_list_values) {
+            json.begin_array();
+            for (const double value : list) {
+                json.value(value);
+            }
+            json.end_array();
+        }
+        json.end_array();
         json.key("position");
         if (entry.position.has_value()) {
             json.begin_object();
@@ -172,6 +182,21 @@ void append_stack_json(JsonWriter& json, std::span<const BindingStackEntry> stac
             json.key("longitude_deg");
             json.value(position.longitude_deg);
             json.end_object();
+        }
+        json.end_array();
+        json.key("multi_position_list_values");
+        json.begin_array();
+        for (const auto& list : entry.multi_position_list_values) {
+            json.begin_array();
+            for (const auto& position : list) {
+                json.begin_object();
+                json.key("latitude_deg");
+                json.value(position.latitude_deg);
+                json.key("longitude_deg");
+                json.value(position.longitude_deg);
+                json.end_object();
+            }
+            json.end_array();
         }
         json.end_array();
         json.end_object();

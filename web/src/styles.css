@@ -628,9 +628,49 @@ body.is-resizing-map {
   stroke-linejoin: round;
 }
 
+.plot-line.plot-series-1 {
+  stroke: #446eaa;
+}
+
+.plot-line.plot-series-2 {
+  stroke: #b57614;
+}
+
+.plot-line.plot-series-3 {
+  stroke: #8a59a6;
+}
+
+.plot-line.plot-series-4 {
+  stroke: #b25555;
+}
+
+.plot-line.plot-series-5 {
+  stroke: #4e8980;
+}
+
 .plot-point {
   fill: #353535;
   stroke: none;
+}
+
+.plot-series-1 .plot-point {
+  fill: #446eaa;
+}
+
+.plot-series-2 .plot-point {
+  fill: #b57614;
+}
+
+.plot-series-3 .plot-point {
+  fill: #8a59a6;
+}
+
+.plot-series-4 .plot-point {
+  fill: #b25555;
+}
+
+.plot-series-5 .plot-point {
+  fill: #4e8980;
 }
 
 .plot-hover {

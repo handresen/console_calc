@@ -25,8 +25,10 @@ struct BindingStackEntry {
     std::size_t level = 0;
     std::string display;
     std::vector<double> list_values;
+    std::vector<std::vector<double>> multi_list_values;
     std::optional<BindingPositionEntry> position;
     std::vector<BindingPositionEntry> position_list_values;
+    std::vector<std::vector<BindingPositionEntry>> multi_position_list_values;
 };
 
 struct BindingDefinitionEntry {

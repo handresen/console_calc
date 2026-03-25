@@ -2,6 +2,7 @@ import type { BindingPositionEntry, BindingStackEntry } from "../bridge/console-
 import { fromLonLat } from "ol/proj";
 
 export interface PlotSeries {
+  kind: "scalar";
   key: string;
   label: string;
   values: number[];
@@ -10,6 +11,7 @@ export interface PlotSeries {
 }
 
 export interface PositionPlotSeries {
+  kind: "position";
   key: string;
   label: string;
   points: BindingPositionEntry[];
@@ -18,38 +20,114 @@ export interface PositionPlotSeries {
 }
 
 export type PlotItem = PlotSeries | PositionPlotSeries;
+
+export interface PlotGroup {
+  key: string;
+  label: string;
+  kind: "scalar" | "position";
+  items: PlotItem[];
+}
+
 export type PlotPoint = { x: number; y: number };
 
 const scalarPlotVerticalPadding = 5;
 
-export function isPlotSeries(value: PlotItem | null): value is PlotItem {
+export function isPlotGroup(value: PlotGroup | null): value is PlotGroup {
   return value !== null;
 }
 
-export function parsePlotSeries(entry: BindingStackEntry): PlotItem | null {
-  const positionListValues = entry.position_list_values ?? [];
-  if (positionListValues.length > 0 || entry.display.trim().startsWith("{pos(")) {
-    const maxPositionPoints = 10000;
-    const points =
-      positionListValues.length <= maxPositionPoints
-        ? positionListValues
-        : Array.from({ length: maxPositionPoints }, (_, index) => {
-            const sourceIndex = Math.round(
-              (index / (maxPositionPoints - 1)) * (positionListValues.length - 1),
-            );
-            return (
-              positionListValues[sourceIndex] ?? {
-                latitude_deg: 0,
-                longitude_deg: 0,
-              }
-            );
-          });
+function sampleScalarValues(listValues: number[]): { values: number[]; truncated: boolean } {
+  if (listValues.length <= 500) {
+    return { values: listValues, truncated: false };
+  }
+  return {
+    values: Array.from({ length: 500 }, (_, index) => {
+      const sourceIndex = Math.round((index / 499) * (listValues.length - 1));
+      return listValues[sourceIndex] ?? 0;
+    }),
+    truncated: true,
+  };
+}
+
+function samplePositionValues(
+  positionListValues: BindingPositionEntry[],
+): { points: BindingPositionEntry[]; truncated: boolean } {
+  const maxPositionPoints = 10000;
+  if (positionListValues.length <= maxPositionPoints) {
+    return { points: positionListValues, truncated: positionListValues.length > 500 };
+  }
+  return {
+    points: Array.from({ length: maxPositionPoints }, (_, index) => {
+      const sourceIndex = Math.round(
+        (index / (maxPositionPoints - 1)) * (positionListValues.length - 1),
+      );
+      return positionListValues[sourceIndex] ?? {
+        latitude_deg: 0,
+        longitude_deg: 0,
+      };
+    }),
+    truncated: true,
+  };
+}
+
+export function parsePlotGroup(entry: BindingStackEntry): PlotGroup | null {
+  const multiPositionListValues = entry.multi_position_list_values ?? [];
+  if (multiPositionListValues.length > 0) {
     return {
       key: `stack-${entry.level}`,
       label: `Stack ${entry.level}`,
-      points,
-      rawPoints: positionListValues,
-      truncated: positionListValues.length > 500,
+      kind: "position",
+      items: multiPositionListValues.map((points, index) => {
+        const sampled = samplePositionValues(points);
+        return {
+          kind: "position",
+          key: `stack-${entry.level}-pos-${index}`,
+          label: `Stack ${entry.level}[${index}]`,
+          points: sampled.points,
+          rawPoints: points,
+          truncated: sampled.truncated,
+        } satisfies PositionPlotSeries;
+      }),
+    };
+  }
+
+  const positionListValues = entry.position_list_values ?? [];
+  if (positionListValues.length > 0 || entry.display.trim().startsWith("{pos(")) {
+    const sampled = samplePositionValues(positionListValues);
+    return {
+      key: `stack-${entry.level}`,
+      label: `Stack ${entry.level}`,
+      kind: "position",
+      items: [
+        {
+          kind: "position",
+          key: `stack-${entry.level}`,
+          label: `Stack ${entry.level}`,
+          points: sampled.points,
+          rawPoints: positionListValues,
+          truncated: sampled.truncated,
+        },
+      ],
+    };
+  }
+
+  const multiListValues = entry.multi_list_values ?? [];
+  if (multiListValues.length > 0) {
+    return {
+      key: `stack-${entry.level}`,
+      label: `Stack ${entry.level}`,
+      kind: "scalar",
+      items: multiListValues.map((values, index) => {
+        const sampled = sampleScalarValues(values);
+        return {
+          kind: "scalar",
+          key: `stack-${entry.level}-list-${index}`,
+          label: `Stack ${entry.level}[${index}]`,
+          values: sampled.values,
+          rawValues: values,
+          truncated: sampled.truncated,
+        } satisfies PlotSeries;
+      }),
     };
   }
 
@@ -57,21 +135,21 @@ export function parsePlotSeries(entry: BindingStackEntry): PlotItem | null {
   if (listValues.length === 0 && !entry.display.trim().startsWith("{}")) {
     return null;
   }
-  const values =
-    listValues.length <= 500
-      ? listValues
-      : Array.from({ length: 500 }, (_, index) => {
-          const sourceIndex = Math.round((index / 499) * (listValues.length - 1));
-          return listValues[sourceIndex] ?? 0;
-        });
-  const truncated = listValues.length > 500;
-
+  const sampled = sampleScalarValues(listValues);
   return {
     key: `stack-${entry.level}`,
     label: `Stack ${entry.level}`,
-    values,
-    rawValues: listValues,
-    truncated,
+    kind: "scalar",
+    items: [
+      {
+        kind: "scalar",
+        key: `stack-${entry.level}`,
+        label: `Stack ${entry.level}`,
+        values: sampled.values,
+        rawValues: listValues,
+        truncated: sampled.truncated,
+      },
+    ],
   };
 }
 
@@ -87,6 +165,15 @@ export function buildScalarBounds(values: number[]): {
     max,
     range: max - min || 1,
   };
+}
+
+export function buildScalarGroupBounds(seriesList: PlotSeries[]): {
+  min: number;
+  max: number;
+  range: number;
+} {
+  const allValues = seriesList.flatMap((series) => series.rawValues);
+  return buildScalarBounds(allValues.length > 0 ? allValues : [0]);
 }
 
 export function formatScalarAxisLabel(value: number): string {
@@ -171,6 +258,20 @@ export function buildPositionBounds(points: BindingPositionEntry[]): {
     minY: centerY - halfSpan,
     maxY: centerY + halfSpan,
   };
+}
+
+export function buildPositionGroupBounds(seriesList: PositionPlotSeries[]): {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+} {
+  const allPoints = seriesList.flatMap((series) => series.rawPoints);
+  return buildPositionBounds(
+    allPoints.length > 0
+      ? allPoints
+      : [{ latitude_deg: 0, longitude_deg: 0 }],
+  );
 }
 
 function formatLatitude(value: number): string {

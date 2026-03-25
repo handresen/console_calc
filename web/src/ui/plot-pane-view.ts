@@ -4,19 +4,21 @@ import { createPane } from "./pane-controls";
 import type { PaneElements } from "./pane-controls";
 import {
   buildPlotPath,
+  buildPositionGroupBounds,
   buildPositionBounds,
   buildPositionPlotPath,
   buildPositionPlotPoints,
   buildPositionReferenceAxes,
+  buildScalarGroupBounds,
   buildScalarBounds,
   buildScalarPlotPoints,
   buildZeroAxisPath,
   formatCornerLabel,
   formatScalarAxisLabel,
-  isPlotSeries,
-  parsePlotSeries,
+  isPlotGroup,
+  parsePlotGroup,
 } from "./plot-support";
-import type { PlotItem, PlotPoint } from "./plot-support";
+import type { PlotGroup, PlotItem, PlotPoint, PlotSeries, PositionPlotSeries } from "./plot-support";
 
 export interface PlotPaneView {
   pane: PaneElements;
@@ -31,7 +33,8 @@ export function createPlotPaneView(
   const pane = createPane("Plot", onToggle);
   let displaySettings = initialDisplaySettings;
   let latestStack: BindingStackEntry[] = [];
-  let latestPlotSeries: PlotItem | null = null;
+  let latestPlotGroup: PlotGroup | null = null;
+  let latestHoverSeries: PlotItem | null = null;
   let latestPlotPoints: PlotPoint[] = [];
 
   const plotMeta = document.createElement("div");
@@ -80,8 +83,8 @@ export function createPlotPaneView(
   const plotPrimeMeridian = document.createElementNS("http://www.w3.org/2000/svg", "path");
   plotPrimeMeridian.setAttribute("class", "plot-reference-axis");
 
-  const plotLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  plotLine.setAttribute("class", "plot-line");
+  const plotLines = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  plotLines.setAttribute("class", "plot-lines");
 
   const plotPoints = document.createElementNS("http://www.w3.org/2000/svg", "g");
   plotPoints.setAttribute("class", "plot-points");
@@ -157,7 +160,7 @@ export function createPlotPaneView(
     plotGrid,
     plotZeroAxis,
     plotPrimeMeridian,
-    plotLine,
+    plotLines,
     plotPoints,
     plotCornerLabels,
     plotHover,
@@ -168,16 +171,31 @@ export function createPlotPaneView(
     plotHover.style.display = "none";
   };
 
-  const renderPointMarkers = (points: PlotPoint[]) => {
+  const renderPointMarkers = (seriesList: PlotItem[], pointsList: PlotPoint[][]) => {
     plotPoints.replaceChildren();
-    for (const point of points) {
-      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      circle.setAttribute("cx", point.x.toFixed(2));
-      circle.setAttribute("cy", point.y.toFixed(2));
-      circle.setAttribute("r", "1.6");
-      circle.setAttribute("class", "plot-point");
-      plotPoints.append(circle);
-    }
+    seriesList.forEach((series, seriesIndex) => {
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      group.setAttribute("class", `plot-series plot-series-${seriesIndex % 6}`);
+      for (const point of pointsList[seriesIndex] ?? []) {
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", point.x.toFixed(2));
+        circle.setAttribute("cy", point.y.toFixed(2));
+        circle.setAttribute("r", "1.6");
+        circle.setAttribute("class", "plot-point");
+        group.append(circle);
+      }
+      plotPoints.append(group);
+    });
+  };
+
+  const renderLinePaths = (seriesList: PlotItem[], paths: string[]) => {
+    plotLines.replaceChildren();
+    seriesList.forEach((series, seriesIndex) => {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("class", `plot-line plot-series-${seriesIndex % 6}`);
+      path.setAttribute("d", paths[seriesIndex] ?? "");
+      plotLines.append(path);
+    });
   };
 
   const formatHoverLabel = (series: PlotItem, index: number) => {
@@ -284,18 +302,20 @@ export function createPlotPaneView(
     );
   };
 
-  const renderPlot = (seriesList: PlotItem[]) => {
-    pane.count.textContent = `${seriesList.length}`;
-    latestPlotSeries = null;
+  const renderPlot = (groupList: PlotGroup[]) => {
+    const currentGroup = groupList[groupList.length - 1] ?? null;
+    pane.count.textContent = `${currentGroup?.items.length ?? 0}`;
+    latestPlotGroup = currentGroup;
+    latestHoverSeries = null;
     latestPlotPoints = [];
     hidePlotHover();
 
-    if (seriesList.length === 0) {
+    if (currentGroup == null || currentGroup.items.length === 0) {
       plotMeta.textContent = "No plottable list values in stack";
       plotZeroAxis.setAttribute("d", "");
       plotPrimeMeridian.setAttribute("d", "");
-      plotLine.setAttribute("d", "");
-      renderPointMarkers([]);
+      plotLines.replaceChildren();
+      renderPointMarkers([], []);
       topLeftLabel.textContent = "";
       topRightLabel.textContent = "";
       bottomLeftLabel.textContent = "";
@@ -303,31 +323,41 @@ export function createPlotPaneView(
       return;
     }
 
-    const currentSeries = seriesList[seriesList.length - 1];
-    const suffix = currentSeries.truncated ? " | using visible values" : "";
-    if ("rawValues" in currentSeries) {
-      const scalarBounds = buildScalarBounds(currentSeries.rawValues);
-      plotMeta.textContent = `${currentSeries.label} | ${currentSeries.rawValues.length} values${suffix}`;
+    const suffix = currentGroup.items.some((series) => series.truncated)
+      ? " | using visible values"
+      : "";
+    if (currentGroup.kind === "scalar") {
+      const scalarSeries = currentGroup.items as PlotSeries[];
+      const scalarBounds = buildScalarGroupBounds(scalarSeries);
+      const totalValues = scalarSeries.reduce(
+        (sum, series) => sum + series.rawValues.length,
+        0,
+      );
+      plotMeta.textContent = `${currentGroup.label} | ${scalarSeries.length} series | ${totalValues} values${suffix}`;
       plotZeroAxis.setAttribute(
         "d",
-        buildZeroAxisPath(currentSeries.rawValues, 320, 180, scalarBounds),
+        buildZeroAxisPath(
+          scalarSeries.flatMap((series) => series.rawValues),
+          320,
+          180,
+          scalarBounds,
+        ),
       );
       plotPrimeMeridian.setAttribute("d", "");
-      const points = buildScalarPlotPoints(currentSeries.values, 320, 180, scalarBounds);
-      latestPlotSeries = currentSeries;
-      latestPlotPoints = buildScalarPlotPoints(
-        currentSeries.rawValues,
-        320,
-        180,
-        scalarBounds,
+      const pointsList = scalarSeries.map((series) =>
+        buildScalarPlotPoints(series.values, 320, 180, scalarBounds),
       );
-      plotLine.setAttribute(
-        "d",
+      latestHoverSeries = scalarSeries[scalarSeries.length - 1] ?? null;
+      latestPlotPoints = latestHoverSeries
+        ? buildScalarPlotPoints(latestHoverSeries.rawValues, 320, 180, scalarBounds)
+        : [];
+      renderLinePaths(
+        scalarSeries,
         lineToggle.checked
-          ? buildPlotPath(currentSeries.values, 320, 180, scalarBounds)
-          : "",
+          ? scalarSeries.map((series) => buildPlotPath(series.values, 320, 180, scalarBounds))
+          : scalarSeries.map(() => ""),
       );
-      renderPointMarkers(pointsToggle.checked ? points : []);
+      renderPointMarkers(scalarSeries, pointsToggle.checked ? pointsList : scalarSeries.map(() => []));
       topLeftLabel.textContent = formatScalarAxisLabel(scalarBounds.max);
       topRightLabel.textContent = "";
       bottomLeftLabel.textContent = formatScalarAxisLabel(scalarBounds.min);
@@ -335,21 +365,38 @@ export function createPlotPaneView(
       return;
     }
 
-    plotMeta.textContent = `${currentSeries.label} | ${currentSeries.rawPoints.length} positions | lon/x, lat/y${suffix}`;
-    const bounds = buildPositionBounds(currentSeries.rawPoints);
-    const referenceAxes = buildPositionReferenceAxes(currentSeries.rawPoints, 320, 180, bounds);
+    const positionSeries = currentGroup.items as PositionPlotSeries[];
+    const totalPositions = positionSeries.reduce(
+      (sum, series) => sum + series.rawPoints.length,
+      0,
+    );
+    plotMeta.textContent = `${currentGroup.label} | ${positionSeries.length} paths | ${totalPositions} positions | lon/x, lat/y${suffix}`;
+    const bounds = buildPositionGroupBounds(positionSeries);
+    const referenceAxes = buildPositionReferenceAxes(
+      positionSeries.flatMap((series) => series.rawPoints),
+      320,
+      180,
+      bounds,
+    );
     plotZeroAxis.setAttribute("d", referenceAxes.equator);
     plotPrimeMeridian.setAttribute("d", referenceAxes.primeMeridian);
-    const points = buildPositionPlotPoints(currentSeries.points, 320, 180, bounds);
-    latestPlotSeries = currentSeries;
-    latestPlotPoints = buildPositionPlotPoints(currentSeries.rawPoints, 320, 180, bounds);
-    plotLine.setAttribute(
-      "d",
-      lineToggle.checked
-        ? buildPositionPlotPath(currentSeries.points, 320, 180, bounds)
-        : "",
+    const pointsList = positionSeries.map((series) =>
+      buildPositionPlotPoints(series.points, 320, 180, bounds),
     );
-    renderPointMarkers(pointsToggle.checked ? points : []);
+    latestHoverSeries = positionSeries[positionSeries.length - 1] ?? null;
+    latestPlotPoints = latestHoverSeries
+      ? buildPositionPlotPoints(latestHoverSeries.rawPoints, 320, 180, bounds)
+      : [];
+    renderLinePaths(
+      positionSeries,
+      lineToggle.checked
+        ? positionSeries.map((series) => buildPositionPlotPath(series.points, 320, 180, bounds))
+        : positionSeries.map(() => ""),
+    );
+    renderPointMarkers(
+      positionSeries,
+      pointsToggle.checked ? pointsList : positionSeries.map(() => []),
+    );
     topLeftLabel.textContent = formatCornerLabel(bounds.maxY, bounds.minX);
     topRightLabel.textContent = formatCornerLabel(bounds.maxY, bounds.maxX);
     bottomLeftLabel.textContent = formatCornerLabel(bounds.minY, bounds.minX);
@@ -357,14 +404,14 @@ export function createPlotPaneView(
   };
 
   const rerenderPlot = () => {
-    renderPlot(latestStack.map((entry) => parsePlotSeries(entry)).filter(isPlotSeries));
+    renderPlot(latestStack.map((entry) => parsePlotGroup(entry)).filter(isPlotGroup));
   };
 
   lineToggle.addEventListener("change", rerenderPlot);
   pointsToggle.addEventListener("change", rerenderPlot);
 
   plotSvg.addEventListener("mousemove", (event) => {
-    if (latestPlotSeries == null || latestPlotPoints.length === 0) {
+    if (latestHoverSeries == null || latestPlotPoints.length === 0) {
       hidePlotHover();
       return;
     }
@@ -378,13 +425,13 @@ export function createPlotPaneView(
     const x = ((event.clientX - bounds.left) / bounds.width) * 320;
     let bestIndex = 0;
 
-    if ("rawValues" in latestPlotSeries) {
+    if (latestHoverSeries.kind === "scalar") {
       bestIndex =
-        latestPlotSeries.rawValues.length <= 1
+        latestHoverSeries.rawValues.length <= 1
           ? 0
           : Math.round(
               (Math.max(0, Math.min(320, x)) / 320) *
-                (latestPlotSeries.rawValues.length - 1),
+                (latestHoverSeries.rawValues.length - 1),
             );
     } else {
       let bestDistance = Number.POSITIVE_INFINITY;
@@ -397,7 +444,7 @@ export function createPlotPaneView(
       }
     }
 
-    showPlotHover(latestPlotSeries, latestPlotPoints, bestIndex);
+    showPlotHover(latestHoverSeries, latestPlotPoints, bestIndex);
   });
 
   plotSvg.addEventListener("mouseleave", hidePlotHover);

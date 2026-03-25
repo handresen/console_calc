@@ -122,6 +122,39 @@ bool expect_binding_multi_argument_function_snapshot() {
            value_result.events[0].text == "7";
 }
 
+bool expect_binding_multilist_snapshot_values() {
+    console_calc::ExpressionParser parser;
+    console_calc::ConsoleBindingFacade facade(parser, default_constants());
+
+    facade.initialize();
+    const auto scalar_result = facade.submit("{{1,2},{3,4}}");
+    if (scalar_result.should_exit || scalar_result.snapshot.stack.size() != 1) {
+        return false;
+    }
+
+    const auto& scalar_entry = scalar_result.snapshot.stack[0];
+    if (scalar_entry.multi_list_values.size() != 2 ||
+        scalar_entry.multi_list_values[0].size() != 2 ||
+        scalar_entry.multi_list_values[1].size() != 2 ||
+        scalar_entry.multi_list_values[1][0] != 3.0 ||
+        scalar_entry.multi_position_list_values.size() != 0) {
+        return false;
+    }
+
+    const auto position_result =
+        facade.submit("{{pos(0,0),pos(0,1)},{pos(1,1)}}");
+    if (position_result.should_exit || position_result.snapshot.stack.size() != 2) {
+        return false;
+    }
+
+    const auto& position_entry = position_result.snapshot.stack[1];
+    return position_entry.multi_position_list_values.size() == 2 &&
+           position_entry.multi_position_list_values[0].size() == 2 &&
+           position_entry.multi_position_list_values[1].size() == 1 &&
+           position_entry.multi_position_list_values[1][0].latitude_deg == 1.0 &&
+           position_entry.multi_position_list_values[1][0].longitude_deg == 1.0;
+}
+
 bool expect_binding_listing_and_display_modes() {
     console_calc::ExpressionParser parser;
     console_calc::ConsoleBindingFacade facade(parser, default_constants());
@@ -196,6 +229,9 @@ int main() {
         return EXIT_FAILURE;
     }
     if (!expect_binding_multi_argument_function_snapshot()) {
+        return EXIT_FAILURE;
+    }
+    if (!expect_binding_multilist_snapshot_values()) {
         return EXIT_FAILURE;
     }
     if (!expect_binding_currency_and_errors()) {

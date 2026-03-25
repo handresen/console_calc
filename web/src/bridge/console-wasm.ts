@@ -7,8 +7,10 @@ export interface BindingStackEntry {
   level: number;
   display: string;
   list_values?: number[];
+  multi_list_values?: number[][];
   position?: BindingPositionEntry | null;
   position_list_values?: BindingPositionEntry[];
+  multi_position_list_values?: BindingPositionEntry[][];
 }
 
 export interface BindingDefinitionEntry {

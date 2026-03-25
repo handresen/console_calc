@@ -86,10 +86,60 @@ bool expect_c_api_invalid_input_error_result() {
     return ok;
 }
 
+bool expect_c_api_multilist_payloads() {
+    console_calc_binding_session* const session = console_calc_binding_session_create();
+    if (session == nullptr) {
+        std::cerr << "Failed to create binding session\n";
+        return false;
+    }
+
+    const auto cleanup = [&]() { console_calc_binding_session_destroy(session); };
+
+    if (console_calc_binding_session_initialize(session) != 0) {
+        std::cerr << "Failed to initialize binding session\n";
+        cleanup();
+        return false;
+    }
+
+    if (console_calc_binding_session_submit(session, "{{1,2},{3,4}}") != 0) {
+        std::cerr << "Failed to submit multi-list expression to binding session\n";
+        cleanup();
+        return false;
+    }
+
+    const std::string_view scalar_json = console_calc_binding_session_last_result_json(session);
+    const bool scalar_ok =
+        expect_contains(scalar_json, "\"multi_list_values\":[[1,2],[3,4]]",
+                        "scalar multi-list payload") &&
+        expect_contains(scalar_json, "\"multi_position_list_values\":[]",
+                        "empty multi-position-list payload");
+
+    if (!scalar_ok) {
+        cleanup();
+        return false;
+    }
+
+    if (console_calc_binding_session_submit(session, "{{pos(0,0),pos(0,1)},{pos(1,1)}}") != 0) {
+        std::cerr << "Failed to submit multi position list expression to binding session\n";
+        cleanup();
+        return false;
+    }
+
+    const std::string_view position_json = console_calc_binding_session_last_result_json(session);
+    const bool position_ok = expect_contains(
+        position_json,
+        "\"multi_position_list_values\":[[{\"latitude_deg\":0,\"longitude_deg\":0},{\"latitude_deg\":0,\"longitude_deg\":1}],[{\"latitude_deg\":1,\"longitude_deg\":1}]]",
+        "multi-position-list payload");
+
+    cleanup();
+    return position_ok;
+}
+
 }  // namespace
 
 int main() {
-    return expect_c_api_round_trip() && expect_c_api_invalid_input_error_result()
+    return expect_c_api_round_trip() && expect_c_api_invalid_input_error_result() &&
+                   expect_c_api_multilist_payloads()
                ? EXIT_SUCCESS
                : EXIT_FAILURE;
 }

@@ -13,8 +13,8 @@ import { Circle as CircleStyle, Fill, Stroke, Style } from "ol/style";
 import type { DisplaySettings } from "./display-settings";
 import { createPane } from "./pane-controls";
 import type { PaneElements } from "./pane-controls";
-import { isPlotSeries, parsePlotSeries, toMapCoordinates } from "./plot-support";
-import type { PlotItem, PositionPlotSeries } from "./plot-support";
+import { isPlotGroup, parsePlotGroup, toMapCoordinates } from "./plot-support";
+import type { PlotGroup, PositionPlotSeries } from "./plot-support";
 
 export interface MapPaneView {
   pane: PaneElements;
@@ -22,23 +22,22 @@ export interface MapPaneView {
   setDisplaySettings(settings: DisplaySettings): void;
 }
 
+const mapPalette = [
+  { stroke: "rgba(111, 157, 115, 0.9)", fill: "#353535" },
+  { stroke: "rgba(68, 110, 170, 0.9)", fill: "#446eaa" },
+  { stroke: "rgba(181, 118, 20, 0.9)", fill: "#b57614" },
+  { stroke: "rgba(138, 89, 166, 0.9)", fill: "#8a59a6" },
+  { stroke: "rgba(178, 85, 85, 0.9)", fill: "#b25555" },
+  { stroke: "rgba(78, 137, 128, 0.9)", fill: "#4e8980" },
+];
+
 export function createMapPaneView(
   onToggle: (expanded: boolean) => void,
   initialDisplaySettings: DisplaySettings,
 ): MapPaneView {
   let displaySettings = initialDisplaySettings;
   let latestStack: BindingStackEntry[] = [];
-  let latestMapSeries: PositionPlotSeries | null = null;
-
-  const pane = createPane("Map", (expanded) => {
-    if (expanded) {
-      requestAnimationFrame(() => {
-        map.updateSize();
-        applyMapView(latestMapSeries);
-      });
-    }
-    onToggle(expanded);
-  });
+  let latestMapGroup: PlotGroup | null = null;
 
   const mapMeta = document.createElement("div");
   mapMeta.className = "map-meta";
@@ -69,23 +68,31 @@ export function createMapPaneView(
 
   const mapPointLayer = new VectorLayer({
     source: mapPointSource,
-    style: new Style({
-      image: new CircleStyle({
-        radius: 4,
-        fill: new Fill({ color: "#2e5d31" }),
-        stroke: new Stroke({ color: "rgba(250, 247, 239, 0.95)", width: 1.5 }),
-      }),
-    }),
+    style: (feature) => {
+      const index = Number(feature.get("seriesIndex") ?? 0) % mapPalette.length;
+      const palette = mapPalette[index];
+      return new Style({
+        image: new CircleStyle({
+          radius: 4,
+          fill: new Fill({ color: palette.fill }),
+          stroke: new Stroke({ color: "rgba(250, 247, 239, 0.95)", width: 1.5 }),
+        }),
+      });
+    },
   });
 
   const mapLineLayer = new VectorLayer({
     source: mapLineSource,
-    style: new Style({
-      stroke: new Stroke({
-        color: "rgba(46, 93, 49, 0.8)",
-        width: 2.5,
-      }),
-    }),
+    style: (feature) => {
+      const index = Number(feature.get("seriesIndex") ?? 0) % mapPalette.length;
+      const palette = mapPalette[index];
+      return new Style({
+        stroke: new Stroke({
+          color: palette.stroke,
+          width: 2.5,
+        }),
+      });
+    },
   });
 
   const map = new OlMap({
@@ -113,15 +120,17 @@ export function createMapPaneView(
     }),
   });
 
-  const applyMapView = (series: PositionPlotSeries | null) => {
+  const applyMapView = (group: PlotGroup | null) => {
     const view = map.getView();
-    if (series == null) {
+    if (group == null || group.kind !== "position") {
       view.setCenter(fromLonLat([0, 0]));
       view.setZoom(1.5);
       return;
     }
 
-    const mapCoordinates = toMapCoordinates(series.points);
+    const mapCoordinates = toMapCoordinates(
+      (group.items as PositionPlotSeries[]).flatMap((series) => series.points),
+    );
     if (mapCoordinates.length === 0) {
       view.setCenter(fromLonLat([0, 0]));
       view.setZoom(1.5);
@@ -140,13 +149,22 @@ export function createMapPaneView(
     });
   };
 
-  const renderMap = (seriesList: PlotItem[]) => {
-    const currentSeries = [...seriesList].reverse().find((series) => "points" in series);
-    pane.count.textContent = currentSeries != null && "points" in currentSeries ? "1" : "0";
-    latestMapSeries =
-      currentSeries != null && "points" in currentSeries ? currentSeries : null;
+  const pane = createPane("Map", (expanded) => {
+    if (expanded) {
+      requestAnimationFrame(() => {
+        map.updateSize();
+        applyMapView(latestMapGroup);
+      });
+    }
+    onToggle(expanded);
+  });
 
-    if (currentSeries == null || !("points" in currentSeries)) {
+  const renderMap = (groupList: PlotGroup[]) => {
+    const currentGroup = [...groupList].reverse().find((group) => group.kind === "position");
+    pane.count.textContent = `${currentGroup?.items.length ?? 0}`;
+    latestMapGroup = currentGroup ?? null;
+
+    if (currentGroup == null || currentGroup.kind !== "position") {
       mapMeta.textContent = "World view";
       mapPointSource.clear();
       mapLineSource.clear();
@@ -157,16 +175,30 @@ export function createMapPaneView(
       return;
     }
 
-    const mapCoordinates = toMapCoordinates(currentSeries.points);
-    mapMeta.textContent = `${currentSeries.label} | ${currentSeries.points.length} positions`;
+    const seriesList = currentGroup.items as PositionPlotSeries[];
+    const totalPositions = seriesList.reduce(
+      (sum, series) => sum + series.points.length,
+      0,
+    );
+    mapMeta.textContent = `${currentGroup.label} | ${seriesList.length} paths | ${totalPositions} positions`;
     mapPointSource.clear();
     mapLineSource.clear();
-    mapPointSource.addFeatures(
-      mapCoordinates.map((coordinate) => new Feature(new Point(coordinate))),
-    );
-    if (connectMapLinesToggle.checked && mapCoordinates.length >= 2) {
-      mapLineSource.addFeature(new Feature(new LineString(mapCoordinates)));
-    }
+
+    seriesList.forEach((series, seriesIndex) => {
+      const mapCoordinates = toMapCoordinates(series.points);
+      mapPointSource.addFeatures(
+        mapCoordinates.map((coordinate) => {
+          const feature = new Feature(new Point(coordinate));
+          feature.set("seriesIndex", seriesIndex);
+          return feature;
+        }),
+      );
+      if (connectMapLinesToggle.checked && mapCoordinates.length >= 2) {
+        const feature = new Feature(new LineString(mapCoordinates));
+        feature.set("seriesIndex", seriesIndex);
+        mapLineSource.addFeature(feature);
+      }
+    });
 
     if (pane.body.hidden) {
       return;
@@ -174,12 +206,12 @@ export function createMapPaneView(
 
     requestAnimationFrame(() => {
       map.updateSize();
-      applyMapView(currentSeries);
+      applyMapView(currentGroup);
     });
   };
 
   const rerenderMap = () => {
-    renderMap(latestStack.map((entry) => parsePlotSeries(entry)).filter(isPlotSeries));
+    renderMap(latestStack.map((entry) => parsePlotGroup(entry)).filter(isPlotGroup));
   };
 
   const applyMapHeight = (height: number) => {
@@ -188,7 +220,7 @@ export function createMapPaneView(
     requestAnimationFrame(() => {
       map.updateSize();
       if (!pane.body.hidden) {
-        applyMapView(latestMapSeries);
+        applyMapView(latestMapGroup);
       }
     });
   };
