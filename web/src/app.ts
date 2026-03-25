@@ -1,6 +1,5 @@
 import { ConsoleWasmBridge } from "./bridge/console-wasm";
 import {
-  formatNumericText,
   loadDisplaySettings,
   type DisplaySettings,
 } from "./ui/display-settings";
@@ -8,7 +7,7 @@ import { createDisplaySettingsDialog } from "./ui/display-settings-dialog";
 import { createPanesView } from "./ui/panes-view";
 import { createPromptView } from "./ui/prompt-view";
 import { attachShellSplit } from "./ui/shell-split";
-import { renderTranscriptResult } from "./ui/transcript-renderer";
+import { formatTranscriptText, renderTranscriptResult } from "./ui/transcript-renderer";
 import { createTranscriptView } from "./ui/transcript-view";
 
 export function createApp(root: HTMLElement): void {
@@ -55,7 +54,7 @@ export function createApp(root: HTMLElement): void {
     transcript.setDisplaySettings(settings);
     transcript.reformatMessages((text, kind) =>
       kind === "value" || kind === "listing" || kind === "text"
-        ? formatNumericText(text, settings.transcriptDecimals)
+        ? formatTranscriptText(text, settings.transcriptDecimals)
         : text,
     );
     if (latestSnapshot !== null) {

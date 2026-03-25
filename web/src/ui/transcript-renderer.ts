@@ -3,6 +3,131 @@ import { formatNumericText } from "./display-settings";
 import { constantDisplayRows } from "./pane-renderers";
 import type { TranscriptView } from "./transcript-view";
 
+const maxTranscriptMultiListChars = 84;
+
+function countTopLevelItems(content: string): number {
+  const trimmed = content.trim();
+  if (trimmed.length === 0) {
+    return 0;
+  }
+
+  let depthBraces = 0;
+  let depthParens = 0;
+  let items = 1;
+  for (const char of trimmed) {
+    if (char === "{") {
+      depthBraces += 1;
+    } else if (char === "}") {
+      depthBraces = Math.max(0, depthBraces - 1);
+    } else if (char === "(") {
+      depthParens += 1;
+    } else if (char === ")") {
+      depthParens = Math.max(0, depthParens - 1);
+    } else if (char === "," && depthBraces === 0 && depthParens === 0) {
+      items += 1;
+    }
+  }
+  return items;
+}
+
+function splitTopLevelInnerLists(payload: string): string[] | null {
+  if (!payload.startsWith("{{") || !payload.endsWith("}}")) {
+    return null;
+  }
+
+  const inner = payload.slice(1, -1);
+  const lists: string[] = [];
+  let segmentStart = -1;
+  let braceDepth = 0;
+  let parenDepth = 0;
+
+  for (let index = 0; index < inner.length; index += 1) {
+    const char = inner[index];
+    if (char === "(") {
+      parenDepth += 1;
+      continue;
+    }
+    if (char === ")") {
+      parenDepth = Math.max(0, parenDepth - 1);
+      continue;
+    }
+    if (parenDepth > 0) {
+      continue;
+    }
+    if (char === "{") {
+      if (braceDepth === 0) {
+        segmentStart = index;
+      }
+      braceDepth += 1;
+      continue;
+    }
+    if (char === "}") {
+      braceDepth -= 1;
+      if (braceDepth === 0 && segmentStart >= 0) {
+        lists.push(inner.slice(segmentStart, index + 1));
+        segmentStart = -1;
+      }
+    }
+  }
+
+  return lists.length > 0 ? lists : null;
+}
+
+function summarizeMultiListPayload(payload: string): string {
+  if (payload.length <= maxTranscriptMultiListChars) {
+    return payload;
+  }
+
+  const innerLists = splitTopLevelInnerLists(payload);
+  if (innerLists === null || innerLists.length === 0) {
+    return payload;
+  }
+
+  const totalItems = innerLists.reduce(
+    (sum, list) => sum + countTopLevelItems(list.slice(1, -1)),
+    0,
+  );
+
+  let preview = "{";
+  let shown = 0;
+  for (const innerList of innerLists) {
+    const candidate = `${preview}${shown === 0 ? "" : ","}${innerList}`;
+    if (
+      shown >= 2 ||
+      `${candidate},<${innerLists.length - shown - 1} more lists, ${totalItems} items total>}`
+        .length > maxTranscriptMultiListChars
+    ) {
+      break;
+    }
+    preview = candidate;
+    shown += 1;
+  }
+
+  if (shown === 0) {
+    shown = 1;
+    preview = `{${innerLists[0]}`;
+  }
+
+  const remaining = innerLists.length - shown;
+  if (remaining <= 0) {
+    return payload;
+  }
+
+  return `${preview},<${remaining} more lists, ${totalItems} items total>}`;
+}
+
+export function formatTranscriptText(text: string, decimals: number): string {
+  const formatted = formatNumericText(text, decimals);
+  const multiListIndex = formatted.indexOf("{{");
+  if (multiListIndex < 0) {
+    return formatted;
+  }
+
+  const prefix = formatted.slice(0, multiListIndex);
+  const payload = formatted.slice(multiListIndex);
+  return `${prefix}${summarizeMultiListPayload(payload)}`;
+}
+
 function expectedFunctionSignature(
   result: BindingCommandResult,
   input?: string,
@@ -45,7 +170,7 @@ export function renderTranscriptResult(
 
   const appendMessage = (text: string, kind: string, extraClassName?: string): void => {
     transcript.appendMessage(
-      formatNumericText(text, transcriptDecimals),
+      formatTranscriptText(text, transcriptDecimals),
       kind,
       timingRendered ? undefined : timingText,
       extraClassName,
