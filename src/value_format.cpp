@@ -1,4 +1,5 @@
 #include "console_calc/value_format.h"
+#include "console_calc/value_utils.h"
 
 #include <cstdint>
 #include <algorithm>
@@ -84,23 +85,21 @@ std::string format_value(const Value& value) {
 }
 
 std::string format_value(const Value& value, IntegerDisplayMode mode) {
-    if (const auto* integer = std::get_if<std::int64_t>(&value)) {
-        return format_scalar(ScalarValue{*integer}, mode);
+    switch (value_kind(value)) {
+    case ValueKind::scalar:
+        if (const auto* integer = std::get_if<std::int64_t>(&value)) {
+            return format_scalar(ScalarValue{*integer}, mode);
+        }
+        return format_scalar(ScalarValue{std::get<double>(value)}, mode);
+    case ValueKind::position:
+        return format_position(std::get<PositionValue>(value));
+    case ValueKind::scalar_list:
+        return format_list(std::get<ListValue>(value), mode);
+    case ValueKind::position_list:
+        return format_position_list(std::get<PositionListValue>(value));
     }
 
-    if (const auto* scalar = std::get_if<double>(&value)) {
-        return format_scalar(ScalarValue{*scalar}, mode);
-    }
-
-    if (const auto* position = std::get_if<PositionValue>(&value)) {
-        return format_position(*position);
-    }
-
-    if (const auto* list = std::get_if<ListValue>(&value)) {
-        return format_list(*list, mode);
-    }
-
-    return format_position_list(std::get<PositionListValue>(value));
+    return {};
 }
 
 }  // namespace console_calc

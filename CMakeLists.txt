@@ -46,6 +46,7 @@ add_library(console_calc_lib
     src/scalar_value.cpp
     src/special_form.cpp
     src/value_format.cpp
+    src/value_utils.cpp
 )
 
 target_include_directories(console_calc_lib

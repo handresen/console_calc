@@ -4,6 +4,7 @@
 
 #include "console_calc/builtin_function.h"
 #include "console_calc/expression_error.h"
+#include "console_calc/value_utils.h"
 
 #include <cmath>
 #include <cstdint>
@@ -24,10 +25,10 @@ ScalarValue require_scalar_value(const Value& value) {
     if (const auto* scalar = std::get_if<double>(&value)) {
         return *scalar;
     }
-    if (std::holds_alternative<PositionValue>(value)) {
+    if (is_position_value(value)) {
         throw EvaluationError("position value cannot be used as a scalar");
     }
-    if (std::holds_alternative<PositionListValue>(value)) {
+    if (is_position_list_value(value)) {
         throw EvaluationError("position list value cannot be used as a scalar");
     }
 
@@ -47,10 +48,10 @@ ScalarValue require_scalar_or_singleton_list_value(const Value& value) {
         }
         throw EvaluationError("list value cannot be used as a scalar");
     }
-    if (std::holds_alternative<PositionValue>(value)) {
+    if (is_position_value(value)) {
         throw EvaluationError("position value cannot be used as a scalar");
     }
-    if (std::holds_alternative<PositionListValue>(value)) {
+    if (is_position_list_value(value)) {
         throw EvaluationError("position list value cannot be used as a scalar");
     }
 
@@ -61,7 +62,7 @@ ListValue require_list(const Value& value) {
     if (const auto* list = std::get_if<ListValue>(&value)) {
         return *list;
     }
-    if (std::holds_alternative<PositionListValue>(value)) {
+    if (is_position_list_value(value)) {
         throw EvaluationError("scalar list value required");
     }
 
@@ -227,17 +228,24 @@ double require_finite_result(double value) {
         require_scalar_or_singleton_list_value(
             evaluate_expression_with_placeholder(*node.index, placeholder_value)));
 
-    if (const auto* list = std::get_if<ListValue>(&collection)) {
-        if (index >= list->size()) {
+    switch (value_kind(collection)) {
+    case ValueKind::scalar_list: {
+        const auto& list = std::get<ListValue>(collection);
+        if (index >= list.size()) {
             throw EvaluationError("list index out of range");
         }
-        return to_value((*list)[index]);
+        return to_value(list[index]);
     }
-    if (const auto* positions = std::get_if<PositionListValue>(&collection)) {
-        if (index >= positions->size()) {
+    case ValueKind::position_list: {
+        const auto& positions = std::get<PositionListValue>(collection);
+        if (index >= positions.size()) {
             throw EvaluationError("list index out of range");
         }
-        return (*positions)[index];
+        return positions[index];
+    }
+    case ValueKind::scalar:
+    case ValueKind::position:
+        throw EvaluationError("indexing requires a list value");
     }
 
     throw EvaluationError("indexing requires a list value");
