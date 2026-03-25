@@ -2,6 +2,7 @@ import type { BindingStackEntry } from "../bridge/console-wasm";
 import Feature from "ol/Feature";
 import LineString from "ol/geom/LineString";
 import Point from "ol/geom/Point";
+import Polygon from "ol/geom/Polygon";
 import MouseWheelZoom from "ol/interaction/MouseWheelZoom";
 import { defaults as defaultInteractions } from "ol/interaction/defaults";
 import { Tile as TileLayer, Vector as VectorLayer } from "ol/layer";
@@ -13,7 +14,12 @@ import { Circle as CircleStyle, Fill, Stroke, Style } from "ol/style";
 import type { DisplaySettings } from "./display-settings";
 import { createPane } from "./pane-controls";
 import type { PaneElements } from "./pane-controls";
-import { isPlotGroup, parseMapGroup, toMapCoordinates } from "./plot-support";
+import {
+  isClosedPositionSeries,
+  isPlotGroup,
+  parseMapGroup,
+  toMapCoordinates,
+} from "./plot-support";
 import type { PlotGroup, PositionPlotSeries } from "./plot-support";
 
 export interface MapPaneView {
@@ -23,12 +29,36 @@ export interface MapPaneView {
 }
 
 const mapPalette = [
-  { stroke: "rgba(111, 157, 115, 0.9)", fill: "#353535" },
-  { stroke: "rgba(68, 110, 170, 0.9)", fill: "#446eaa" },
-  { stroke: "rgba(181, 118, 20, 0.9)", fill: "#b57614" },
-  { stroke: "rgba(138, 89, 166, 0.9)", fill: "#8a59a6" },
-  { stroke: "rgba(178, 85, 85, 0.9)", fill: "#b25555" },
-  { stroke: "rgba(78, 137, 128, 0.9)", fill: "#4e8980" },
+  {
+    stroke: "rgba(111, 157, 115, 0.9)",
+    pointFill: "#353535",
+    areaFill: "rgba(111, 157, 115, 0.24)",
+  },
+  {
+    stroke: "rgba(68, 110, 170, 0.9)",
+    pointFill: "#446eaa",
+    areaFill: "rgba(68, 110, 170, 0.24)",
+  },
+  {
+    stroke: "rgba(181, 118, 20, 0.9)",
+    pointFill: "#b57614",
+    areaFill: "rgba(181, 118, 20, 0.24)",
+  },
+  {
+    stroke: "rgba(138, 89, 166, 0.9)",
+    pointFill: "#8a59a6",
+    areaFill: "rgba(138, 89, 166, 0.24)",
+  },
+  {
+    stroke: "rgba(178, 85, 85, 0.9)",
+    pointFill: "#b25555",
+    areaFill: "rgba(178, 85, 85, 0.24)",
+  },
+  {
+    stroke: "rgba(78, 137, 128, 0.9)",
+    pointFill: "#4e8980",
+    areaFill: "rgba(78, 137, 128, 0.24)",
+  },
 ];
 
 export function createMapPaneView(
@@ -65,6 +95,18 @@ export function createMapPaneView(
 
   const mapPointSource = new VectorSource();
   const mapLineSource = new VectorSource();
+  const mapAreaSource = new VectorSource();
+
+  const mapAreaLayer = new VectorLayer({
+    source: mapAreaSource,
+    style: (feature) => {
+      const index = Number(feature.get("seriesIndex") ?? 0) % mapPalette.length;
+      const palette = mapPalette[index];
+      return new Style({
+        fill: new Fill({ color: palette.areaFill }),
+      });
+    },
+  });
 
   const mapPointLayer = new VectorLayer({
     source: mapPointSource,
@@ -74,7 +116,7 @@ export function createMapPaneView(
       return new Style({
         image: new CircleStyle({
           radius: 4,
-          fill: new Fill({ color: palette.fill }),
+          fill: new Fill({ color: palette.pointFill }),
           stroke: new Stroke({ color: "rgba(250, 247, 239, 0.95)", width: 1.5 }),
         }),
       });
@@ -101,6 +143,7 @@ export function createMapPaneView(
       new TileLayer({
         source: new OSM(),
       }),
+      mapAreaLayer,
       mapLineLayer,
       mapPointLayer,
     ],
@@ -166,6 +209,7 @@ export function createMapPaneView(
 
     if (currentGroup == null || currentGroup.kind !== "position") {
       mapMeta.textContent = "World view";
+      mapAreaSource.clear();
       mapPointSource.clear();
       mapLineSource.clear();
       requestAnimationFrame(() => {
@@ -181,11 +225,17 @@ export function createMapPaneView(
       0,
     );
     mapMeta.textContent = `${currentGroup.label} | ${seriesList.length} paths | ${totalPositions} positions`;
+    mapAreaSource.clear();
     mapPointSource.clear();
     mapLineSource.clear();
 
     seriesList.forEach((series, seriesIndex) => {
       const mapCoordinates = toMapCoordinates(series.points);
+      if (isClosedPositionSeries(series) && mapCoordinates.length >= 4) {
+        const feature = new Feature(new Polygon([mapCoordinates]));
+        feature.set("seriesIndex", seriesIndex);
+        mapAreaSource.addFeature(feature);
+      }
       mapPointSource.addFeatures(
         mapCoordinates.map((coordinate) => {
           const feature = new Feature(new Point(coordinate));
