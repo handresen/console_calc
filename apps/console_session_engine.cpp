@@ -149,7 +149,15 @@ ConsoleCommandResult ConsoleSessionEngine::submit(std::string_view line) {
                 if (constants_.contains(assignment->name)) {
                     throw std::invalid_argument("cannot redefine constant: " + assignment->name);
                 }
-                assign_definition(*assignment, result_reference);
+                const std::optional<Value> assigned_value =
+                    assign_definition(*assignment, result_reference);
+                if (assigned_value.has_value()) {
+                    push_result(*assigned_value);
+                    result.events.push_back(ConsoleCommandEvent{
+                        .kind = ConsoleCommandEventKind::value,
+                        .value = *assigned_value,
+                    });
+                }
                 result.state = state();
                 return result;
             }
@@ -203,14 +211,17 @@ ConsoleCommandResult ConsoleSessionEngine::make_result(bool should_exit) const {
     };
 }
 
-void ConsoleSessionEngine::assign_definition(const UserAssignment& assignment,
-                                             const std::optional<Value>& result_reference) {
+std::optional<Value> ConsoleSessionEngine::assign_definition(
+    const UserAssignment& assignment, const std::optional<Value>& result_reference) {
     const std::string normalized_expression =
         normalize_assignment_expression(assignment.expression);
     if (assignment.is_function()) {
+        if (assignment.emit_result) {
+            throw std::invalid_argument("'#' is only supported for value assignments");
+        }
         definitions_[assignment.name] = make_function_definition(assignment.parameters,
                                                                  normalized_expression);
-        return;
+        return std::nullopt;
     }
 
     DefinitionTable validation_definitions = definitions_;
@@ -219,6 +230,12 @@ void ConsoleSessionEngine::assign_definition(const UserAssignment& assignment,
         normalized_expression, constants_, validation_definitions, result_reference);
     (void)parser_.evaluate_value(expanded_expression);
     definitions_[assignment.name] = make_value_definition(normalized_expression);
+    if (!assignment.emit_result) {
+        return std::nullopt;
+    }
+
+    return evaluate_expanded_expression(parser_, assignment.name, constants_, definitions_,
+                                        result_reference);
 }
 
 void ConsoleSessionEngine::refresh_currency_rates(bool report_errors,

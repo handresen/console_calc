@@ -100,6 +100,30 @@ bool expect_engine_basic_flow() {
            variable_result.state.stack_entries.size() == 2 && engine.stack_depth() == 2;
 }
 
+bool expect_engine_echoed_value_assignment() {
+    console_calc::ExpressionParser parser;
+    const console_calc::ConstantTable constants = default_constants();
+    console_calc::ConsoleSessionEngine engine(parser, constants);
+
+    engine.initialize();
+
+    const auto assignment_result = engine.submit("#x:pi+1");
+    if (assignment_result.should_exit ||
+        !expect_single_value_event("engine echoed assignment", assignment_result) ||
+        !contains_definition(assignment_result.state.definitions, "x", "pi+1") ||
+        assignment_result.state.stack_entries.size() != 1 ||
+        !std::holds_alternative<double>(*assignment_result.events[0].value) ||
+        std::get<double>(*assignment_result.events[0].value) <= 4.14159 ||
+        std::get<double>(*assignment_result.events[0].value) >= 4.14160) {
+        return false;
+    }
+
+    const auto function_error = engine.submit("#f(x):x+1");
+    return !function_error.should_exit &&
+           expect_single_error_event("engine echoed function assignment", function_error,
+                                     "'#' is only supported for value assignments");
+}
+
 bool expect_engine_display_mode_and_stack_state() {
     console_calc::ExpressionParser parser;
     const console_calc::ConstantTable constants = default_constants();
@@ -376,6 +400,9 @@ bool expect_engine_error_reporting() {
 
 int main() {
     if (!expect_engine_basic_flow()) {
+        return EXIT_FAILURE;
+    }
+    if (!expect_engine_echoed_value_assignment()) {
         return EXIT_FAILURE;
     }
     if (!expect_engine_display_mode_and_stack_state()) {

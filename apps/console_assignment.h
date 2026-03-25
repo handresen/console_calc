@@ -15,6 +15,7 @@ struct UserAssignment {
     std::string name;
     std::vector<std::string> parameters;
     std::string expression;
+    bool emit_result = false;
 
     [[nodiscard]] bool is_function() const { return !parameters.empty(); }
 };

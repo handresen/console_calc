@@ -439,21 +439,29 @@ bool expect_expression_identifier_expansion() {
 
 bool expect_user_assignment_parsing() {
     const auto value_assignment = console_calc::parse_user_assignment("x:pi+1");
+    const auto echoed_value_assignment = console_calc::parse_user_assignment("#x:pi+1");
     const auto function_assignment = console_calc::parse_user_assignment("f(x):x+1");
     const auto multi_function_assignment = console_calc::parse_user_assignment("f(x,y):x+y");
     const auto invalid_assignment = console_calc::parse_user_assignment("f(x,x):x+y");
 
     return value_assignment.has_value() && value_assignment->name == "x" &&
            value_assignment->parameters.empty() &&
-           value_assignment->expression == "pi+1" && function_assignment.has_value() &&
+           value_assignment->expression == "pi+1" && !value_assignment->emit_result &&
+           echoed_value_assignment.has_value() &&
+           echoed_value_assignment->name == "x" &&
+           echoed_value_assignment->parameters.empty() &&
+           echoed_value_assignment->expression == "pi+1" &&
+           echoed_value_assignment->emit_result &&
+           function_assignment.has_value() &&
            function_assignment->name == "f" && function_assignment->parameters.size() == 1 &&
            function_assignment->parameters[0] == "x" &&
-           function_assignment->expression == "x+1" &&
+           function_assignment->expression == "x+1" && !function_assignment->emit_result &&
            multi_function_assignment.has_value() &&
            multi_function_assignment->name == "f" &&
            multi_function_assignment->parameters ==
                std::vector<std::string>({"x", "y"}) &&
-           multi_function_assignment->expression == "x+y" && !invalid_assignment.has_value();
+           multi_function_assignment->expression == "x+y" &&
+           !multi_function_assignment->emit_result && !invalid_assignment.has_value();
 }
 
 }  // namespace

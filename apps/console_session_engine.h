@@ -73,8 +73,8 @@ public:
     [[nodiscard]] const ConstantTable& constants() const;
 
 private:
-    void assign_definition(const UserAssignment& assignment,
-                           const std::optional<Value>& result_reference);
+    [[nodiscard]] std::optional<Value> assign_definition(
+        const UserAssignment& assignment, const std::optional<Value>& result_reference);
     void refresh_currency_rates(bool report_errors, ConsoleCommandResult& result);
     void push_result(Value result);
     [[nodiscard]] Value apply_stack_operator(char op);

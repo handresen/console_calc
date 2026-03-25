@@ -148,6 +148,12 @@ Integer-preserving behavior:
 
 For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, `map_at`, and `list_where`, the expression argument uses `_` as the current-element placeholder. `_` is only valid inside these list forms. User-defined function parameters are substituted once for the whole call; they are not rebound per list element. Optional `start`, `step`, and `count` arguments use zero-based `start`; `step = 1` by default; and when `count` is omitted, mapping continues over all remaining matching elements. `step` must be a positive integer. `map` returns only mapped elements, while `map_at` preserves original list length and copies untouched elements through. Comparisons return integer `1` for true and `0` for false, and predicate contexts treat any non-zero scalar as true. `list_where` keeps the original matching elements and omits the rest. For `timed_loop` and `fill`, `count` must be a non-negative integer. For `rand`, `rand()` uses `[0, 1)`, `rand(max)` uses `[0, max)`, and `rand(min, max)` uses `[min, max)` with finite bounds and `min < max`. `range` uses `count` as its second argument, not a stop value. Builtin constant lookup also accepts case-sensitive qualified names such as `m.pi`, `c.deg`, and `ph.c`; this uses narrow app-layer builtin-name expansion and does not make `.` a general expression operator.
 
+Console-only syntax adds:
+- value definitions as `name: expr`
+- fixed-arity function definitions as `name(param[, ...]): expr`
+- echoed value assignments as `#name: expr`, which store the value definition and immediately emit the assigned value
+- result-stack references as `r`
+
 Geo positions are a dedicated value type, separate from scalars and lists. They use the `(lat, lon)` convention in degrees. Only the geo-specific functions accept position values.
 
 Position lists are also supported as a separate homogeneous collection type. A

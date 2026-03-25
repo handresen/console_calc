@@ -113,6 +113,12 @@ namespace {
 }  // namespace
 
 std::optional<UserAssignment> parse_user_assignment(std::string_view text) {
+    bool emit_result = false;
+    if (!text.empty() && text.front() == '#') {
+        emit_result = true;
+        text.remove_prefix(1);
+    }
+
     const std::size_t separator = text.find(':');
     if (separator == std::string_view::npos) {
         return std::nullopt;
@@ -128,6 +134,7 @@ std::optional<UserAssignment> parse_user_assignment(std::string_view text) {
     }
 
     assignment->expression = expression;
+    assignment->emit_result = emit_result;
     return assignment;
 }
 

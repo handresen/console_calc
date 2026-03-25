@@ -117,6 +117,19 @@ bool expect_console_mode_user_functions() {
                                      output.str(), expected_output, error.str(), "");
 }
 
+bool expect_console_mode_echoed_value_assignments() {
+    const std::vector<std::string_view> args;
+    std::istringstream input("#x:pi+1\n#f(x):x+1\nq\n");
+    std::ostringstream output;
+    std::ostringstream error;
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) + "4.14159\n" + prompt(1) + prompt(1);
+    return expect_console_transcript("console mode echoed value assignments", exit_code, 0,
+                                     output.str(), expected_output, error.str(),
+                                     "error: '#' is only supported for value assignments\n");
+}
+
 }  // namespace
 
 bool expect_console_mode_definition_behaviors() {
@@ -127,7 +140,8 @@ bool expect_console_mode_definition_behaviors() {
            expect_console_mode_variable_constant_conflict() &&
            expect_console_mode_result_reference_error() &&
            expect_console_mode_unknown_identifier_error() &&
-           expect_console_mode_user_functions();
+           expect_console_mode_user_functions() &&
+           expect_console_mode_echoed_value_assignments();
 }
 
 }  // namespace console_calc::test

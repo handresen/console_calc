@@ -529,6 +529,7 @@ sum(map(vals, f(_)))
 
 Rules:
 - definition syntax is `name:expression`
+- echoed value assignment syntax is `#name:expression`
 - function definition syntax is `name(param[, param...]):expression`
 - redefining a builtin constant name is rejected
 - redefining an existing user definition replaces it
@@ -537,6 +538,7 @@ Rules:
 - user-defined functions can be used in ordinary expressions and inside `map`, `map_at`, and `list_where`
 - function parameters are substituted once for the whole call; inside `map`, `map_at`, and `list_where`, only `_` is rebound per list element
 - nested calls such as `f(f(3))` are allowed
+- echoed assignments apply only to value definitions and immediately emit the assigned value to transcript and stack
 
 ## Currency Conversions
 

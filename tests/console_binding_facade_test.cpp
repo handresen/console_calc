@@ -82,6 +82,27 @@ bool expect_binding_function_definition_snapshot() {
            assignment_result.snapshot.definitions[0].expression == "x+1";
 }
 
+bool expect_binding_echoed_value_assignment() {
+    console_calc::ExpressionParser parser;
+    console_calc::ConsoleBindingFacade facade(parser, default_constants());
+
+    facade.initialize();
+    const auto assignment_result = facade.submit("#x:pi+1");
+    if (assignment_result.should_exit || assignment_result.events.size() != 1 ||
+        assignment_result.events[0].kind != console_calc::BindingEventKind::value ||
+        assignment_result.snapshot.definitions.size() != 1 ||
+        assignment_result.snapshot.definitions[0].name != "x" ||
+        assignment_result.snapshot.definitions[0].expression != "pi+1" ||
+        assignment_result.snapshot.stack.size() != 1) {
+        return false;
+    }
+
+    const auto function_error = facade.submit("#f(x):x+1");
+    return !function_error.should_exit && function_error.events.size() == 1 &&
+           function_error.events[0].kind == console_calc::BindingEventKind::error &&
+           function_error.events[0].text == "'#' is only supported for value assignments";
+}
+
 bool expect_binding_multi_argument_function_snapshot() {
     console_calc::ExpressionParser parser;
     console_calc::ConsoleBindingFacade facade(parser, default_constants());
@@ -166,6 +187,9 @@ int main() {
         return EXIT_FAILURE;
     }
     if (!expect_binding_listing_and_display_modes()) {
+        return EXIT_FAILURE;
+    }
+    if (!expect_binding_echoed_value_assignment()) {
         return EXIT_FAILURE;
     }
     if (!expect_binding_function_definition_snapshot()) {
