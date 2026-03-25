@@ -96,6 +96,7 @@ enum class Function {
     to_poslist,
     to_list,
     densify_path,
+    offset_path,
     simplify_path,
     compress_path,
     dist,

@@ -78,6 +78,7 @@
 "len({1, 2, 3})", 3.0
 "len({pos(0, 0), pos(0, 1)})", 2.0
 "len(densify_path({pos(0, 0), pos(0, 1)}, 2))", 4.0
+"len(offset_path({pos(0, 0), pos(0, 1)}, 1000, 0))", 2.0
 "len(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0))", 2.0
 "len(compress_path(densify_path({pos(0, 0), pos(0, 1)}, 4), 2))", 2.0
 "len(compress_path(densify_path(to_poslist({60, 10, 61, 11, 62, 10, 63, 11}), 10), 4))", 4.0
@@ -97,6 +98,8 @@
 "lat(pos(60, 10))", 60.0
 "lon(pos(60, 10))", 10.0
 "lon(densify_path({pos(0, 0), pos(0, 1)}, 2)[1])", 0.33333333333333331
+"lat(offset_path({pos(0, 0), pos(0, 1)}, 1000, 0)[0])", -0.0090436947697496441
+"lon(offset_path({pos(0, 0), pos(0, 1)}, 0, 1000)[0])", 0.0089831528411952141
 "dist(densify_path({pos(0, 0), pos(0, 1)}, 2))", 111319.49079327357
 "dist(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0))", 111319.49079327357
 "dist(compress_path(densify_path({pos(0, 0), pos(0, 1)}, 4), 2))", 111319.49079327357
@@ -215,6 +218,7 @@
 "sum({pos(60, 10), pos(61, 11)})", INVALID
 "bearing(1, pos(0, 0))", INVALID
 "br_to_pos(pos(0, 0), 90, -1)", INVALID
+"offset_path({pos(0, 0), pos(0, 1)}, 1)", INVALID
 "_", INVALID
 "guard(1 / 0)", INVALID
 "range(1)", INVALID

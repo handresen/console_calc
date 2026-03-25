@@ -235,6 +235,7 @@ m.pi
 - `to_list(poslist)` expand positions into a scalar list using `(lat, lon)` order
 - `to_poslist(list)` pair scalar list values into positions
 - `densify_path(poslist, count)` insert `count` evenly spaced geodesic points per path leg
+- `offset_path(poslist, offset_x_m, offset_y_m)` offset path points in local path coordinates; positive `offset_x_m` is to the right of travel
 - `simplify_path(poslist, tolerance_m)` remove path points whose deviation stays within the tolerance
 - `compress_path(poslist, count[, max_points])` remove path points to reach an exact count while preserving endpoints
 - `dist(pos1, pos2)` WGS84 ellipsoid distance in meters
@@ -347,6 +348,7 @@ rand(10, 20)                  => 13.7...
 map(range(-2, 5), guard(1 / _, 0))
 sum(map({1, 2, 3}, sin(_)))   => 1.89189...
 len(densify_path({pos(0, 0), pos(0, 1)}, 2)) => 4
+lat(offset_path({pos(0, 0), pos(0, 1)}, 1000, 0)[0]) => about -0.00904369
 len(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0)) => 2
 len(compress_path(densify_path({pos(0, 0), pos(0, 1)}, 4), 2)) => 2
 dist(pos(0, 0), pos(0, 1))    => 111319.490793...

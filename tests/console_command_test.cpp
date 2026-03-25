@@ -165,6 +165,8 @@ bool expect_builtin_function_metadata() {
         console_calc::builtin_function_info(console_calc::Function::to_poslist);
     const auto densify_path_info =
         console_calc::builtin_function_info(console_calc::Function::densify_path);
+    const auto offset_path_info =
+        console_calc::builtin_function_info(console_calc::Function::offset_path);
     const auto simplify_path_info =
         console_calc::builtin_function_info(console_calc::Function::simplify_path);
     const auto compress_path_info =
@@ -261,6 +263,12 @@ bool expect_builtin_function_metadata() {
            densify_path_info.category == console_calc::BuiltinFunctionCategory::position &&
            densify_path_info.signature == "densify_path(poslist, count)" &&
            !densify_path_info.scalar_arguments &&
+           offset_path_info.name == "offset_path" &&
+           offset_path_info.min_arity == 3 &&
+           offset_path_info.max_arity == 3 &&
+           offset_path_info.category == console_calc::BuiltinFunctionCategory::position &&
+           offset_path_info.signature == "offset_path(poslist, offset_x_m, offset_y_m)" &&
+           !offset_path_info.scalar_arguments &&
            simplify_path_info.name == "simplify_path" &&
            simplify_path_info.min_arity == 2 &&
            simplify_path_info.max_arity == 2 &&

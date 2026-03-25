@@ -31,6 +31,8 @@ struct GeodesicInverseResult {
 [[nodiscard]] double wgs84_path_distance(const PositionListValue& positions);
 [[nodiscard]] PositionListValue densify_wgs84_path(const PositionListValue& positions,
                                                    std::size_t inserted_per_leg);
+[[nodiscard]] PositionListValue offset_wgs84_path(const PositionListValue& positions,
+                                                  double offset_x_m, double offset_y_m);
 [[nodiscard]] PositionListValue simplify_wgs84_path(const PositionListValue& positions,
                                                     double tolerance_m);
 [[nodiscard]] PositionListValue compress_wgs84_path(const PositionListValue& positions,

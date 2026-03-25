@@ -9,6 +9,13 @@
 namespace console_calc::test {
 
 bool expect_expression_semantics(ExpressionParser& parser) {
+    const auto require = [](bool condition, const char* label) {
+        if (!condition) {
+            std::cerr << "semantic check failed: " << label << '\n';
+        }
+        return condition;
+    };
+
     const Value first_list = parser.evaluate_value("first({1, 2, 3}, 2)");
     const auto* first_values = std::get_if<ListValue>(&first_list);
     if (first_values == nullptr || first_values->size() != 2 ||
@@ -192,6 +199,12 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value densified_positions =
         parser.evaluate_value("densify_path({pos(0, 0), pos(0, 1)}, 2)");
     const auto* densified_values = std::get_if<PositionListValue>(&densified_positions);
+    const Value offset_right_positions =
+        parser.evaluate_value("offset_path({pos(0, 0), pos(0, 1)}, 1000, 0)");
+    const auto* offset_right_values = std::get_if<PositionListValue>(&offset_right_positions);
+    const Value offset_forward_positions =
+        parser.evaluate_value("offset_path({pos(0, 0), pos(0, 1)}, 0, 1000)");
+    const auto* offset_forward_values = std::get_if<PositionListValue>(&offset_forward_positions);
     const Value simplified_positions = parser.evaluate_value(
         "simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0)");
     const auto* simplified_values = std::get_if<PositionListValue>(&simplified_positions);
@@ -204,39 +217,86 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         std::get_if<PositionListValue>(&zigzag_compressed_positions);
     const Value indexed_position = parser.evaluate_value("to_poslist({60, 10, 61, 11})[1]");
     const auto* indexed_position_value = std::get_if<PositionValue>(&indexed_position);
-    if (paired_values == nullptr || paired_values->size() != 2 || flattened_values == nullptr ||
-        flattened_values->size() != 4 || empty_positions == nullptr || !empty_positions->empty() ||
-        empty_scalars == nullptr || !empty_scalars->empty() || position_values == nullptr ||
-        position_values->size() != 2 || densified_values == nullptr ||
-        densified_values->size() != 4 ||
-        simplified_values == nullptr || simplified_values->size() != 2 ||
-        compressed_values == nullptr || compressed_values->size() != 2 ||
-        zigzag_compressed_values == nullptr || zigzag_compressed_values->size() != 4 ||
-        !almost_equal(densified_values->front().longitude_deg, 0.0, 1e-12) ||
-        !almost_equal(densified_values->back().longitude_deg, 1.0, 1e-12) ||
-        !almost_equal(simplified_values->front().longitude_deg, 0.0, 1e-12) ||
-        !almost_equal(simplified_values->back().longitude_deg, 1.0, 1e-12) ||
-        !almost_equal(compressed_values->front().longitude_deg, 0.0, 1e-12) ||
-        !almost_equal(compressed_values->back().longitude_deg, 1.0, 1e-12) ||
-        !almost_equal((*zigzag_compressed_values)[0].latitude_deg, 60.0, 1e-9) ||
-        !almost_equal((*zigzag_compressed_values)[0].longitude_deg, 10.0, 1e-9) ||
-        !almost_equal((*zigzag_compressed_values)[1].latitude_deg, 61.0, 1e-9) ||
-        !almost_equal((*zigzag_compressed_values)[1].longitude_deg, 11.0, 1e-9) ||
-        !almost_equal((*zigzag_compressed_values)[2].latitude_deg, 62.0, 1e-9) ||
-        !almost_equal((*zigzag_compressed_values)[2].longitude_deg, 10.0, 1e-9) ||
-        !almost_equal((*zigzag_compressed_values)[3].latitude_deg, 63.0, 1e-9) ||
-        !almost_equal((*zigzag_compressed_values)[3].longitude_deg, 11.0, 1e-9) ||
-        !almost_equal(parser.evaluate("dist(densify_path({pos(0, 0), pos(0, 1)}, 2))"),
-                      111319.4907932264, 1e-6) ||
-        !almost_equal(
-            parser.evaluate("dist(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0))"),
-            111319.4907932264, 1e-6) ||
-        !almost_equal(
-            parser.evaluate("dist(compress_path(densify_path({pos(0, 0), pos(0, 1)}, 4), 2))"),
-            111319.4907932264, 1e-6) ||
-        indexed_position_value == nullptr ||
-        !almost_equal(indexed_position_value->latitude_deg, 61.0) ||
-        !almost_equal(indexed_position_value->longitude_deg, 11.0)) {
+    if (!require(paired_values != nullptr && paired_values->size() == 2, "paired_values") ||
+        !require(flattened_values != nullptr && flattened_values->size() == 4, "flattened_values") ||
+        !require(empty_positions != nullptr && empty_positions->empty(), "empty_positions") ||
+        !require(empty_scalars != nullptr && empty_scalars->empty(), "empty_scalars") ||
+        !require(position_values != nullptr && position_values->size() == 2, "filled_positions") ||
+        !require(densified_values != nullptr && densified_values->size() == 4, "densified_values") ||
+        !require(offset_right_values != nullptr && offset_right_values->size() == 2, "offset_right_values") ||
+        !require(offset_forward_values != nullptr && offset_forward_values->size() == 2, "offset_forward_values") ||
+        !require(simplified_values != nullptr && simplified_values->size() == 2, "simplified_values") ||
+        !require(compressed_values != nullptr && compressed_values->size() == 2, "compressed_values") ||
+        !require(zigzag_compressed_values != nullptr && zigzag_compressed_values->size() == 4,
+                 "zigzag_compressed_values") ||
+        !require(!densified_values || almost_equal(densified_values->front().longitude_deg, 0.0, 1e-12),
+                 "densified_front") ||
+        !require(!densified_values || almost_equal(densified_values->back().longitude_deg, 1.0, 1e-12),
+                 "densified_back") ||
+        !require(!offset_right_values ||
+                     almost_equal((*offset_right_values)[0].latitude_deg, -0.0090436947697496441, 1e-8),
+                 "offset_right_first") ||
+        !require(!offset_right_values ||
+                     almost_equal((*offset_right_values)[1].latitude_deg, -0.0090436947697496441, 1e-8),
+                 "offset_right_second") ||
+        !require(!offset_forward_values ||
+                     almost_equal((*offset_forward_values)[0].longitude_deg, 0.0089831528411952141, 1e-8),
+                 "offset_forward_first") ||
+        !require(!offset_forward_values ||
+                     almost_equal((*offset_forward_values)[1].longitude_deg, 1.0089831528411952, 1e-8),
+                 "offset_forward_second") ||
+        !require(!simplified_values || almost_equal(simplified_values->front().longitude_deg, 0.0, 1e-12),
+                 "simplified_front") ||
+        !require(!simplified_values || almost_equal(simplified_values->back().longitude_deg, 1.0, 1e-12),
+                 "simplified_back") ||
+        !require(!compressed_values || almost_equal(compressed_values->front().longitude_deg, 0.0, 1e-12),
+                 "compressed_front") ||
+        !require(!compressed_values || almost_equal(compressed_values->back().longitude_deg, 1.0, 1e-12),
+                 "compressed_back") ||
+        !require(!zigzag_compressed_values ||
+                     almost_equal((*zigzag_compressed_values)[0].latitude_deg, 60.0, 1e-9),
+                 "zigzag_0_lat") ||
+        !require(!zigzag_compressed_values ||
+                     almost_equal((*zigzag_compressed_values)[0].longitude_deg, 10.0, 1e-9),
+                 "zigzag_0_lon") ||
+        !require(!zigzag_compressed_values ||
+                     almost_equal((*zigzag_compressed_values)[1].latitude_deg, 61.0, 1e-9),
+                 "zigzag_1_lat") ||
+        !require(!zigzag_compressed_values ||
+                     almost_equal((*zigzag_compressed_values)[1].longitude_deg, 11.0, 1e-9),
+                 "zigzag_1_lon") ||
+        !require(!zigzag_compressed_values ||
+                     almost_equal((*zigzag_compressed_values)[2].latitude_deg, 62.0, 1e-9),
+                 "zigzag_2_lat") ||
+        !require(!zigzag_compressed_values ||
+                     almost_equal((*zigzag_compressed_values)[2].longitude_deg, 10.0, 1e-9),
+                 "zigzag_2_lon") ||
+        !require(!zigzag_compressed_values ||
+                     almost_equal((*zigzag_compressed_values)[3].latitude_deg, 63.0, 1e-9),
+                 "zigzag_3_lat") ||
+        !require(!zigzag_compressed_values ||
+                     almost_equal((*zigzag_compressed_values)[3].longitude_deg, 11.0, 1e-9),
+                 "zigzag_3_lon") ||
+        !require(almost_equal(parser.evaluate("dist(densify_path({pos(0, 0), pos(0, 1)}, 2))"),
+                              111319.4907932264, 1e-6),
+                 "densified_dist") ||
+        !require(almost_equal(
+                     parser.evaluate("dist(offset_path({pos(0, 0), pos(0, 1)}, 1000, 0))"),
+                     111319.4907932264, 1e-2),
+                 "offset_dist") ||
+        !require(almost_equal(
+                     parser.evaluate("dist(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0))"),
+                     111319.4907932264, 1e-6),
+                 "simplified_dist") ||
+        !require(almost_equal(
+                     parser.evaluate("dist(compress_path(densify_path({pos(0, 0), pos(0, 1)}, 4), 2))"),
+                     111319.4907932264, 1e-6),
+                 "compressed_dist") ||
+        !require(indexed_position_value != nullptr, "indexed_position_type") ||
+        !require(!indexed_position_value || almost_equal(indexed_position_value->latitude_deg, 61.0),
+                 "indexed_position_lat") ||
+        !require(!indexed_position_value || almost_equal(indexed_position_value->longitude_deg, 11.0),
+                 "indexed_position_lon")) {
         return false;
     }
 

@@ -64,6 +64,55 @@ struct CompressionCandidate {
     double neighbor_distance_m = 0.0;
 };
 
+[[nodiscard]] PositionValue direct_signed(const PositionValue& start, double bearing_deg,
+                                          double signed_distance_m) {
+    if (signed_distance_m == 0.0) {
+        return start;
+    }
+    const double direction_deg =
+        signed_distance_m >= 0.0 ? bearing_deg : normalize_bearing_degrees(bearing_deg + 180.0);
+    return wgs84_direct(start, direction_deg, std::fabs(signed_distance_m));
+}
+
+[[nodiscard]] std::optional<double> local_path_bearing_deg(
+    std::span<const PositionValue> positions, std::size_t index) {
+    std::optional<double> incoming_bearing_deg;
+    for (std::size_t candidate = index; candidate > 0U; --candidate) {
+        const auto leg = wgs84_inverse(positions[candidate - 1U], positions[candidate]);
+        if (leg.distance_m > 0.0) {
+            incoming_bearing_deg = leg.initial_bearing_deg;
+            break;
+        }
+    }
+
+    std::optional<double> outgoing_bearing_deg;
+    for (std::size_t candidate = index + 1U; candidate < positions.size(); ++candidate) {
+        const auto leg = wgs84_inverse(positions[candidate - 1U], positions[candidate]);
+        if (leg.distance_m > 0.0) {
+            outgoing_bearing_deg = leg.initial_bearing_deg;
+            break;
+        }
+    }
+
+    if (!incoming_bearing_deg.has_value()) {
+        return outgoing_bearing_deg;
+    }
+    if (!outgoing_bearing_deg.has_value()) {
+        return incoming_bearing_deg;
+    }
+
+    constexpr double k_pi = 3.14159265358979323846;
+    const double incoming_rad = *incoming_bearing_deg * k_pi / 180.0;
+    const double outgoing_rad = *outgoing_bearing_deg * k_pi / 180.0;
+    const double x = std::cos(incoming_rad) + std::cos(outgoing_rad);
+    const double y = std::sin(incoming_rad) + std::sin(outgoing_rad);
+    if (std::fabs(x) < 1e-12 && std::fabs(y) < 1e-12) {
+        return outgoing_bearing_deg;
+    }
+
+    return normalize_bearing_degrees(std::atan2(y, x) * 180.0 / k_pi);
+}
+
 [[nodiscard]] double point_to_segment_distance_m(const PositionValue& point,
                                                  const PositionValue& start,
                                                  const PositionValue& end) {
@@ -205,6 +254,34 @@ PositionListValue densify_wgs84_path(const PositionListValue& positions,
     }
 
     return dense_positions;
+}
+
+PositionListValue offset_wgs84_path(const PositionListValue& positions, double offset_x_m,
+                                    double offset_y_m) {
+    if (!std::isfinite(offset_x_m) || !std::isfinite(offset_y_m)) {
+        throw EvaluationError("offset_path() offsets must be finite");
+    }
+    if (positions.size() < 2U || (offset_x_m == 0.0 && offset_y_m == 0.0)) {
+        return positions;
+    }
+
+    PositionListValue offset_positions;
+    offset_positions.reserve(positions.size());
+    for (std::size_t index = 0; index < positions.size(); ++index) {
+        const auto local_bearing_deg = local_path_bearing_deg(positions, index);
+        if (!local_bearing_deg.has_value()) {
+            offset_positions.push_back(positions[index]);
+            continue;
+        }
+
+        PositionValue shifted = positions[index];
+        shifted = direct_signed(shifted, *local_bearing_deg, offset_y_m);
+        shifted = direct_signed(shifted, normalize_bearing_degrees(*local_bearing_deg + 90.0),
+                                offset_x_m);
+        offset_positions.push_back(shifted);
+    }
+
+    return offset_positions;
 }
 
 PositionListValue simplify_wgs84_path(const PositionListValue& positions, double tolerance_m) {
