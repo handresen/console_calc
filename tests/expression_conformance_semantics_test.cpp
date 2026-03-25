@@ -192,6 +192,9 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value densified_positions =
         parser.evaluate_value("densify_path({pos(0, 0), pos(0, 1)}, 2)");
     const auto* densified_values = std::get_if<PositionListValue>(&densified_positions);
+    const Value simplified_positions = parser.evaluate_value(
+        "simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0)");
+    const auto* simplified_values = std::get_if<PositionListValue>(&simplified_positions);
     const Value indexed_position = parser.evaluate_value("to_poslist({60, 10, 61, 11})[1]");
     const auto* indexed_position_value = std::get_if<PositionValue>(&indexed_position);
     if (paired_values == nullptr || paired_values->size() != 2 || flattened_values == nullptr ||
@@ -199,10 +202,16 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         empty_scalars == nullptr || !empty_scalars->empty() || position_values == nullptr ||
         position_values->size() != 2 || densified_values == nullptr ||
         densified_values->size() != 4 ||
+        simplified_values == nullptr || simplified_values->size() != 2 ||
         !almost_equal(densified_values->front().longitude_deg, 0.0, 1e-12) ||
         !almost_equal(densified_values->back().longitude_deg, 1.0, 1e-12) ||
+        !almost_equal(simplified_values->front().longitude_deg, 0.0, 1e-12) ||
+        !almost_equal(simplified_values->back().longitude_deg, 1.0, 1e-12) ||
         !almost_equal(parser.evaluate("dist(densify_path({pos(0, 0), pos(0, 1)}, 2))"),
                       111319.4907932264, 1e-6) ||
+        !almost_equal(
+            parser.evaluate("dist(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0))"),
+            111319.4907932264, 1e-6) ||
         indexed_position_value == nullptr ||
         !almost_equal(indexed_position_value->latitude_deg, 61.0) ||
         !almost_equal(indexed_position_value->longitude_deg, 11.0)) {

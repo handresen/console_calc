@@ -210,6 +210,10 @@ template <typename Operation>
         }
         return densify_wgs84_path(positions, static_cast<std::size_t>(inserted_per_leg));
     }
+    case Function::simplify_path:
+        return simplify_wgs84_path(
+            require_position_list(arguments[0]),
+            scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])));
     case Function::dist:
         if (arguments.size() == 1U) {
             return wgs84_path_distance(require_position_list(arguments[0]));
@@ -246,7 +250,7 @@ template <typename Operation>
             return static_cast<std::int64_t>(values->size());
         }
         if (const auto* positions = std::get_if<PositionListValue>(&arguments[0])) {
-            return static_cast<std::int64_t>(positions->size());
+        return static_cast<std::int64_t>(positions->size());
         }
         throw EvaluationError("list or position list value required");
     }
