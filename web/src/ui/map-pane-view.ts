@@ -28,6 +28,10 @@ export interface MapPaneView {
   setDisplaySettings(settings: DisplaySettings): void;
 }
 
+interface ApplyMapViewOptions {
+  animate?: boolean;
+}
+
 const mapPalette = [
   {
     stroke: "rgba(111, 157, 115, 0.9)",
@@ -68,6 +72,7 @@ export function createMapPaneView(
   let displaySettings = initialDisplaySettings;
   let latestStack: BindingStackEntry[] = [];
   let latestMapGroup: PlotGroup | null = null;
+  let latestMapSignature = "";
 
   const mapMeta = document.createElement("div");
   mapMeta.className = "map-meta";
@@ -163,11 +168,50 @@ export function createMapPaneView(
     }),
   });
 
-  const applyMapView = (group: PlotGroup | null) => {
+  const animateViewTo = (center: [number, number], zoom: number, animate: boolean) => {
+    const view = map.getView();
+    if (!animate) {
+      view.setCenter(center);
+      view.setZoom(zoom);
+      return;
+    }
+
+    view.cancelAnimations();
+    view.animate(
+      {
+        center,
+        zoom,
+        duration: 260,
+        easing: (value) => 1 - Math.pow(1 - value, 3),
+      },
+    );
+  };
+
+  const buildMapSignature = (group: PlotGroup | null) => {
+    if (group == null || group.kind !== "position") {
+      return "";
+    }
+
+    return group.items
+      .map((series) =>
+        series.points
+          .map(
+            (point) =>
+              `${point.latitude_deg.toFixed(6)}:${point.longitude_deg.toFixed(6)}`,
+          )
+          .join("|"),
+      )
+      .join("||");
+  };
+
+  const applyMapView = (
+    group: PlotGroup | null,
+    options: ApplyMapViewOptions = {},
+  ) => {
+    const animate = options.animate ?? false;
     const view = map.getView();
     if (group == null || group.kind !== "position") {
-      view.setCenter(fromLonLat([0, 0]));
-      view.setZoom(1.5);
+      animateViewTo(fromLonLat([0, 0]), 1.5, animate);
       return;
     }
 
@@ -175,20 +219,20 @@ export function createMapPaneView(
       (group.items as PositionPlotSeries[]).flatMap((series) => series.points),
     );
     if (mapCoordinates.length === 0) {
-      view.setCenter(fromLonLat([0, 0]));
-      view.setZoom(1.5);
+      animateViewTo(fromLonLat([0, 0]), 1.5, animate);
       return;
     }
     if (mapCoordinates.length === 1) {
-      view.setCenter(mapCoordinates[0]);
-      view.setZoom(8);
+      animateViewTo(mapCoordinates[0] as [number, number], 8, animate);
       return;
     }
 
+    view.cancelAnimations();
     view.fit(mapPointSource.getExtent(), {
       size: map.getSize(),
       padding: [48, 48, 48, 48],
       maxZoom: 12,
+      duration: animate ? 260 : 0,
     });
   };
 
@@ -202,10 +246,13 @@ export function createMapPaneView(
     onToggle(expanded);
   });
 
-  const renderMap = (groupList: PlotGroup[]) => {
+  const renderMap = (groupList: PlotGroup[], options: ApplyMapViewOptions = {}) => {
     const currentGroup = [...groupList].reverse().find((group) => group.kind === "position");
+    const nextSignature = buildMapSignature(currentGroup ?? null);
+    const shouldAnimate = (options.animate ?? false) && nextSignature !== latestMapSignature;
     pane.count.textContent = `${currentGroup?.items.length ?? 0}`;
     latestMapGroup = currentGroup ?? null;
+    latestMapSignature = nextSignature;
 
     if (currentGroup == null || currentGroup.kind !== "position") {
       mapMeta.textContent = "World view";
@@ -214,7 +261,7 @@ export function createMapPaneView(
       mapLineSource.clear();
       requestAnimationFrame(() => {
         map.updateSize();
-        applyMapView(null);
+        applyMapView(null, { animate: shouldAnimate });
       });
       return;
     }
@@ -256,7 +303,7 @@ export function createMapPaneView(
 
     requestAnimationFrame(() => {
       map.updateSize();
-      applyMapView(currentGroup);
+      applyMapView(currentGroup, { animate: shouldAnimate });
     });
   };
 
@@ -307,7 +354,9 @@ export function createMapPaneView(
     pane,
     render(stack) {
       latestStack = stack;
-      rerenderMap();
+      renderMap(latestStack.map((entry) => parseMapGroup(entry)).filter(isPlotGroup), {
+        animate: true,
+      });
     },
     setDisplaySettings(settings) {
       displaySettings = settings;
