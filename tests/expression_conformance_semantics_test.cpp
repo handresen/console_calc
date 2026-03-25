@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <exception>
+#include <string>
 #include <variant>
 
 #include "expression_conformance_test_support.h"
@@ -14,6 +15,18 @@ bool expect_expression_semantics(ExpressionParser& parser) {
             std::cerr << "semantic check failed: " << label << '\n';
         }
         return condition;
+    };
+    const auto nest = [](std::string expression, const std::string& wrapper_template, int count) {
+        for (int index = 0; index < count; ++index) {
+            std::string wrapper = wrapper_template;
+            const std::size_t placeholder = wrapper.find("{}");
+            if (placeholder == std::string::npos) {
+                throw std::runtime_error("missing wrapper placeholder");
+            }
+            wrapper.replace(placeholder, 2, expression);
+            expression = std::move(wrapper);
+        }
+        return expression;
     };
 
     const Value first_list = parser.evaluate_value("first({1, 2, 3}, 2)");
@@ -211,6 +224,36 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const double repeated_offset_path_length_delta = std::fabs(
         parser.evaluate("dist(offset_path(offset_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 10000, 10000), 10000, 10000))") -
         parser.evaluate("dist(offset_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 20000, 20000))"));
+    const double rotated_center_distance = parser.evaluate(
+        "dist(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 90)[1], pos(0, 1))");
+    const double rotated_first_radius_delta = std::fabs(
+        parser.evaluate("dist(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 90)[0], pos(0, 1))") -
+        parser.evaluate("dist(pos(0, 0), pos(0, 1))"));
+    const double rotated_second_radius_delta = std::fabs(
+        parser.evaluate("dist(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 90)[2], pos(0, 1))") -
+        parser.evaluate("dist(pos(1, 1), pos(0, 1))"));
+    const double repeated_rotation_middle_distance = parser.evaluate(
+        "dist(rotate_path(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 45), 1, 45)[0],"
+        " rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 90)[0])");
+    const std::string rotation_base = "{pos(0, 0), pos(0, 1), pos(1, 1)}";
+    const std::string rotated_full_cycle =
+        nest(rotation_base, "rotate_path({}, 1, 1)", 3600);
+    const double rotate_cycle_center_drift = parser.evaluate(
+        "dist(" + rotated_full_cycle + "[1], pos(0, 1))");
+    const double rotate_cycle_first_drift = parser.evaluate(
+        "dist(" + rotated_full_cycle + "[0], pos(0, 0))");
+    const double rotate_cycle_second_drift = parser.evaluate(
+        "dist(" + rotated_full_cycle + "[2], pos(1, 1))");
+    const std::string offset_base = "{pos(0, 0), pos(0, 1), pos(1, 1)}";
+    const std::string offset_round_trip = nest(
+        nest(offset_base, "offset_path({}, 1000, 1000)", 1000),
+        "offset_path({}, -1000, -1000)", 1000);
+    const double offset_round_trip_first_drift = parser.evaluate(
+        "dist(" + offset_round_trip + "[0], pos(0, 0))");
+    const double offset_round_trip_center_drift = parser.evaluate(
+        "dist(" + offset_round_trip + "[1], pos(0, 1))");
+    const double offset_round_trip_second_drift = parser.evaluate(
+        "dist(" + offset_round_trip + "[2], pos(1, 1))");
     const Value simplified_positions = parser.evaluate_value(
         "simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0)");
     const auto* simplified_values = std::get_if<PositionListValue>(&simplified_positions);
@@ -257,6 +300,16 @@ bool expect_expression_semantics(ExpressionParser& parser) {
                  "offset_forward_second") ||
         !require(repeated_offset_middle_distance < 1e-3, "offset_repeat_middle_distance") ||
         !require(repeated_offset_path_length_delta < 1e-6, "offset_repeat_path_length_delta") ||
+        !require(rotated_center_distance < 1e-9, "rotate_center_fixed") ||
+        !require(rotated_first_radius_delta < 1e-6, "rotate_first_radius") ||
+        !require(rotated_second_radius_delta < 1e-6, "rotate_second_radius") ||
+        !require(repeated_rotation_middle_distance < 1e-6, "rotate_repeat_middle_distance") ||
+        !require(rotate_cycle_center_drift < 1e-6, "rotate_cycle_center_drift") ||
+        !require(rotate_cycle_first_drift < 0.1, "rotate_cycle_first_drift") ||
+        !require(rotate_cycle_second_drift < 0.1, "rotate_cycle_second_drift") ||
+        !require(offset_round_trip_first_drift < 1e-6, "offset_round_trip_first_drift") ||
+        !require(offset_round_trip_center_drift < 1e-6, "offset_round_trip_center_drift") ||
+        !require(offset_round_trip_second_drift < 1e-6, "offset_round_trip_second_drift") ||
         !require(!simplified_values || almost_equal(simplified_values->front().longitude_deg, 0.0, 1e-12),
                  "simplified_front") ||
         !require(!simplified_values || almost_equal(simplified_values->back().longitude_deg, 1.0, 1e-12),

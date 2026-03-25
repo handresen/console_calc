@@ -29,6 +29,8 @@ bool expect_expression_function_signature_errors(ExpressionParser& parser) {
          "function 'densify_path' expects densify_path(poslist, count)"},
         {"offset_path({pos(0, 0), pos(0, 1)}, 1)",
          "function 'offset_path' expects offset_path(poslist, offset_x_m, offset_y_m)"},
+        {"rotate_path({pos(0, 0), pos(0, 1)}, 0)",
+         "function 'rotate_path' expects rotate_path(poslist, center_index, degrees)"},
         {"simplify_path({pos(0, 0), pos(0, 1)})",
          "function 'simplify_path' expects simplify_path(poslist, tolerance_m)"},
         {"compress_path({pos(0, 0), pos(0, 1)})",

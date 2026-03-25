@@ -109,6 +109,7 @@ Builtin functions:
 - `to_poslist(list)` pairs scalar list values into positions using `(lat, lon)` order
 - `densify_path(poslist, count)` inserts `count` evenly spaced geodesic points per path leg
 - `offset_path(poslist, offset_x_m, offset_y_m)` translates a path rigidly using midpoint-centered azimuthal-equidistant coordinates; positive `offset_x_m` is to the right of travel at the midpoint
+- `rotate_path(poslist, center_index, degrees)` rotates a path around `poslist[center_index]` using center-relative geodesic bearings
 - `simplify_path(poslist, tolerance_m)` removes path points whose deviation stays within the tolerance
 - `compress_path(poslist, count[, max_points])` removes path points to reach an exact count while preserving endpoints
 - `dist(pos1, pos2)` returns WGS84 ellipsoid distance in meters
@@ -184,6 +185,7 @@ Examples:
 - `to_poslist({60, 10, 61, 11})` => `{pos(60, 10), pos(61, 11)}`
 - `len(densify_path({pos(0, 0), pos(0, 1)}, 2))` => `4`
 - `lat(offset_path({pos(0, 0), pos(0, 1)}, 1000, 0)[0])` => about `-0.00904231`
+- `dist(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 90)[1], pos(0, 1))` => `0`
 - `len(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0))` => `2`
 - `len(compress_path(densify_path({pos(0, 0), pos(0, 1)}, 4), 2))` => `2`
 - `dist(pos(0, 0), pos(0, 1))` => `111319.4907932264`

@@ -215,6 +215,17 @@ template <typename Operation>
             require_position_list(arguments[0]),
             scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])),
             scalar_to_double(require_scalar_or_singleton_list_value(arguments[2])));
+    case Function::rotate_path: {
+        const PositionListValue positions = require_position_list(arguments[0]);
+        const auto center_index =
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[1]));
+        if (center_index < 0) {
+            throw EvaluationError("rotate_path() center index must be non-negative");
+        }
+        return rotate_wgs84_path(
+            positions, static_cast<std::size_t>(center_index),
+            scalar_to_double(require_scalar_or_singleton_list_value(arguments[2])));
+    }
     case Function::simplify_path:
         return simplify_wgs84_path(
             require_position_list(arguments[0]),

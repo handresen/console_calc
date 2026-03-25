@@ -290,6 +290,30 @@ PositionListValue offset_wgs84_path(const PositionListValue& positions, double o
     return shifted_positions;
 }
 
+PositionListValue rotate_wgs84_path(const PositionListValue& positions, std::size_t center_index,
+                                    double degrees) {
+    if (!std::isfinite(degrees)) {
+        throw EvaluationError("rotate_path() degrees must be finite");
+    }
+    if (center_index >= positions.size()) {
+        throw EvaluationError("rotate_path() center index is out of range");
+    }
+    if (positions.size() < 2U || degrees == 0.0) {
+        return positions;
+    }
+
+    const PositionValue center = positions[center_index];
+    PositionListValue rotated_positions;
+    rotated_positions.reserve(positions.size());
+    for (const auto& position : positions) {
+        const GeodesicInverseResult relative = wgs84_inverse(center, position);
+        rotated_positions.push_back(
+            wgs84_direct(center, normalize_bearing_degrees(relative.initial_bearing_deg + degrees),
+                         relative.distance_m));
+    }
+    return rotated_positions;
+}
+
 PositionListValue simplify_wgs84_path(const PositionListValue& positions, double tolerance_m) {
     if (!std::isfinite(tolerance_m) || tolerance_m < 0.0) {
         throw EvaluationError("simplify_path() tolerance must be a non-negative finite distance");
