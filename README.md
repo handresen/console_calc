@@ -156,7 +156,7 @@ Notes:
 - hexadecimal literals such as `0xff` and binary literals such as `0b1010` are kept as integer values
 - decimal values with a fractional part or exponent are floating-point values
 - one-element lists are accepted in scalar positions
-- list literals support scalars, position lists, and one-level nested lists like `{{1, 2}, {3, 4}}` or `{{pos(0, 0), pos(0, 1)}, {pos(1, 1)}}`; deeper nesting is still rejected
+- list literals support scalars, position lists, and one-level nested lists like `{{1, 2}, {3, 4}}` or `{{pos(0, 0), pos(0, 1)}, {pos(1, 1)}}`; named inner lists such as `{a, b}` or `{p1, p2}` also work when those identifiers resolve to homogeneous list values; deeper nesting is still rejected
 - postfix indexing works on scalar lists, one-level scalar nested lists, position lists, and one-level position nested lists and requires a non-negative integer index
 
 Current integer-preserving behavior:

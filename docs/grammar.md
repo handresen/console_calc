@@ -92,7 +92,7 @@ Expressions use these precedence levels, from highest to lowest: function calls,
 
 `%` uses floating-point modulo via `fmod`. `&`, `|`, and unary `~` are bitwise integer operators and require integer-valued operands; non-integer operands are rejected. Division by zero, modulo by zero, and non-finite evaluation results are rejected.
 
-Where a scalar is required, a one-element list is accepted and coerced to that element. Multi-element lists are still rejected in scalar positions. Postfix indexing `expr[index]` works on scalar lists, one-level scalar nested lists, position lists, and one-level position nested lists and requires a non-negative integer index within bounds. List literals support scalars, positions, and one-level nested lists such as `{{1, 2}, {3, 4}}` or `{{pos(0, 0), pos(0, 1)}, {pos(1, 1)}}`; deeper nesting is still rejected.
+Where a scalar is required, a one-element list is accepted and coerced to that element. Multi-element lists are still rejected in scalar positions. Postfix indexing `expr[index]` works on scalar lists, one-level scalar nested lists, position lists, and one-level position nested lists and requires a non-negative integer index within bounds. List literals support scalars, positions, and one-level nested lists such as `{{1, 2}, {3, 4}}` or `{{pos(0, 0), pos(0, 1)}, {pos(1, 1)}}`; named inner lists such as `{a, b}` or `{p1, p2}` also work when those identifiers resolve to homogeneous list values. Deeper nesting is still rejected.
 
 Integer-valued decimal literals such as `42`, hexadecimal literals such as `0xff`, and binary literals such as `0b1010` are preserved as intrinsic integer values. Decimal literals with a fractional part or exponent such as `3.14` or `1e3` are evaluated as floating-point values.
 

@@ -130,6 +130,26 @@ bool expect_console_mode_echoed_value_assignments() {
                                      "error: '#' is only supported for value assignments\n");
 }
 
+bool expect_console_mode_named_nested_lists() {
+    const std::vector<std::string_view> args;
+    std::istringstream input(
+        "a:{1,2}\n"
+        "b:{3,4}\n"
+        "{a,b}[1][0]\n"
+        "p1:{pos(0,0),pos(0,1)}\n"
+        "p2:{pos(1,1)}\n"
+        "lat({p1,p2}[1][0])\n"
+        "q\n");
+    std::ostringstream output;
+    std::ostringstream error;
+    const int exit_code = console_calc::run_console_calc(args, input, output, error);
+    const std::string expected_output =
+        prompt(0) + prompt(0) + prompt(0) + "3\n" + prompt(1) + prompt(1) + prompt(1) +
+        "1\n" + prompt(2);
+    return expect_console_transcript("console mode named nested lists", exit_code, 0,
+                                     output.str(), expected_output, error.str(), "");
+}
+
 }  // namespace
 
 bool expect_console_mode_definition_behaviors() {
@@ -141,7 +161,8 @@ bool expect_console_mode_definition_behaviors() {
            expect_console_mode_result_reference_error() &&
            expect_console_mode_unknown_identifier_error() &&
            expect_console_mode_user_functions() &&
-           expect_console_mode_echoed_value_assignments();
+           expect_console_mode_echoed_value_assignments() &&
+           expect_console_mode_named_nested_lists();
 }
 
 }  // namespace console_calc::test
