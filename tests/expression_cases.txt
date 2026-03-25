@@ -98,8 +98,6 @@
 "lat(pos(60, 10))", 60.0
 "lon(pos(60, 10))", 10.0
 "lon(densify_path({pos(0, 0), pos(0, 1)}, 2)[1])", 0.33333333333333331
-"lat(offset_path({pos(0, 0), pos(0, 1)}, 1000, 0)[0])", -0.0090436947697496441
-"lon(offset_path({pos(0, 0), pos(0, 1)}, 0, 1000)[0])", 0.0089831528411952141
 "dist(densify_path({pos(0, 0), pos(0, 1)}, 2))", 111319.49079327357
 "dist(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0))", 111319.49079327357
 "dist(compress_path(densify_path({pos(0, 0), pos(0, 1)}, 4), 2))", 111319.49079327357

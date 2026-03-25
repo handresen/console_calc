@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -64,52 +65,52 @@ struct CompressionCandidate {
     double neighbor_distance_m = 0.0;
 };
 
-[[nodiscard]] PositionValue direct_signed(const PositionValue& start, double bearing_deg,
-                                          double signed_distance_m) {
-    if (signed_distance_m == 0.0) {
-        return start;
+[[nodiscard]] std::optional<double> previous_nonzero_heading(
+    std::span<const PositionValue> positions, std::size_t index) {
+    for (std::size_t segment = index; segment > 0U; --segment) {
+        const GeodesicInverseResult inverse =
+            wgs84_inverse(positions[segment - 1U], positions[segment]);
+        if (inverse.distance_m > 0.0) {
+            return inverse.initial_bearing_deg;
+        }
     }
-    const double direction_deg =
-        signed_distance_m >= 0.0 ? bearing_deg : normalize_bearing_degrees(bearing_deg + 180.0);
-    return wgs84_direct(start, direction_deg, std::fabs(signed_distance_m));
+    return std::nullopt;
 }
 
-[[nodiscard]] std::optional<double> local_path_bearing_deg(
+[[nodiscard]] std::optional<double> next_nonzero_heading(
     std::span<const PositionValue> positions, std::size_t index) {
-    std::optional<double> incoming_bearing_deg;
-    for (std::size_t candidate = index; candidate > 0U; --candidate) {
-        const auto leg = wgs84_inverse(positions[candidate - 1U], positions[candidate]);
-        if (leg.distance_m > 0.0) {
-            incoming_bearing_deg = leg.initial_bearing_deg;
-            break;
+    for (std::size_t segment = index; segment + 1U < positions.size(); ++segment) {
+        const GeodesicInverseResult inverse =
+            wgs84_inverse(positions[segment], positions[segment + 1U]);
+        if (inverse.distance_m > 0.0) {
+            return inverse.initial_bearing_deg;
         }
     }
+    return std::nullopt;
+}
 
-    std::optional<double> outgoing_bearing_deg;
-    for (std::size_t candidate = index + 1U; candidate < positions.size(); ++candidate) {
-        const auto leg = wgs84_inverse(positions[candidate - 1U], positions[candidate]);
-        if (leg.distance_m > 0.0) {
-            outgoing_bearing_deg = leg.initial_bearing_deg;
-            break;
-        }
+[[nodiscard]] std::optional<double> path_heading_at(std::span<const PositionValue> positions,
+                                                    std::size_t index) {
+    const auto previous = previous_nonzero_heading(positions, index);
+    const auto next = next_nonzero_heading(positions, index);
+    if (!previous.has_value() && !next.has_value()) {
+        return std::nullopt;
     }
-
-    if (!incoming_bearing_deg.has_value()) {
-        return outgoing_bearing_deg;
+    if (!previous.has_value()) {
+        return next;
     }
-    if (!outgoing_bearing_deg.has_value()) {
-        return incoming_bearing_deg;
+    if (!next.has_value()) {
+        return previous;
     }
 
     constexpr double k_pi = 3.14159265358979323846;
-    const double incoming_rad = *incoming_bearing_deg * k_pi / 180.0;
-    const double outgoing_rad = *outgoing_bearing_deg * k_pi / 180.0;
-    const double x = std::cos(incoming_rad) + std::cos(outgoing_rad);
-    const double y = std::sin(incoming_rad) + std::sin(outgoing_rad);
+    const double previous_rad = *previous * k_pi / 180.0;
+    const double next_rad = *next * k_pi / 180.0;
+    const double x = std::cos(previous_rad) + std::cos(next_rad);
+    const double y = std::sin(previous_rad) + std::sin(next_rad);
     if (std::fabs(x) < 1e-12 && std::fabs(y) < 1e-12) {
-        return outgoing_bearing_deg;
+        return next;
     }
-
     return normalize_bearing_degrees(std::atan2(y, x) * 180.0 / k_pi);
 }
 
@@ -265,23 +266,28 @@ PositionListValue offset_wgs84_path(const PositionListValue& positions, double o
         return positions;
     }
 
-    PositionListValue offset_positions;
-    offset_positions.reserve(positions.size());
-    for (std::size_t index = 0; index < positions.size(); ++index) {
-        const auto local_bearing_deg = local_path_bearing_deg(positions, index);
-        if (!local_bearing_deg.has_value()) {
-            offset_positions.push_back(positions[index]);
-            continue;
-        }
-
-        PositionValue shifted = positions[index];
-        shifted = direct_signed(shifted, *local_bearing_deg, offset_y_m);
-        shifted = direct_signed(shifted, normalize_bearing_degrees(*local_bearing_deg + 90.0),
-                                offset_x_m);
-        offset_positions.push_back(shifted);
+    const std::size_t center_index = positions.size() / 2U;
+    const PositionValue center = positions[center_index];
+    const auto heading = path_heading_at(positions, center_index);
+    if (!heading.has_value()) {
+        return positions;
     }
 
-    return offset_positions;
+    constexpr double k_pi = 3.14159265358979323846;
+    const double translation_distance_m = std::hypot(offset_x_m, offset_y_m);
+    const double translation_bearing_deg =
+        normalize_bearing_degrees(*heading + std::atan2(offset_x_m, offset_y_m) * 180.0 / k_pi);
+    const PositionValue shifted_center =
+        wgs84_direct(center, translation_bearing_deg, translation_distance_m);
+
+    PositionListValue shifted_positions;
+    shifted_positions.reserve(positions.size());
+    for (const auto& position : positions) {
+        const GeodesicInverseResult relative = wgs84_inverse(center, position);
+        shifted_positions.push_back(
+            wgs84_direct(shifted_center, relative.initial_bearing_deg, relative.distance_m));
+    }
+    return shifted_positions;
 }
 
 PositionListValue simplify_wgs84_path(const PositionListValue& positions, double tolerance_m) {

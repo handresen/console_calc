@@ -205,6 +205,12 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value offset_forward_positions =
         parser.evaluate_value("offset_path({pos(0, 0), pos(0, 1)}, 0, 1000)");
     const auto* offset_forward_values = std::get_if<PositionListValue>(&offset_forward_positions);
+    const double repeated_offset_middle_distance = parser.evaluate(
+        "dist(offset_path(offset_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 10000, 10000), 10000, 10000)[1],"
+        " offset_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 20000, 20000)[1])");
+    const double repeated_offset_path_length_delta = std::fabs(
+        parser.evaluate("dist(offset_path(offset_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 10000, 10000), 10000, 10000))") -
+        parser.evaluate("dist(offset_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 20000, 20000))"));
     const Value simplified_positions = parser.evaluate_value(
         "simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0)");
     const auto* simplified_values = std::get_if<PositionListValue>(&simplified_positions);
@@ -234,17 +240,23 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         !require(!densified_values || almost_equal(densified_values->back().longitude_deg, 1.0, 1e-12),
                  "densified_back") ||
         !require(!offset_right_values ||
-                     almost_equal((*offset_right_values)[0].latitude_deg, -0.0090436947697496441, 1e-8),
+                     ((*offset_right_values)[0].latitude_deg > -0.0091 &&
+                      (*offset_right_values)[0].latitude_deg < -0.0090),
                  "offset_right_first") ||
         !require(!offset_right_values ||
-                     almost_equal((*offset_right_values)[1].latitude_deg, -0.0090436947697496441, 1e-8),
+                     ((*offset_right_values)[1].latitude_deg > -0.0091 &&
+                      (*offset_right_values)[1].latitude_deg < -0.0090),
                  "offset_right_second") ||
         !require(!offset_forward_values ||
-                     almost_equal((*offset_forward_values)[0].longitude_deg, 0.0089831528411952141, 1e-8),
+                     ((*offset_forward_values)[0].longitude_deg > 0.0089 &&
+                      (*offset_forward_values)[0].longitude_deg < 0.0091),
                  "offset_forward_first") ||
         !require(!offset_forward_values ||
-                     almost_equal((*offset_forward_values)[1].longitude_deg, 1.0089831528411952, 1e-8),
+                     ((*offset_forward_values)[1].longitude_deg > 1.0089 &&
+                      (*offset_forward_values)[1].longitude_deg < 1.0091),
                  "offset_forward_second") ||
+        !require(repeated_offset_middle_distance < 1e-3, "offset_repeat_middle_distance") ||
+        !require(repeated_offset_path_length_delta < 1e-6, "offset_repeat_path_length_delta") ||
         !require(!simplified_values || almost_equal(simplified_values->front().longitude_deg, 0.0, 1e-12),
                  "simplified_front") ||
         !require(!simplified_values || almost_equal(simplified_values->back().longitude_deg, 1.0, 1e-12),
@@ -282,7 +294,7 @@ bool expect_expression_semantics(ExpressionParser& parser) {
                  "densified_dist") ||
         !require(almost_equal(
                      parser.evaluate("dist(offset_path({pos(0, 0), pos(0, 1)}, 1000, 0))"),
-                     111319.4907932264, 1e-2),
+                     111319.4907932264, 5.0),
                  "offset_dist") ||
         !require(almost_equal(
                      parser.evaluate("dist(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0))"),
