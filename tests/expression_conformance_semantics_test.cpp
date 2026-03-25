@@ -198,6 +198,10 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value compressed_positions = parser.evaluate_value(
         "compress_path(densify_path({pos(0, 0), pos(0, 1)}, 4), 2)");
     const auto* compressed_values = std::get_if<PositionListValue>(&compressed_positions);
+    const Value zigzag_compressed_positions = parser.evaluate_value(
+        "compress_path(densify_path(to_poslist({60, 10, 61, 11, 62, 10, 63, 11}), 10), 4)");
+    const auto* zigzag_compressed_values =
+        std::get_if<PositionListValue>(&zigzag_compressed_positions);
     const Value indexed_position = parser.evaluate_value("to_poslist({60, 10, 61, 11})[1]");
     const auto* indexed_position_value = std::get_if<PositionValue>(&indexed_position);
     if (paired_values == nullptr || paired_values->size() != 2 || flattened_values == nullptr ||
@@ -207,12 +211,21 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         densified_values->size() != 4 ||
         simplified_values == nullptr || simplified_values->size() != 2 ||
         compressed_values == nullptr || compressed_values->size() != 2 ||
+        zigzag_compressed_values == nullptr || zigzag_compressed_values->size() != 4 ||
         !almost_equal(densified_values->front().longitude_deg, 0.0, 1e-12) ||
         !almost_equal(densified_values->back().longitude_deg, 1.0, 1e-12) ||
         !almost_equal(simplified_values->front().longitude_deg, 0.0, 1e-12) ||
         !almost_equal(simplified_values->back().longitude_deg, 1.0, 1e-12) ||
         !almost_equal(compressed_values->front().longitude_deg, 0.0, 1e-12) ||
         !almost_equal(compressed_values->back().longitude_deg, 1.0, 1e-12) ||
+        !almost_equal((*zigzag_compressed_values)[0].latitude_deg, 60.0, 1e-9) ||
+        !almost_equal((*zigzag_compressed_values)[0].longitude_deg, 10.0, 1e-9) ||
+        !almost_equal((*zigzag_compressed_values)[1].latitude_deg, 61.0, 1e-9) ||
+        !almost_equal((*zigzag_compressed_values)[1].longitude_deg, 11.0, 1e-9) ||
+        !almost_equal((*zigzag_compressed_values)[2].latitude_deg, 62.0, 1e-9) ||
+        !almost_equal((*zigzag_compressed_values)[2].longitude_deg, 10.0, 1e-9) ||
+        !almost_equal((*zigzag_compressed_values)[3].latitude_deg, 63.0, 1e-9) ||
+        !almost_equal((*zigzag_compressed_values)[3].longitude_deg, 11.0, 1e-9) ||
         !almost_equal(parser.evaluate("dist(densify_path({pos(0, 0), pos(0, 1)}, 2))"),
                       111319.4907932264, 1e-6) ||
         !almost_equal(

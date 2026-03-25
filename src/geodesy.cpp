@@ -46,14 +46,17 @@ namespace {
     return normalized - 180.0;
 }
 
+[[nodiscard]] double normalize_bearing_delta_degrees(double value) {
+    double normalized = std::fmod(value + 180.0, 360.0);
+    if (normalized < 0.0) {
+        normalized += 360.0;
+    }
+    return normalized - 180.0;
+}
+
 [[nodiscard]] const GeographicLib::Geodesic& wgs84_geodesic() {
     return GeographicLib::Geodesic::WGS84();
 }
-
-struct ProjectedPoint {
-    double x_m = 0.0;
-    double y_m = 0.0;
-};
 
 struct CompressionCandidate {
     std::size_t index = 0;
@@ -61,44 +64,35 @@ struct CompressionCandidate {
     double neighbor_distance_m = 0.0;
 };
 
-[[nodiscard]] ProjectedPoint project_to_local_plane(const PositionValue& point, double ref_lat_deg,
-                                                    double ref_lon_deg) {
-    constexpr double k_earth_radius_m = 6371008.8;
-    constexpr double k_pi = 3.14159265358979323846;
-    const double ref_lat_rad = ref_lat_deg * k_pi / 180.0;
-    const double delta_lat_rad = (point.latitude_deg - ref_lat_deg) * k_pi / 180.0;
-    const double delta_lon_rad =
-        normalize_longitude_delta_degrees(point.longitude_deg - ref_lon_deg) * k_pi / 180.0;
-    return {
-        .x_m = k_earth_radius_m * delta_lon_rad * std::cos(ref_lat_rad),
-        .y_m = k_earth_radius_m * delta_lat_rad,
-    };
-}
-
 [[nodiscard]] double point_to_segment_distance_m(const PositionValue& point,
                                                  const PositionValue& start,
                                                  const PositionValue& end) {
-    const double ref_lat_deg = (start.latitude_deg + end.latitude_deg) * 0.5;
-    const double ref_lon_deg =
-        start.longitude_deg +
-        normalize_longitude_delta_degrees(end.longitude_deg - start.longitude_deg) * 0.5;
-
-    const ProjectedPoint a = project_to_local_plane(start, ref_lat_deg, ref_lon_deg);
-    const ProjectedPoint b = project_to_local_plane(end, ref_lat_deg, ref_lon_deg);
-    const ProjectedPoint p = project_to_local_plane(point, ref_lat_deg, ref_lon_deg);
-
-    const double dx = b.x_m - a.x_m;
-    const double dy = b.y_m - a.y_m;
-    const double length_sq = dx * dx + dy * dy;
-    if (length_sq == 0.0) {
-        return std::hypot(p.x_m - a.x_m, p.y_m - a.y_m);
+    constexpr double k_earth_radius_m = 6371008.8;
+    constexpr double k_pi = 3.14159265358979323846;
+    const GeodesicInverseResult start_to_end = wgs84_inverse(start, end);
+    const GeodesicInverseResult start_to_point = wgs84_inverse(start, point);
+    if (start_to_end.distance_m == 0.0) {
+        return start_to_point.distance_m;
     }
 
-    const double t =
-        std::clamp(((p.x_m - a.x_m) * dx + (p.y_m - a.y_m) * dy) / length_sq, 0.0, 1.0);
-    const double closest_x = a.x_m + dx * t;
-    const double closest_y = a.y_m + dy * t;
-    return std::hypot(p.x_m - closest_x, p.y_m - closest_y);
+    if (std::fabs(normalize_bearing_delta_degrees(start_to_point.initial_bearing_deg -
+                                                  start_to_end.initial_bearing_deg)) > 90.0) {
+        return start_to_point.distance_m;
+    }
+
+    const GeodesicInverseResult end_to_start = wgs84_inverse(end, start);
+    const GeodesicInverseResult end_to_point = wgs84_inverse(end, point);
+    if (std::fabs(normalize_bearing_delta_degrees(end_to_point.initial_bearing_deg -
+                                                  end_to_start.initial_bearing_deg)) > 90.0) {
+        return end_to_point.distance_m;
+    }
+
+    const double delta13 = start_to_point.distance_m / k_earth_radius_m;
+    const double theta13 = start_to_point.initial_bearing_deg * k_pi / 180.0;
+    const double theta12 = start_to_end.initial_bearing_deg * k_pi / 180.0;
+    const double cross_track_sine =
+        std::clamp(std::sin(delta13) * std::sin(theta13 - theta12), -1.0, 1.0);
+    return std::fabs(std::asin(cross_track_sine) * k_earth_radius_m);
 }
 
 void mark_simplified_points(std::span<const PositionValue> positions, std::size_t start_index,
