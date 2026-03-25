@@ -10,7 +10,7 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<BuiltinFunctionInfo, 47> k_builtin_functions = {{
+constexpr std::array<BuiltinFunctionInfo, 48> k_builtin_functions = {{
     {Function::abs, "abs", 1, 1, BuiltinFunctionCategory::scalar, true, true, "abs(x)", "absolute value"},
     {Function::sin, "sin", 1, 1, BuiltinFunctionCategory::scalar, true, true, "sin(x)", "sine in radians"},
     {Function::cos, "cos", 1, 1, BuiltinFunctionCategory::scalar, true, true, "cos(x)", "cosine in radians"},
@@ -34,8 +34,9 @@ constexpr std::array<BuiltinFunctionInfo, 47> k_builtin_functions = {{
     {Function::to_poslist, "to_poslist", 1, 1, BuiltinFunctionCategory::position, false, false, "to_poslist(list)", "pair scalar list values into positions"},
     {Function::to_list, "to_list", 1, 1, BuiltinFunctionCategory::position, false, false, "to_list(poslist)", "expand positions into lat lon scalar list"},
     {Function::densify_path, "densify_path", 2, 2, BuiltinFunctionCategory::position, false, false, "densify_path(poslist, count)", "insert evenly spaced geodesic points per leg"},
-    {Function::offset_path, "offset_path", 3, 3, BuiltinFunctionCategory::position, false, false, "offset_path(poslist, offset_x_m, offset_y_m)", "translate a path rigidly in midpoint-centered azimuthal-equidistant coordinates"},
+    {Function::offset_path, "offset_path", 3, 3, BuiltinFunctionCategory::position, false, false, "offset_path(poslist, offset_x_m, offset_y_m)", "translate a path in a midpoint-centered local right/forward frame; repeated application is only approximately reversible"},
     {Function::rotate_path, "rotate_path", 3, 3, BuiltinFunctionCategory::position, false, false, "rotate_path(poslist, center_index, degrees)", "rotate a path around a chosen point index using center-relative geodesic bearings"},
+    {Function::scale_path, "scale_path", 2, 2, BuiltinFunctionCategory::position, false, false, "scale_path(poslist, scale_factor)", "scale a path around poslist[N/2] in azimuthal-equidistant coordinates"},
     {Function::simplify_path, "simplify_path", 2, 2, BuiltinFunctionCategory::position, false, false, "simplify_path(poslist, tolerance_m)", "remove path points within tolerance"},
     {Function::compress_path, "compress_path", 2, 3, BuiltinFunctionCategory::position, false, false, "compress_path(poslist, count[, max_points])", "remove path points to reach an exact count"},
     {Function::dist, "dist", 1, 2, BuiltinFunctionCategory::position, false, false, "dist(pos1, pos2) / dist(poslist)", "WGS84 ellipsoid distance or path length in meters"},

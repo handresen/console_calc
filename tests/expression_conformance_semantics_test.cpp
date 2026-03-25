@@ -239,6 +239,20 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const double repeated_rotation_middle_distance = parser.evaluate(
         "dist(rotate_path(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 45), 1, 45)[0],"
         " rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 90)[0])");
+    const Value scaled_positions = parser.evaluate_value(
+        "scale_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 2)");
+    const auto* scaled_values = std::get_if<PositionListValue>(&scaled_positions);
+    const double scale_identity_delta = parser.evaluate(
+        "dist(scale_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1)[2], pos(1, 1))");
+    const double scale_round_trip_first_drift = parser.evaluate(
+        "dist(scale_path(scale_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 0.5), 2)[0], pos(0, 0))");
+    const double scale_round_trip_center_drift = parser.evaluate(
+        "dist(scale_path(scale_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 0.5), 2)[1], pos(0, 1))");
+    const double scale_round_trip_second_drift = parser.evaluate(
+        "dist(scale_path(scale_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 0.5), 2)[2], pos(1, 1))");
+    const Value scaled_closed_positions = parser.evaluate_value(
+        "scale_path({pos(0, 0), pos(0, 1), pos(1, 1), pos(0, 0)}, 1.5)");
+    const auto* scaled_closed_values = std::get_if<PositionListValue>(&scaled_closed_positions);
     const std::string rotation_base = "{pos(0, 0), pos(0, 1), pos(1, 1)}";
     const std::string rotated_full_cycle =
         nest(rotation_base, "rotate_path({}, 1, 1)", 3600);
@@ -270,6 +284,79 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         std::get_if<PositionListValue>(&zigzag_compressed_positions);
     const Value indexed_position = parser.evaluate_value("to_poslist({60, 10, 61, 11})[1]");
     const auto* indexed_position_value = std::get_if<PositionValue>(&indexed_position);
+    const double high_lat_segment_distance =
+        parser.evaluate("dist(pos(70, 10), pos(70, 11))");
+    const double high_lat_segment_bearing =
+        parser.evaluate("bearing(pos(70, 10), pos(70, 11))");
+    const double high_lat_round_trip_lat = parser.evaluate(
+        "lat(br_to_pos(pos(70, 10), bearing(pos(70, 10), pos(70, 11)), dist(pos(70, 10), pos(70, 11))))");
+    const double high_lat_round_trip_lon = parser.evaluate(
+        "lon(br_to_pos(pos(70, 10), bearing(pos(70, 10), pos(70, 11)), dist(pos(70, 10), pos(70, 11))))");
+    const Value high_lat_densified_positions =
+        parser.evaluate_value("densify_path({pos(70, 10), pos(70, 11)}, 2)");
+    const auto* high_lat_densified_values = std::get_if<PositionListValue>(&high_lat_densified_positions);
+    const Value high_lat_offset_right_positions =
+        parser.evaluate_value("offset_path({pos(70, 10), pos(70, 11)}, 1000, 0)");
+    const auto* high_lat_offset_right_values = std::get_if<PositionListValue>(&high_lat_offset_right_positions);
+    const Value high_lat_offset_forward_positions =
+        parser.evaluate_value("offset_path({pos(70, 10), pos(70, 11)}, 0, 1000)");
+    const auto* high_lat_offset_forward_values = std::get_if<PositionListValue>(&high_lat_offset_forward_positions);
+    const double high_lat_offset_distance =
+        parser.evaluate("dist(offset_path({pos(70, 10), pos(70, 11)}, 1000, 0))");
+    const Value high_lat_rotated_positions =
+        parser.evaluate_value("rotate_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 1, 90)");
+    const auto* high_lat_rotated_values = std::get_if<PositionListValue>(&high_lat_rotated_positions);
+    const double high_lat_rotated_center_distance = parser.evaluate(
+        "dist(rotate_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 1, 90)[1], pos(70, 11))");
+    const double high_lat_rotated_first_radius_delta = std::fabs(
+        parser.evaluate("dist(rotate_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 1, 90)[0], pos(70, 11))") -
+        parser.evaluate("dist(pos(70, 10), pos(70, 11))"));
+    const double high_lat_rotated_second_radius_delta = std::fabs(
+        parser.evaluate("dist(rotate_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 1, 90)[2], pos(70, 11))") -
+        parser.evaluate("dist(pos(71, 11), pos(70, 11))"));
+    const Value high_lat_scaled_positions =
+        parser.evaluate_value("scale_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 2)");
+    const auto* high_lat_scaled_values = std::get_if<PositionListValue>(&high_lat_scaled_positions);
+    const double high_lat_scale_identity_delta = parser.evaluate(
+        "dist(scale_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 1)[2], pos(71, 11))");
+    const double high_lat_scale_round_trip_first_drift = parser.evaluate(
+        "dist(scale_path(scale_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 0.5), 2)[0], pos(70, 10))");
+    const double high_lat_scale_round_trip_center_drift = parser.evaluate(
+        "dist(scale_path(scale_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 0.5), 2)[1], pos(70, 11))");
+    const double high_lat_scale_round_trip_second_drift = parser.evaluate(
+        "dist(scale_path(scale_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 0.5), 2)[2], pos(71, 11))");
+    const Value high_lat_simplified_positions = parser.evaluate_value(
+        "simplify_path(densify_path({pos(70, 10), pos(70, 11)}, 2), 1.0)");
+    const auto* high_lat_simplified_values = std::get_if<PositionListValue>(&high_lat_simplified_positions);
+    const Value high_lat_compressed_positions = parser.evaluate_value(
+        "compress_path(densify_path({pos(70, 10), pos(70, 11)}, 4), 2)");
+    const auto* high_lat_compressed_values = std::get_if<PositionListValue>(&high_lat_compressed_positions);
+    const std::string polar_base = "{pos(89, 0), pos(89, 50), pos(89.5, 25)}";
+    const std::string polar_rotated_full_cycle = nest(polar_base, "rotate_path({}, 1, 1)", 360);
+    const double polar_rotate_cycle_first_drift = parser.evaluate(
+        "dist(" + polar_rotated_full_cycle + "[0], pos(89, 0))");
+    const double polar_rotate_cycle_center_drift = parser.evaluate(
+        "dist(" + polar_rotated_full_cycle + "[1], pos(89, 50))");
+    const double polar_rotate_cycle_second_drift = parser.evaluate(
+        "dist(" + polar_rotated_full_cycle + "[2], pos(89.5, 25))");
+    const std::string polar_scaled_round_trip = nest(
+        nest(polar_base, "scale_path({}, 0.5)", 10),
+        "scale_path({}, 2)", 10);
+    const double polar_scale_round_trip_first_drift = parser.evaluate(
+        "dist(" + polar_scaled_round_trip + "[0], pos(89, 0))");
+    const double polar_scale_round_trip_center_drift = parser.evaluate(
+        "dist(" + polar_scaled_round_trip + "[1], pos(89, 50))");
+    const double polar_scale_round_trip_second_drift = parser.evaluate(
+        "dist(" + polar_scaled_round_trip + "[2], pos(89.5, 25))");
+    const std::string polar_offset_round_trip = nest(
+        nest(polar_base, "offset_path({}, 1000, 1000)", 10),
+        "offset_path({}, -1000, -1000)", 10);
+    const double polar_offset_round_trip_first_drift = parser.evaluate(
+        "dist(" + polar_offset_round_trip + "[0], pos(89, 0))");
+    const double polar_offset_round_trip_center_drift = parser.evaluate(
+        "dist(" + polar_offset_round_trip + "[1], pos(89, 50))");
+    const double polar_offset_round_trip_second_drift = parser.evaluate(
+        "dist(" + polar_offset_round_trip + "[2], pos(89.5, 25))");
     if (!require(paired_values != nullptr && paired_values->size() == 2, "paired_values") ||
         !require(flattened_values != nullptr && flattened_values->size() == 4, "flattened_values") ||
         !require(empty_positions != nullptr && empty_positions->empty(), "empty_positions") ||
@@ -278,8 +365,10 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         !require(densified_values != nullptr && densified_values->size() == 4, "densified_values") ||
         !require(offset_right_values != nullptr && offset_right_values->size() == 2, "offset_right_values") ||
         !require(offset_forward_values != nullptr && offset_forward_values->size() == 2, "offset_forward_values") ||
+        !require(scaled_values != nullptr && scaled_values->size() == 3, "scaled_values") ||
         !require(simplified_values != nullptr && simplified_values->size() == 2, "simplified_values") ||
         !require(compressed_values != nullptr && compressed_values->size() == 2, "compressed_values") ||
+        !require(scaled_closed_values != nullptr && scaled_closed_values->size() == 4, "scaled_closed_values") ||
         !require(zigzag_compressed_values != nullptr && zigzag_compressed_values->size() == 4,
                  "zigzag_compressed_values") ||
         !require(!densified_values || almost_equal(densified_values->front().longitude_deg, 0.0, 1e-12),
@@ -308,6 +397,10 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         !require(rotated_first_radius_delta < 1e-6, "rotate_first_radius") ||
         !require(rotated_second_radius_delta < 1e-6, "rotate_second_radius") ||
         !require(repeated_rotation_middle_distance < 1e-6, "rotate_repeat_middle_distance") ||
+        !require(scale_identity_delta < 1e-9, "scale_identity_delta") ||
+        !require(scale_round_trip_first_drift < 0.5, "scale_round_trip_first_drift") ||
+        !require(scale_round_trip_center_drift < 0.5, "scale_round_trip_center_drift") ||
+        !require(scale_round_trip_second_drift < 0.5, "scale_round_trip_second_drift") ||
         !require(rotate_cycle_center_drift < 1e-6, "rotate_cycle_center_drift") ||
         !require(rotate_cycle_first_drift < 0.1, "rotate_cycle_first_drift") ||
         !require(rotate_cycle_second_drift < 0.1, "rotate_cycle_second_drift") ||
@@ -322,6 +415,14 @@ bool expect_expression_semantics(ExpressionParser& parser) {
                  "compressed_front") ||
         !require(!compressed_values || almost_equal(compressed_values->back().longitude_deg, 1.0, 1e-12),
                  "compressed_back") ||
+        !require(!scaled_closed_values ||
+                     almost_equal(scaled_closed_values->front().latitude_deg,
+                                  scaled_closed_values->back().latitude_deg, 1e-9),
+                 "scaled_closed_lat") ||
+        !require(!scaled_closed_values ||
+                     almost_equal(scaled_closed_values->front().longitude_deg,
+                                  scaled_closed_values->back().longitude_deg, 1e-9),
+                 "scaled_closed_lon") ||
         !require(!zigzag_compressed_values ||
                      almost_equal((*zigzag_compressed_values)[0].latitude_deg, 60.0, 1e-9),
                  "zigzag_0_lat") ||
@@ -354,6 +455,10 @@ bool expect_expression_semantics(ExpressionParser& parser) {
                      111319.4907932264, 5.0),
                  "offset_dist") ||
         !require(almost_equal(
+                     parser.evaluate("dist(scale_path({pos(0, 0), pos(0, 1)}, 1))"),
+                     111319.4907932264, 1e-6),
+                 "scale_dist") ||
+        !require(almost_equal(
                      parser.evaluate("dist(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0))"),
                      111319.4907932264, 1e-6),
                  "simplified_dist") ||
@@ -365,7 +470,79 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         !require(!indexed_position_value || almost_equal(indexed_position_value->latitude_deg, 61.0),
                  "indexed_position_lat") ||
         !require(!indexed_position_value || almost_equal(indexed_position_value->longitude_deg, 11.0),
-                 "indexed_position_lon")) {
+                 "indexed_position_lon") ||
+        !require(high_lat_segment_distance > 38000.0 && high_lat_segment_distance < 38200.0,
+                 "high_lat_segment_distance") ||
+        !require(high_lat_segment_bearing > 89.5 && high_lat_segment_bearing < 90.5,
+                 "high_lat_segment_bearing") ||
+        !require(almost_equal(high_lat_round_trip_lat, 70.0, 1e-8), "high_lat_round_trip_lat") ||
+        !require(almost_equal(high_lat_round_trip_lon, 11.0, 1e-8), "high_lat_round_trip_lon") ||
+        !require(high_lat_densified_values != nullptr && high_lat_densified_values->size() == 4,
+                 "high_lat_densified_values") ||
+        !require(!high_lat_densified_values ||
+                     almost_equal(high_lat_densified_values->front().longitude_deg, 10.0, 1e-12),
+                 "high_lat_densified_front") ||
+        !require(!high_lat_densified_values ||
+                     almost_equal(high_lat_densified_values->back().longitude_deg, 11.0, 1e-12),
+                 "high_lat_densified_back") ||
+        !require(high_lat_offset_right_values != nullptr && high_lat_offset_right_values->size() == 2,
+                 "high_lat_offset_right_values") ||
+        !require(!high_lat_offset_right_values ||
+                     ((*high_lat_offset_right_values)[0].latitude_deg > 69.9910 &&
+                      (*high_lat_offset_right_values)[0].latitude_deg < 69.9911),
+                 "high_lat_offset_right_first") ||
+        !require(!high_lat_offset_right_values ||
+                     ((*high_lat_offset_right_values)[1].latitude_deg > 69.9910 &&
+                      (*high_lat_offset_right_values)[1].latitude_deg < 69.9911),
+                 "high_lat_offset_right_second") ||
+        !require(high_lat_offset_forward_values != nullptr && high_lat_offset_forward_values->size() == 2,
+                 "high_lat_offset_forward_values") ||
+        !require(!high_lat_offset_forward_values ||
+                     ((*high_lat_offset_forward_values)[0].longitude_deg > 10.0261 &&
+                      (*high_lat_offset_forward_values)[0].longitude_deg < 10.0263),
+                 "high_lat_offset_forward_first") ||
+        !require(!high_lat_offset_forward_values ||
+                     ((*high_lat_offset_forward_values)[1].longitude_deg > 11.0261 &&
+                      (*high_lat_offset_forward_values)[1].longitude_deg < 11.0263),
+                 "high_lat_offset_forward_second") ||
+        !require(almost_equal(high_lat_offset_distance, high_lat_segment_distance, 5.0),
+                 "high_lat_offset_distance") ||
+        !require(high_lat_rotated_values != nullptr && high_lat_rotated_values->size() == 3,
+                 "high_lat_rotated_values") ||
+        !require(high_lat_rotated_center_distance < 1e-9, "high_lat_rotate_center_fixed") ||
+        !require(high_lat_rotated_first_radius_delta < 1e-6, "high_lat_rotate_first_radius") ||
+        !require(high_lat_rotated_second_radius_delta < 1e-6, "high_lat_rotate_second_radius") ||
+        !require(high_lat_scaled_values != nullptr && high_lat_scaled_values->size() == 3,
+                 "high_lat_scaled_values") ||
+        !require(high_lat_scale_identity_delta < 1e-9, "high_lat_scale_identity_delta") ||
+        !require(high_lat_scale_round_trip_first_drift < 0.5, "high_lat_scale_round_trip_first_drift") ||
+        !require(high_lat_scale_round_trip_center_drift < 0.5, "high_lat_scale_round_trip_center_drift") ||
+        !require(high_lat_scale_round_trip_second_drift < 0.5, "high_lat_scale_round_trip_second_drift") ||
+        !require(high_lat_simplified_values != nullptr && high_lat_simplified_values->size() == 2,
+                 "high_lat_simplified_values") ||
+        !require(!high_lat_simplified_values ||
+                     almost_equal(high_lat_simplified_values->front().longitude_deg, 10.0, 1e-12),
+                 "high_lat_simplified_front") ||
+        !require(!high_lat_simplified_values ||
+                     almost_equal(high_lat_simplified_values->back().longitude_deg, 11.0, 1e-12),
+                 "high_lat_simplified_back") ||
+        !require(high_lat_compressed_values != nullptr && high_lat_compressed_values->size() == 2,
+                 "high_lat_compressed_values") ||
+        !require(!high_lat_compressed_values ||
+                     almost_equal(high_lat_compressed_values->front().longitude_deg, 10.0, 1e-12),
+                 "high_lat_compressed_front") ||
+        !require(!high_lat_compressed_values ||
+                     almost_equal(high_lat_compressed_values->back().longitude_deg, 11.0, 1e-12),
+                 "high_lat_compressed_back") ||
+        !require(polar_rotate_cycle_first_drift < 1e-5, "polar_rotate_cycle_first_drift") ||
+        !require(polar_rotate_cycle_center_drift < 1e-9, "polar_rotate_cycle_center_drift") ||
+        !require(polar_rotate_cycle_second_drift < 1e-5, "polar_rotate_cycle_second_drift") ||
+        !require(polar_scale_round_trip_first_drift < 1e-4, "polar_scale_round_trip_first_drift") ||
+        !require(polar_scale_round_trip_center_drift < 1e-9, "polar_scale_round_trip_center_drift") ||
+        !require(polar_scale_round_trip_second_drift < 1e-4, "polar_scale_round_trip_second_drift") ||
+        !require(polar_offset_round_trip_first_drift < 500.0, "polar_offset_round_trip_first_drift") ||
+        !require(polar_offset_round_trip_center_drift < 500.0, "polar_offset_round_trip_center_drift") ||
+        !require(polar_offset_round_trip_second_drift < 500.0, "polar_offset_round_trip_second_drift")) {
         return false;
     }
 

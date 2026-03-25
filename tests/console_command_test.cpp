@@ -169,6 +169,8 @@ bool expect_builtin_function_metadata() {
         console_calc::builtin_function_info(console_calc::Function::offset_path);
     const auto rotate_path_info =
         console_calc::builtin_function_info(console_calc::Function::rotate_path);
+    const auto scale_path_info =
+        console_calc::builtin_function_info(console_calc::Function::scale_path);
     const auto simplify_path_info =
         console_calc::builtin_function_info(console_calc::Function::simplify_path);
     const auto compress_path_info =
@@ -277,6 +279,12 @@ bool expect_builtin_function_metadata() {
            rotate_path_info.category == console_calc::BuiltinFunctionCategory::position &&
            rotate_path_info.signature == "rotate_path(poslist, center_index, degrees)" &&
            !rotate_path_info.scalar_arguments &&
+           scale_path_info.name == "scale_path" &&
+           scale_path_info.min_arity == 2 &&
+           scale_path_info.max_arity == 2 &&
+           scale_path_info.category == console_calc::BuiltinFunctionCategory::position &&
+           scale_path_info.signature == "scale_path(poslist, scale_factor)" &&
+           !scale_path_info.scalar_arguments &&
            simplify_path_info.name == "simplify_path" &&
            simplify_path_info.min_arity == 2 &&
            simplify_path_info.max_arity == 2 &&

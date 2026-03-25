@@ -83,6 +83,7 @@
 "len(densify_path({pos(0, 0), pos(0, 1)}, 2))", 4.0
 "len(offset_path({pos(0, 0), pos(0, 1)}, 1000, 0))", 2.0
 "len(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 90))", 3.0
+"len(scale_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 2))", 3.0
 "len(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0))", 2.0
 "len(compress_path(densify_path({pos(0, 0), pos(0, 1)}, 4), 2))", 2.0
 "len(compress_path(densify_path(to_poslist({60, 10, 61, 11, 62, 10, 63, 11}), 10), 4))", 4.0
@@ -103,6 +104,7 @@
 "lon(pos(60, 10))", 10.0
 "lon(densify_path({pos(0, 0), pos(0, 1)}, 2)[1])", 0.33333333333333331
 "dist(densify_path({pos(0, 0), pos(0, 1)}, 2))", 111319.49079327357
+"dist(scale_path({pos(0, 0), pos(0, 1)}, 1))", 111319.49079327357
 "dist(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0))", 111319.49079327357
 "dist(compress_path(densify_path({pos(0, 0), pos(0, 1)}, 4), 2))", 111319.49079327357
 "lon(compress_path(densify_path(to_poslist({60, 10, 61, 11, 62, 10, 63, 11}), 10), 4)[1])", 11.0
@@ -222,6 +224,7 @@
 "br_to_pos(pos(0, 0), 90, -1)", INVALID
 "offset_path({pos(0, 0), pos(0, 1)}, 1)", INVALID
 "rotate_path({pos(0, 0), pos(0, 1)}, 0)", INVALID
+"scale_path({pos(0, 0), pos(0, 1)}, -1)", INVALID
 "_", INVALID
 "guard(1 / 0)", INVALID
 "range(1)", INVALID

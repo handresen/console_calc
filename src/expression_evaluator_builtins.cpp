@@ -226,6 +226,10 @@ template <typename Operation>
             positions, static_cast<std::size_t>(center_index),
             scalar_to_double(require_scalar_or_singleton_list_value(arguments[2])));
     }
+    case Function::scale_path:
+        return scale_wgs84_path(
+            require_position_list(arguments[0]),
+            scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])));
     case Function::simplify_path:
         return simplify_wgs84_path(
             require_position_list(arguments[0]),

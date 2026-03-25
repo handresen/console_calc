@@ -242,8 +242,9 @@ m.pi
 - `to_list(poslist)` expand positions into a scalar list using `(lat, lon)` order
 - `to_poslist(list)` pair scalar list values into positions
 - `densify_path(poslist, count)` insert `count` evenly spaced geodesic points per path leg
-- `offset_path(poslist, offset_x_m, offset_y_m)` translate a path rigidly using midpoint-centered azimuthal-equidistant coordinates; positive `offset_x_m` is to the right of travel at the midpoint
+- `offset_path(poslist, offset_x_m, offset_y_m)` translate a path in a midpoint-centered local right/forward frame; positive `offset_x_m` is to the right of travel at the midpoint
 - `rotate_path(poslist, center_index, degrees)` rotate a path around `poslist[center_index]` using center-relative geodesic bearings
+- `scale_path(poslist, scale_factor)` scale a path around `poslist[N/2]` in azimuthal-equidistant coordinates
 - `simplify_path(poslist, tolerance_m)` remove path points whose deviation stays within the tolerance
 - `compress_path(poslist, count[, max_points])` remove path points to reach an exact count while preserving endpoints
 - `dist(pos1, pos2)` WGS84 ellipsoid distance in meters
@@ -358,6 +359,11 @@ sum(map({1, 2, 3}, sin(_)))   => 1.89189...
 len(densify_path({pos(0, 0), pos(0, 1)}, 2)) => 4
 lat(offset_path({pos(0, 0), pos(0, 1)}, 1000, 0)[0]) => about -0.00904231
 dist(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 90)[1], pos(0, 1)) => 0
+len(scale_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 2)) => 3
+
+Notes:
+- `rotate_path` and `scale_path` are center-relative transforms and stay highly stable under repeated application.
+- `offset_path` recomputes a local right/forward frame from the moved path, so `offset_path(offset_path(p, x, y), -x, -y)` is only approximately reversible, especially near the poles.
 len(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0)) => 2
 len(compress_path(densify_path({pos(0, 0), pos(0, 1)}, 4), 2)) => 2
 dist(pos(0, 0), pos(0, 1))    => 111319.490793...

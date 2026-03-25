@@ -1,5 +1,6 @@
 #include "geodesy.h"
 
+#include <GeographicLib/AzimuthalEquidistant.hpp>
 #include <GeographicLib/Geodesic.hpp>
 
 #include <algorithm>
@@ -312,6 +313,32 @@ PositionListValue rotate_wgs84_path(const PositionListValue& positions, std::siz
                          relative.distance_m));
     }
     return rotated_positions;
+}
+
+PositionListValue scale_wgs84_path(const PositionListValue& positions, double scale_factor) {
+    if (!std::isfinite(scale_factor) || scale_factor < 0.0) {
+        throw EvaluationError("scale_path() scale factor must be a non-negative finite number");
+    }
+    if (positions.size() < 2U || scale_factor == 1.0) {
+        return positions;
+    }
+
+    const PositionValue center = positions[positions.size() / 2U];
+    const GeographicLib::AzimuthalEquidistant projection(wgs84_geodesic());
+    PositionListValue scaled_positions;
+    scaled_positions.reserve(positions.size());
+    for (const auto& position : positions) {
+        double x = 0.0;
+        double y = 0.0;
+        projection.Forward(center.latitude_deg, center.longitude_deg, position.latitude_deg,
+                           position.longitude_deg, x, y);
+        double latitude_deg = 0.0;
+        double longitude_deg = 0.0;
+        projection.Reverse(center.latitude_deg, center.longitude_deg, x * scale_factor,
+                           y * scale_factor, latitude_deg, longitude_deg);
+        scaled_positions.push_back(normalize_position(latitude_deg, longitude_deg));
+    }
+    return scaled_positions;
 }
 
 PositionListValue simplify_wgs84_path(const PositionListValue& positions, double tolerance_m) {
