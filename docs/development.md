@@ -58,6 +58,58 @@ partial output as success. In practice that means not reporting green status
 until the relevant native build, `ctest`, wasm build, or `web/` build command
 has exited successfully.
 
+## Feature Workflow
+
+For normal feature work, prefer this order when it fits the task:
+
+1. implement the feature
+2. run the relevant checks
+3. update tests, docs, and nearby comments
+4. summarize the resulting state briefly
+5. optionally perform narrow adjacent cleanup
+6. run the relevant checks again
+7. commit
+
+This keeps verification and documentation close to the behavior change while
+still leaving room for small local improvements.
+
+### Local Cleanup Versus Structural Refactor
+
+Local cleanup is appropriate during feature work when it stays close to the
+change and does not alter subsystem boundaries. Typical examples:
+
+- rename a confusing local variable
+- extract a tiny helper
+- remove obvious duplication introduced by the feature
+- tidy directly touched docs, comments, or tests
+
+Structural refactor should usually be treated as a separate decision. Typical
+examples:
+
+- changing subsystem boundaries
+- introducing a new abstraction layer
+- consolidating concepts across multiple modules
+- reworking public API shapes
+- moving ownership or responsibility between components
+
+This distinction matters in this repo because small grammar changes can easily
+tempt broader parser, runtime, or web-UI restructuring. Those larger moves are
+often valid, but they should be chosen deliberately rather than justified only
+because the code was already open.
+
+## Major-Change Review
+
+When a task starts to suggest broader cleanup, do a short explicit review of
+the changed subsystem before proceeding:
+
+1. identify issues, complexity growth, or boundary problems
+2. list possible simplifications
+3. rank the highest-value refactors
+4. decide whether to defer, schedule, or execute the refactor separately
+
+This keeps feature work from quietly turning into architecture work and makes
+later rollback or follow-up planning much easier.
+
 ## Dependencies
 
 The project uses `vcpkg` in manifest mode. Current non-test dependencies include:
