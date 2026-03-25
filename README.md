@@ -1,12 +1,15 @@
 # console_calc
 
-`console_calc` is a small command-line calculator with:
-- one-shot expression evaluation
-- an interactive console mode
-- scalar and list values
-- late-bound user definitions in console mode
+`console_calc` is a focused personal calculator engine with two active hosts:
+- a terminal calculator with one-shot evaluation and an interactive console
+- a browser-based calculator UI built on the shared wasm/host bridge
 
-The project is intentionally compact and library-first. Parsing and evaluation live in the core library, while REPL behavior stays in the app layer.
+Across those hosts it supports:
+- scalar, list, position, and position-list values
+- late-bound user definitions and fixed-arity user functions in console mode
+- helper listings, plotting, and lightweight exploratory workflows in the web UI
+
+The project is intentionally compact and library-first. Parsing and evaluation live in the core library, while host-specific behavior stays in the terminal app layer or the browser frontend.
 It is also intended to remain a focused personal tool for lightweight calculator workflows, not a general-purpose framework or platform.
 
 Sample screenshot:

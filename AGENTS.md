@@ -1,9 +1,10 @@
 # AGENTS.md
 
 ## Project Overview
-- This repository contains a C++ command-line tool for parsing and evaluating mathematical expressions.
+- This repository contains a C++ calculator engine with both terminal and web hosts for parsing and evaluating mathematical expressions.
 - The project should start small, remain easy to reason about, and grow by adding parser features in controlled steps.
 - Treat the project as a focused personal tool rather than a general-purpose framework; preserve simplicity and avoid platform-style abstraction unless it clearly supports the existing use case.
+- The web frontend on `main` is active and first-class; treat terminal and web as real hosts when making boundary and layering decisions.
 
 ## Stack Decisions
 - Build system: `CMake`
@@ -110,6 +111,6 @@
 
 ## Forward Plan
 - The current forward-looking extension plan for the project is documented in `docs/wasm_extension_plan.md`.
-- Treat that document as the canonical next-steps plan for preparing the calculator/runtime for a future browser and WebAssembly frontend.
+- Treat that document as the canonical status-and-direction note for the calculator/runtime's browser and WebAssembly host path.
 - Follow that plan by separating session semantics from terminal presentation before attempting any web UI or WASM binding work.
 - That separation is now largely in place on `main`: transport-free session handling, structured snapshots/events, a binding-facing facade, a C API, and a working wasm/web frontend already exist. Future work should extend that direction rather than reintroducing terminal-shaped APIs into reusable layers.

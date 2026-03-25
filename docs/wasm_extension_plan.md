@@ -1,11 +1,11 @@
-# WebAssembly Extension Plan
+# WebAssembly And Web Host Status
 
 ## Purpose
 
-This document captures the architectural steps that were required to use the
-calculator/runtime as the engine for a browser-based console application,
-including a WebAssembly target, and the remaining cleanup direction after that
-foundation landed.
+This document captures the architectural steps that made the
+calculator/runtime usable as the engine for a browser-based console
+application, including a WebAssembly target, and the remaining cleanup
+direction now that that foundation is in place.
 
 The goal is not to replace the terminal application. The goal is to separate
 session semantics from terminal presentation so the same engine can support:
@@ -13,7 +13,7 @@ session semantics from terminal presentation so the same engine can support:
 - the existing terminal console
 - a browser UI with a console-like main view
 - optional helper panes for stack, definitions, constants, and builtin functions
-- a future WebAssembly build
+- the current WebAssembly-backed web host and future host variants
 
 ## Current Strengths
 
@@ -40,6 +40,18 @@ The remaining problem is that the console runtime is still too stream-oriented.
 
 A web frontend or WebAssembly host should consume structured state and events,
 not terminal transcript strings.
+
+## Status Today
+
+This path is no longer speculative:
+
+- the runtime/session split is active on `main`
+- the binding-facing facade and C API exist
+- the `emscripten-host` preset builds a wasm host artifact
+- the `web/` frontend is active and consumes the shared host bridge
+
+The remaining work is mostly cleanup, extension, and boundary protection rather
+than initial enablement.
 
 ## Target Architecture
 
@@ -71,7 +83,7 @@ The desired architecture is:
    - structured state serialization
    - browser-side rendering and input
 
-## Refactor Plan
+## Evolution Notes
 
 ### Phase 1: Extract Session Semantics
 

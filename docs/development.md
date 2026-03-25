@@ -26,6 +26,8 @@ See [architecture.md](./architecture.md) for the current intended layer boundari
 
 For host-facing or future WebAssembly preparation work, prefer depending on
 `console_calc_host_lib` rather than the terminal application target.
+If behavior is reusable by both terminal and web hosts, it should usually land
+below those adapters unless it is clearly presentation-specific.
 
 ## Presets
 
