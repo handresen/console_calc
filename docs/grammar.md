@@ -92,7 +92,7 @@ Expressions use these precedence levels, from highest to lowest: function calls,
 
 `%` uses floating-point modulo via `fmod`. `&`, `|`, and unary `~` are bitwise integer operators and require integer-valued operands; non-integer operands are rejected. Division by zero, modulo by zero, and non-finite evaluation results are rejected.
 
-Where a scalar is required, a one-element list is accepted and coerced to that element. Multi-element lists are still rejected in scalar positions. Postfix indexing `expr[index]` works on scalar lists, one-level scalar nested lists, and position lists and requires a non-negative integer index within bounds. List literals support scalars, positions, and one-level scalar nested lists such as `{{1, 2}, {3, 4}}`; deeper nesting is still rejected.
+Where a scalar is required, a one-element list is accepted and coerced to that element. Multi-element lists are still rejected in scalar positions. Postfix indexing `expr[index]` works on scalar lists, one-level scalar nested lists, position lists, and one-level position nested lists and requires a non-negative integer index within bounds. List literals support scalars, positions, and one-level nested lists such as `{{1, 2}, {3, 4}}` or `{{pos(0, 0), pos(0, 1)}, {pos(1, 1)}}`; deeper nesting is still rejected.
 
 Integer-valued decimal literals such as `42`, hexadecimal literals such as `0xff`, and binary literals such as `0b1010` are preserved as intrinsic integer values. Decimal literals with a fractional part or exponent such as `3.14` or `1e3` are evaluated as floating-point values.
 
@@ -117,7 +117,7 @@ Builtin functions:
 - `bearing(pos1, pos2)` returns initial WGS84 bearing in degrees
 - `br_to_pos(pos, bearing_deg, range_m)` returns a destination position from a start position, bearing, and range in meters
 - `sum(list)` sums a list value
-- `len(list)` and `len(poslist)` return collection length
+- `len(list)`, `len(multilist)`, `len(poslist)`, and `len(multi_pos_list)` return collection length
 - `product(list)` multiplies all list values; `product({})` is `1`
 - `avg(list)` returns the arithmetic mean of a non-empty list
 - `min(list)` and `max(list)` require non-empty lists
@@ -143,7 +143,7 @@ Integer-preserving behavior:
 - `+`, `-`, and `*` preserve integer results when both operands are integers and the result fits in 64 bits
 - `/` always produces a floating-point result
 - `%` produces an integer result when both operands are integers, otherwise floating-point modulo is used
-- `len(list)` and `len(poslist)` return an integer
+- `len(list)`, `len(multilist)`, `len(poslist)`, and `len(multi_pos_list)` return an integer
 - `sum(list)` and `product(list)` preserve integer results when all inputs remain integral
 - trig functions always return floating-point results
 
@@ -193,7 +193,9 @@ Examples:
 - `bearing(pos(0, 0), pos(0, 1))` => `90`
 - `lon(br_to_pos(pos(0, 0), 90, 111319.4907932264))` => `1`
 - `len({1, 2, 3})` => `3`
+- `len({{1, 2}, {3, 4}})` => `2`
 - `len({pos(0, 0), pos(0, 1)})` => `2`
+- `len({{pos(0, 0), pos(0, 1)}, {pos(1, 1)}})` => `2`
 - `product({2, 3, 4})` => `24`
 - `avg({2, 4, 6})` => `4`
 - `min({2, -1, 5})` => `-1`

@@ -17,7 +17,10 @@ ValueKind value_kind(const Value& value) {
     if (std::holds_alternative<PositionValue>(value)) {
         return ValueKind::position;
     }
-    return ValueKind::position_list;
+    if (std::holds_alternative<PositionListValue>(value)) {
+        return ValueKind::position_list;
+    }
+    return ValueKind::multi_position_list;
 }
 
 std::string_view value_kind_name(ValueKind kind) {
@@ -32,6 +35,8 @@ std::string_view value_kind_name(ValueKind kind) {
         return "position";
     case ValueKind::position_list:
         return "position list";
+    case ValueKind::multi_position_list:
+        return "multi position list";
     }
     return "unknown";
 }
@@ -56,10 +61,14 @@ bool is_position_list_value(const Value& value) {
     return value_kind(value) == ValueKind::position_list;
 }
 
+bool is_multi_position_list_value(const Value& value) {
+    return value_kind(value) == ValueKind::multi_position_list;
+}
+
 bool is_collection_value(const Value& value) {
     const ValueKind kind = value_kind(value);
     return kind == ValueKind::scalar_list || kind == ValueKind::multi_scalar_list ||
-           kind == ValueKind::position_list;
+           kind == ValueKind::position_list || kind == ValueKind::multi_position_list;
 }
 
 }  // namespace console_calc

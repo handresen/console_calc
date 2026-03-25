@@ -49,6 +49,9 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         !almost_equal(parser.evaluate("drop({1, 2, 3}, 2) + 4"), 7.0) ||
         !almost_equal(parser.evaluate("{1, 2, 3}[1]"), 2.0) ||
         !almost_equal(parser.evaluate("{{1, 2}, {3, 4}}[1][0]"), 3.0) ||
+        !almost_equal(parser.evaluate("len({{1, 2}, {3, 4}})"), 2.0) ||
+        !almost_equal(parser.evaluate("len({{pos(0, 0), pos(0, 1)}, {pos(1, 1)}})"), 2.0) ||
+        !almost_equal(parser.evaluate("lat({{pos(0, 0), pos(0, 1)}, {pos(1, 1)}}[1][0])"), 1.0) ||
         !almost_equal(parser.evaluate("range(10, 3)[2]"), 12.0) ||
         !almost_equal(parser.evaluate("sin({0})"), 0.0)) {
         return false;

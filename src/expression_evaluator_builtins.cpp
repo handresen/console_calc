@@ -283,10 +283,16 @@ template <typename Operation>
         if (const auto* values = std::get_if<ListValue>(&arguments[0])) {
             return static_cast<std::int64_t>(values->size());
         }
+        if (const auto* values = std::get_if<MultiListValue>(&arguments[0])) {
+            return static_cast<std::int64_t>(values->size());
+        }
         if (const auto* positions = std::get_if<PositionListValue>(&arguments[0])) {
             return static_cast<std::int64_t>(positions->size());
         }
-        throw EvaluationError("list or position list value required");
+        if (const auto* positions = std::get_if<MultiPositionListValue>(&arguments[0])) {
+            return static_cast<std::int64_t>(positions->size());
+        }
+        throw EvaluationError("list, multi-list, position list, or multi position list value required");
     }
     case Function::product: {
         const ListValue values = require_list(arguments[0]);

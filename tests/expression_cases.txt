@@ -77,7 +77,9 @@
 "sin({0})", 0.0
 "len({})", 0.0
 "len({1, 2, 3})", 3.0
+"len({{1, 2}, {3, 4}})", 2.0
 "len({pos(0, 0), pos(0, 1)})", 2.0
+"len({{pos(0, 0), pos(0, 1)}, {pos(1, 1)}})", 2.0
 "len(densify_path({pos(0, 0), pos(0, 1)}, 2))", 4.0
 "len(offset_path({pos(0, 0), pos(0, 1)}, 1000, 0))", 2.0
 "len(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 90))", 3.0

@@ -43,6 +43,21 @@ bool expect_expression_value_api(ExpressionParser& parser) {
         return false;
     }
 
+    const Value multi_position_list =
+        parser.evaluate_value("{{pos(60, 10), pos(61, 11)}, {pos(62, 12)}}");
+    const auto* multi_position_list_value = std::get_if<MultiPositionListValue>(&multi_position_list);
+    if (multi_position_list_value == nullptr ||
+        value_kind(multi_position_list) != ValueKind::multi_position_list ||
+        !is_multi_position_list_value(multi_position_list) ||
+        !is_collection_value(multi_position_list) || multi_position_list_value->size() != 2 ||
+        (*multi_position_list_value)[0].size() != 2 || (*multi_position_list_value)[1].size() != 1 ||
+        !almost_equal((*multi_position_list_value)[0][0].latitude_deg, 60.0) ||
+        !almost_equal((*multi_position_list_value)[0][1].longitude_deg, 11.0) ||
+        !almost_equal((*multi_position_list_value)[1][0].latitude_deg, 62.0) ||
+        !almost_equal((*multi_position_list_value)[1][0].longitude_deg, 12.0)) {
+        return false;
+    }
+
     const Value position_list = parser.evaluate_value("{pos(60, 10), pos(61, 11)}");
     const auto* positions = std::get_if<PositionListValue>(&position_list);
     if (positions == nullptr || value_kind(position_list) != ValueKind::position_list ||
@@ -85,6 +100,14 @@ bool expect_expression_value_api(ExpressionParser& parser) {
 
     try {
         (void)parser.evaluate_value("{{{1}}}");
+        return false;
+    } catch (const EvaluationError&) {
+    } catch (const std::exception&) {
+        return false;
+    }
+
+    try {
+        (void)parser.evaluate_value("{{{pos(60, 10)}}}");
         return false;
     } catch (const EvaluationError&) {
     } catch (const std::exception&) {

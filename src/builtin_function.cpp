@@ -42,7 +42,7 @@ constexpr std::array<BuiltinFunctionInfo, 47> k_builtin_functions = {{
     {Function::bearing, "bearing", 2, 2, BuiltinFunctionCategory::position, false, false, "bearing(pos1, pos2)", "initial WGS84 bearing in degrees"},
     {Function::br_to_pos, "br_to_pos", 3, 3, BuiltinFunctionCategory::position, false, false, "br_to_pos(pos, bearing_deg, range_m)", "destination position from bearing and range"},
     {Function::sum, "sum", 1, 1, BuiltinFunctionCategory::list, true, false, "sum(list)", "sum list elements"},
-    {Function::len, "len", 1, 1, BuiltinFunctionCategory::list, true, false, "len(list|poslist)", "collection length"},
+    {Function::len, "len", 1, 1, BuiltinFunctionCategory::list, true, false, "len(list|multilist|poslist|multi_pos_list)", "collection length"},
     {Function::product, "product", 1, 1, BuiltinFunctionCategory::list, true, false, "product(list)", "product of list elements"},
     {Function::avg, "avg", 1, 1, BuiltinFunctionCategory::list, true, false, "avg(list)", "average of list elements"},
     {Function::min, "min", 1, 1, BuiltinFunctionCategory::list, true, false, "min(list)", "minimum list element"},

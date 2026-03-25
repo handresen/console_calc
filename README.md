@@ -156,14 +156,15 @@ Notes:
 - hexadecimal literals such as `0xff` and binary literals such as `0b1010` are kept as integer values
 - decimal values with a fractional part or exponent are floating-point values
 - one-element lists are accepted in scalar positions
-- list literals support scalars, position lists, and one-level scalar nested lists like `{{1, 2}, {3, 4}}`; deeper nesting is still rejected
-- postfix indexing works on scalar lists, one-level scalar nested lists, and position lists and requires a non-negative integer index
+- list literals support scalars, position lists, and one-level nested lists like `{{1, 2}, {3, 4}}` or `{{pos(0, 0), pos(0, 1)}, {pos(1, 1)}}`; deeper nesting is still rejected
+- postfix indexing works on scalar lists, one-level scalar nested lists, position lists, and one-level position nested lists and requires a non-negative integer index
 
 Current integer-preserving behavior:
 - `+`, `-`, and `*` keep integer results when both inputs are integers and the result fits in 64 bits
 - `/` always yields a floating-point result
 - `%` yields an integer result when both inputs are integers
 - `len(...)` returns an integer
+- for one-level nested lists, `len(...)` returns the outer length
 - trig functions return floating-point values
 
 Examples:
@@ -250,7 +251,7 @@ m.pi
 ### List Functions
 
 - `sum(list)`        sum list elements
-- `len(list)` / `len(poslist)` collection length
+- `len(list)` / `len(multilist)` / `len(poslist)` / `len(multi_pos_list)` collection length
 - `product(list)`    product of list elements
 - `avg(list)`        average of list elements
 - `min(list)`        minimum list element

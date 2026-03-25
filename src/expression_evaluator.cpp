@@ -34,6 +34,9 @@ ScalarValue require_scalar_value(const Value& value) {
     if (is_multi_scalar_list_value(value)) {
         throw EvaluationError("nested list value cannot be used as a scalar");
     }
+    if (is_multi_position_list_value(value)) {
+        throw EvaluationError("nested position list value cannot be used as a scalar");
+    }
 
     throw EvaluationError("list value cannot be used as a scalar");
 }
@@ -60,6 +63,9 @@ ScalarValue require_scalar_or_singleton_list_value(const Value& value) {
     if (is_multi_scalar_list_value(value)) {
         throw EvaluationError("nested list value cannot be used as a scalar");
     }
+    if (is_multi_position_list_value(value)) {
+        throw EvaluationError("nested position list value cannot be used as a scalar");
+    }
 
     throw EvaluationError("scalar value required");
 }
@@ -74,6 +80,9 @@ ListValue require_list(const Value& value) {
     if (is_position_list_value(value)) {
         throw EvaluationError("scalar list value required");
     }
+    if (is_multi_position_list_value(value)) {
+        throw EvaluationError("scalar list value required");
+    }
 
     throw EvaluationError("list value required");
 }
@@ -81,6 +90,9 @@ ListValue require_list(const Value& value) {
 PositionListValue require_position_list(const Value& value) {
     if (const auto* list = std::get_if<PositionListValue>(&value)) {
         return *list;
+    }
+    if (is_multi_position_list_value(value)) {
+        throw EvaluationError("position list value required");
     }
 
     throw EvaluationError("position list value required");
@@ -226,6 +238,16 @@ double require_finite_result(double value) {
         }
         return values;
     }
+    if (const auto* positions = std::get_if<PositionListValue>(&first_value)) {
+        MultiPositionListValue values;
+        values.reserve(elements.size());
+        values.push_back(*positions);
+        for (std::size_t index = 1; index < elements.size(); ++index) {
+            values.push_back(require_position_list(
+                evaluate_expression_with_placeholder(*elements[index], placeholder_value)));
+        }
+        return values;
+    }
 
     throw EvaluationError("nested lists are not supported");
 }
@@ -268,6 +290,13 @@ double require_finite_result(double value) {
             throw EvaluationError("list index out of range");
         }
         return positions[index];
+    }
+    case ValueKind::multi_position_list: {
+        const auto& lists = std::get<MultiPositionListValue>(collection);
+        if (index >= lists.size()) {
+            throw EvaluationError("list index out of range");
+        }
+        return lists[index];
     }
     case ValueKind::scalar:
     case ValueKind::position:

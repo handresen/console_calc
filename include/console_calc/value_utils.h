@@ -12,6 +12,7 @@ enum class ValueKind {
     multi_scalar_list,
     position,
     position_list,
+    multi_position_list,
 };
 
 [[nodiscard]] ValueKind value_kind(const Value& value);
@@ -21,6 +22,7 @@ enum class ValueKind {
 [[nodiscard]] bool is_multi_scalar_list_value(const Value& value);
 [[nodiscard]] bool is_position_value(const Value& value);
 [[nodiscard]] bool is_position_list_value(const Value& value);
+[[nodiscard]] bool is_multi_position_list_value(const Value& value);
 [[nodiscard]] bool is_collection_value(const Value& value);
 
 }  // namespace console_calc

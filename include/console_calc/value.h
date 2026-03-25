@@ -15,7 +15,9 @@ using ScalarValue = std::variant<std::int64_t, double>;
 using ListValue = std::vector<ScalarValue>;
 using MultiListValue = std::vector<ListValue>;
 using PositionListValue = std::vector<PositionValue>;
+using MultiPositionListValue = std::vector<PositionListValue>;
 using Value =
-    std::variant<std::int64_t, double, ListValue, MultiListValue, PositionValue, PositionListValue>;
+    std::variant<std::int64_t, double, ListValue, MultiListValue, PositionValue, PositionListValue,
+                 MultiPositionListValue>;
 
 }  // namespace console_calc

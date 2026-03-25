@@ -20,6 +20,7 @@ enum class IntegerDisplayMode {
 [[nodiscard]] std::string format_multi_list(const MultiListValue& values);
 [[nodiscard]] std::string format_multi_list(const MultiListValue& values, IntegerDisplayMode mode);
 [[nodiscard]] std::string format_position_list(const PositionListValue& values);
+[[nodiscard]] std::string format_multi_position_list(const MultiPositionListValue& values);
 [[nodiscard]] std::string format_value(const Value& value);
 [[nodiscard]] std::string format_value(const Value& value, IntegerDisplayMode mode);
 

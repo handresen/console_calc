@@ -74,6 +74,23 @@ bool expect_multi_list_display() {
                "{{0x1, 2.5}, {0x3, 0x4}}";
 }
 
+bool expect_multi_position_list_display() {
+    using console_calc::MultiPositionListValue;
+
+    const MultiPositionListValue values{
+        {
+            {.latitude_deg = 60.0, .longitude_deg = 10.0},
+            {.latitude_deg = 61.0, .longitude_deg = 11.0},
+        },
+        {
+            {.latitude_deg = 62.0, .longitude_deg = 12.0},
+        },
+    };
+
+    return console_calc::format_multi_position_list(values) ==
+           "{{pos(60, 10), pos(61, 11)}, {pos(62, 12)}}";
+}
+
 }  // namespace
 
 int main() {
@@ -94,6 +111,10 @@ int main() {
     }
 
     if (!expect_multi_list_display()) {
+        return EXIT_FAILURE;
+    }
+
+    if (!expect_multi_position_list_display()) {
         return EXIT_FAILURE;
     }
 

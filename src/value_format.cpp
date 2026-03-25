@@ -96,6 +96,18 @@ std::string format_position_list(const PositionListValue& values) {
     return result;
 }
 
+std::string format_multi_position_list(const MultiPositionListValue& values) {
+    std::string result = "{";
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        if (index != 0) {
+            result += ", ";
+        }
+        result += format_position_list(values[index]);
+    }
+    result += '}';
+    return result;
+}
+
 std::string format_value(const Value& value) {
     return format_value(value, IntegerDisplayMode::decimal);
 }
@@ -115,6 +127,8 @@ std::string format_value(const Value& value, IntegerDisplayMode mode) {
         return format_multi_list(std::get<MultiListValue>(value), mode);
     case ValueKind::position_list:
         return format_position_list(std::get<PositionListValue>(value));
+    case ValueKind::multi_position_list:
+        return format_multi_position_list(std::get<MultiPositionListValue>(value));
     }
 
     return {};
