@@ -122,7 +122,8 @@ Builtin functions:
 - `product(list|multilist)` multiplies list values; `product({})` is `1`
 - `avg(list|multilist)` returns the arithmetic mean of a non-empty list or each inner list
 - `min(list|multilist)` and `max(list|multilist)` require non-empty lists; for multilists, each inner list must be non-empty
-- `first(list|multilist, n)` returns the first `n` items as a list, or each inner list of a multilist
+- `first(list|multilist[, n])` returns the first `n` items as a list, or the first `n` inner lists of a multilist; the default `n` is `1`
+- `last(list|multilist[, n])` returns the last `n` items as a list, or the last `n` inner lists of a multilist; the default `n` is `1`
 - `drop(list|multilist, n)` returns the list without its first `n` items, or drops from each inner list of a multilist
 - `flatten(multilist|multi_pos_list)` flattens one nested collection level into a list or position list
 - `list_div(list_a, list_b)` divides list elements pairwise and requires equal list lengths

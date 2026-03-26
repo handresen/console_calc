@@ -444,21 +444,36 @@ template <typename Operation>
         });
     }
     case Function::first: {
-        const std::size_t count =
-            require_list_index(require_scalar_or_singleton_list_value(arguments[1]));
+        const std::size_t count = arguments.size() == 1
+                                      ? 1U
+                                      : require_list_index(
+                                            require_scalar_or_singleton_list_value(arguments[1]));
         if (const auto* multi_values = std::get_if<MultiListValue>(&arguments[0])) {
-            MultiListValue result;
-            result.reserve(multi_values->size());
-            for (const auto& values : *multi_values) {
-                const std::size_t result_size = std::min(count, values.size());
-                result.emplace_back(values.begin(),
-                                    values.begin() + static_cast<std::ptrdiff_t>(result_size));
-            }
-            return result;
+            const std::size_t result_size = std::min(count, multi_values->size());
+            return MultiListValue(
+                multi_values->begin(),
+                multi_values->begin() + static_cast<std::ptrdiff_t>(result_size));
         }
         const ListValue values = require_list(arguments[0]);
         const std::size_t result_size = std::min(count, values.size());
         return ListValue(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(result_size));
+    }
+    case Function::last: {
+        const std::size_t count = arguments.size() == 1
+                                      ? 1U
+                                      : require_list_index(
+                                            require_scalar_or_singleton_list_value(arguments[1]));
+        if (const auto* multi_values = std::get_if<MultiListValue>(&arguments[0])) {
+            const std::size_t result_size = std::min(count, multi_values->size());
+            const std::size_t start = multi_values->size() - result_size;
+            return MultiListValue(
+                multi_values->begin() + static_cast<std::ptrdiff_t>(start),
+                multi_values->end());
+        }
+        const ListValue values = require_list(arguments[0]);
+        const std::size_t result_size = std::min(count, values.size());
+        const std::size_t start = values.size() - result_size;
+        return ListValue(values.begin() + static_cast<std::ptrdiff_t>(start), values.end());
     }
     case Function::drop: {
         const std::size_t count =

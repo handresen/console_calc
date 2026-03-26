@@ -263,7 +263,8 @@ m.pi
 - `avg(list|multilist)`        average of list elements or each inner list
 - `min(list|multilist)`        minimum list element or each inner list
 - `max(list|multilist)`        maximum list element or each inner list
-- `first(list|multilist, n)`   first `n` list elements or each inner list
+- `first(list|multilist[, n])`   first `n` list elements or inner lists; default `n` is `1`
+- `last(list|multilist[, n])`    last `n` list elements or inner lists; default `n` is `1`
 - `drop(list|multilist, n)`    drop first `n` list elements or each inner list
 - `flatten(multilist|multi_pos_list)` flatten one nested collection level
 - `list_div(a, b)`   divide matching list elements

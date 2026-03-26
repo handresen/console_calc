@@ -10,7 +10,7 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<BuiltinFunctionInfo, 49> k_builtin_functions = {{
+constexpr std::array<BuiltinFunctionInfo, 50> k_builtin_functions = {{
     {Function::abs, "abs", 1, 1, BuiltinFunctionCategory::scalar, true, true, "abs(x)", "absolute value"},
     {Function::sin, "sin", 1, 1, BuiltinFunctionCategory::scalar, true, true, "sin(x)", "sine in radians"},
     {Function::cos, "cos", 1, 1, BuiltinFunctionCategory::scalar, true, true, "cos(x)", "cosine in radians"},
@@ -48,7 +48,8 @@ constexpr std::array<BuiltinFunctionInfo, 49> k_builtin_functions = {{
     {Function::avg, "avg", 1, 1, BuiltinFunctionCategory::list, true, false, "avg(list|multilist)", "average of list elements or each inner list"},
     {Function::min, "min", 1, 1, BuiltinFunctionCategory::list, true, false, "min(list|multilist)", "minimum list element or each inner list"},
     {Function::max, "max", 1, 1, BuiltinFunctionCategory::list, true, false, "max(list|multilist)", "maximum list element or each inner list"},
-    {Function::first, "first", 2, 2, BuiltinFunctionCategory::list, true, false, "first(list|multilist, n)", "first n list elements or each inner list"},
+    {Function::first, "first", 1, 2, BuiltinFunctionCategory::list, true, false, "first(list|multilist[, n])", "first n list elements or inner lists"},
+    {Function::last, "last", 1, 2, BuiltinFunctionCategory::list, true, false, "last(list|multilist[, n])", "last n list elements or inner lists"},
     {Function::drop, "drop", 2, 2, BuiltinFunctionCategory::list, true, false, "drop(list|multilist, n)", "drop first n list elements or each inner list"},
     {Function::flatten, "flatten", 1, 1, BuiltinFunctionCategory::list, false, false, "flatten(multilist|multi_pos_list)", "flatten one nested collection level"},
     {Function::list_add, "list_add", 2, 2, BuiltinFunctionCategory::list, true, false,

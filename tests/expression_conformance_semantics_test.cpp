@@ -659,7 +659,10 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value nested_avg_avg = parser.evaluate_value("avg(avg({{1, 2}, {10, 20, 30}}))");
     const Value nested_min_list = parser.evaluate_value("min({{2, -1, 5}, {10, 7}})");
     const Value nested_max_list = parser.evaluate_value("max({{2, -1, 5}, {10, 7}})");
-    const Value nested_first_list = parser.evaluate_value("first({{1, 2, 3}, {10, 20}}, 2)");
+    const Value nested_first_list = parser.evaluate_value("first({{1, 2, 3}, {10, 20}}, 1)");
+    const Value nested_last_list = parser.evaluate_value("last({{1, 2, 3}, {10, 20}}, 1)");
+    const Value default_first_list = parser.evaluate_value("first({9, 8, 7})");
+    const Value default_last_list = parser.evaluate_value("last({9, 8, 7})");
     const Value nested_drop_list = parser.evaluate_value("drop({{1, 2, 3}, {10, 20}}, 1)");
     const Value flattened_multi_list = parser.evaluate_value("flatten({{1, 2}, {3, 4}})");
     const Value flattened_multi_position_list = parser.evaluate_value(
@@ -710,11 +713,19 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         !almost_equal(scalar_to_double(std::get<ListValue>(nested_max_list)[0]), 5.0) ||
         !almost_equal(scalar_to_double(std::get<ListValue>(nested_max_list)[1]), 10.0) ||
         !std::holds_alternative<MultiListValue>(nested_first_list) ||
-        std::get<MultiListValue>(nested_first_list).size() != 2 ||
-        std::get<MultiListValue>(nested_first_list)[0].size() != 2 ||
-        std::get<MultiListValue>(nested_first_list)[1].size() != 2 ||
-        !almost_equal(scalar_to_double(std::get<MultiListValue>(nested_first_list)[0][1]), 2.0) ||
-        !almost_equal(scalar_to_double(std::get<MultiListValue>(nested_first_list)[1][1]), 20.0) ||
+        std::get<MultiListValue>(nested_first_list).size() != 1 ||
+        std::get<MultiListValue>(nested_first_list)[0].size() != 3 ||
+        !almost_equal(scalar_to_double(std::get<MultiListValue>(nested_first_list)[0][2]), 3.0) ||
+        !std::holds_alternative<MultiListValue>(nested_last_list) ||
+        std::get<MultiListValue>(nested_last_list).size() != 1 ||
+        std::get<MultiListValue>(nested_last_list)[0].size() != 2 ||
+        !almost_equal(scalar_to_double(std::get<MultiListValue>(nested_last_list)[0][1]), 20.0) ||
+        !std::holds_alternative<ListValue>(default_first_list) ||
+        std::get<ListValue>(default_first_list).size() != 1 ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(default_first_list)[0]), 9.0) ||
+        !std::holds_alternative<ListValue>(default_last_list) ||
+        std::get<ListValue>(default_last_list).size() != 1 ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(default_last_list)[0]), 7.0) ||
         !std::holds_alternative<MultiListValue>(nested_drop_list) ||
         std::get<MultiListValue>(nested_drop_list).size() != 2 ||
         std::get<MultiListValue>(nested_drop_list)[0].size() != 2 ||

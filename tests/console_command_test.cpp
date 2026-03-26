@@ -155,6 +155,7 @@ bool expect_builtin_function_metadata() {
     const auto list_mul_info = console_calc::builtin_function_info(console_calc::Function::list_mul);
     const auto list_sub_info = console_calc::builtin_function_info(console_calc::Function::list_sub);
     const auto first_info = console_calc::builtin_function_info(console_calc::Function::first);
+    const auto last_info = console_calc::builtin_function_info(console_calc::Function::last);
     const auto drop_info = console_calc::builtin_function_info(console_calc::Function::drop);
     const auto flatten_info = console_calc::builtin_function_info(console_calc::Function::flatten);
     const auto guard_info = console_calc::special_form_info(console_calc::Function::guard);
@@ -238,8 +239,15 @@ bool expect_builtin_function_metadata() {
            list_sub_info.category == console_calc::BuiltinFunctionCategory::list &&
            list_sub_info.summary == "subtract matching list elements" &&
            first_info.name == "first" &&
-           first_info.signature == "first(list|multilist, n)" &&
-           first_info.summary == "first n list elements or each inner list" &&
+           first_info.min_arity == 1 &&
+           first_info.max_arity == 2 &&
+           first_info.signature == "first(list|multilist[, n])" &&
+           first_info.summary == "first n list elements or inner lists" &&
+           last_info.name == "last" &&
+           last_info.min_arity == 1 &&
+           last_info.max_arity == 2 &&
+           last_info.signature == "last(list|multilist[, n])" &&
+           last_info.summary == "last n list elements or inner lists" &&
            drop_info.name == "drop" &&
            drop_info.signature == "drop(list|multilist, n)" &&
            drop_info.summary == "drop first n list elements or each inner list" &&

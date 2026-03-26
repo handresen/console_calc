@@ -73,6 +73,7 @@ enum class Function {
     min,
     max,
     first,
+    last,
     drop,
     flatten,
     list_add,

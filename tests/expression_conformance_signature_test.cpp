@@ -37,6 +37,8 @@ bool expect_expression_function_signature_errors(ExpressionParser& parser) {
          "function 'simplify_path' expects simplify_path(poslist|multi_pos_list, tolerance_m)"},
         {"compress_path({pos(0, 0), pos(0, 1)})",
          "function 'compress_path' expects compress_path(poslist|multi_pos_list, count[, max_points])"},
+        {"first()", "function 'first' expects first(list|multilist[, n])"},
+        {"last()", "function 'last' expects last(list|multilist[, n])"},
         {"rand(1, 2, 3)", "function 'rand' expects rand([min, max])"},
     };
 
