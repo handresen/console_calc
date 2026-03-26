@@ -261,6 +261,7 @@ m.pi
 - `len(list)` / `len(multilist)` / `len(poslist)` / `len(multi_pos_list)` collection length
 - `product(list|multilist)`    product of list elements or each inner list
 - `avg(list|multilist)`        average of list elements or each inner list
+- `median(list|multilist)`     median of list elements or each inner list
 - `min(list|multilist)`        minimum list element or each inner list
 - `max(list|multilist)`        maximum list element or each inner list
 - `first(list|multilist[, n])`   first `n` list elements or inner lists; default `n` is `1`
@@ -296,7 +297,7 @@ Position lists:
 
 Function notes:
 - `product({})` is `1`
-- `avg`, `min`, and `max` require a non-empty list; on a `multilist`, each inner list must be non-empty
+- `avg`, `median`, `min`, and `max` require a non-empty list; on a `multilist`, each inner list must be non-empty
 - reducers on a `multilist` return one scalar per inner list, so `avg(avg(ml))` composes naturally
 - `first` and `drop` require `n` to be a non-negative integer
 - `list_div` requires both inputs to be lists of equal length

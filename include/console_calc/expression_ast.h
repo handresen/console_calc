@@ -70,6 +70,7 @@ enum class Function {
     len,
     product,
     avg,
+    median,
     min,
     max,
     first,

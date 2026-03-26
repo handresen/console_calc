@@ -121,6 +121,7 @@ Builtin functions:
 - `len(list)`, `len(multilist)`, `len(poslist)`, and `len(multi_pos_list)` return collection length
 - `product(list|multilist)` multiplies list values; `product({})` is `1`
 - `avg(list|multilist)` returns the arithmetic mean of a non-empty list or each inner list
+- `median(list|multilist)` returns the median of a non-empty list or each inner list
 - `min(list|multilist)` and `max(list|multilist)` require non-empty lists; for multilists, each inner list must be non-empty
 - `first(list|multilist[, n])` returns the first `n` items as a list, or the first `n` inner lists of a multilist; the default `n` is `1`
 - `last(list|multilist[, n])` returns the last `n` items as a list, or the last `n` inner lists of a multilist; the default `n` is `1`
@@ -153,7 +154,7 @@ Integer-preserving behavior:
 - `sum(list)` and `product(list)` preserve integer results when all inputs remain integral
 - trig functions always return floating-point results
 
-For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, `map_at`, and `list_where`, the expression argument uses `_` as the current-element placeholder. `_` is only valid inside these list forms. User-defined function parameters are substituted once for the whole call; they are not rebound per list element. Optional `start`, `step`, and `count` arguments use zero-based `start`; `step = 1` by default; and when `count` is omitted, mapping continues over all remaining matching elements. `step` must be a positive integer. `map` returns only mapped elements, while `map_at` preserves original list length and copies untouched elements through. Comparisons return integer `1` for true and `0` for false, and predicate contexts treat any non-zero scalar as true. `list_where` keeps the original matching elements and omits the rest. For `timed_loop` and `fill`, `count` must be a non-negative integer. For `rand`, `rand()` uses `[0, 1)`, `rand(max)` uses `[0, max)`, and `rand(min, max)` uses `[min, max)` with finite bounds and `min < max`. `range` uses `count` as its second argument, not a stop value. Builtin constant lookup also accepts case-sensitive qualified names such as `m.pi`, `c.deg`, and `ph.c`; this uses narrow app-layer builtin-name expansion and does not make `.` a general expression operator.
+For `first` and `drop`, `n` must be a non-negative integer. If `n` is larger than the list length, the result is clamped naturally to the list bounds. For `map`, `map_at`, `list_where`, and `sort_by`, the expression argument uses `_` as the current-element placeholder. `_` is only valid inside these list forms. User-defined function parameters are substituted once for the whole call; they are not rebound per list element. Optional `start`, `step`, and `count` arguments use zero-based `start`; `step = 1` by default; and when `count` is omitted, mapping continues over all remaining matching elements. `step` must be a positive integer. `map` returns only mapped elements, while `map_at` preserves original list length and copies untouched elements through. Comparisons return integer `1` for true and `0` for false, and predicate contexts treat any non-zero scalar as true. `list_where` keeps the original matching elements and omits the rest. For `timed_loop` and `fill`, `count` must be a non-negative integer. For `rand`, `rand()` uses `[0, 1)`, `rand(max)` uses `[0, max)`, and `rand(min, max)` uses `[min, max)` with finite bounds and `min < max`. `range` uses `count` as its second argument, not a stop value. Builtin constant lookup also accepts case-sensitive qualified names such as `m.pi`, `c.deg`, and `ph.c`; this uses narrow app-layer builtin-name expansion and does not make `.` a general expression operator.
 
 Console-only syntax adds:
 - value definitions as `name: expr`
@@ -217,6 +218,7 @@ Transform notes:
 - `len({{pos(0, 0), pos(0, 1)}, {pos(1, 1)}})` => `2`
 - `product({2, 3, 4})` => `24`
 - `avg({2, 4, 6})` => `4`
+- `median({5, 1, 9})` => `5`
 - `min({2, -1, 5})` => `-1`
 - `max({2, -1, 5})` => `5`
 - `sum({1, 2, 3})` => `6`
@@ -314,6 +316,7 @@ Transform notes:
 - `pow(2)`
 - `sum(1)`
 - `avg({})`
+- `median({})`
 - `first({1, 2}, 1.5)`
 - `drop(1, 2)`
 - `list_div({1, 2}, {3})`

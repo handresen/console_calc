@@ -317,7 +317,7 @@ Value evaluate_expression_with_placeholder(const Expression& expression,
             } else if constexpr (std::is_same_v<Node, PlaceholderExpression>) {
                 if (!placeholder_value.has_value()) {
                     throw EvaluationError(
-                        "placeholder '_' can only be used inside map(), map_at(), or list_where()");
+                        "placeholder '_' can only be used inside map(), map_at(), list_where(), or sort_by()");
                 }
                 return to_value(*placeholder_value);
             } else if constexpr (std::is_same_v<Node, UnaryExpression>) {

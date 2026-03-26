@@ -122,6 +122,27 @@ template <typename Operation>
     throw EvaluationError("list or multi-list value required");
 }
 
+[[nodiscard]] ScalarValue median_of_list(const ListValue& values) {
+    if (values.empty()) {
+        throw EvaluationError("median() requires non-empty inner lists");
+    }
+
+    ListValue sorted = values;
+    std::sort(sorted.begin(), sorted.end(),
+              [](const ScalarValue& lhs, const ScalarValue& rhs) {
+                  return scalar_to_double(lhs) < scalar_to_double(rhs);
+              });
+
+    const std::size_t middle = sorted.size() / 2U;
+    if ((sorted.size() % 2U) != 0U) {
+        return sorted[middle];
+    }
+
+    const double lhs = scalar_to_double(sorted[middle - 1U]);
+    const double rhs = scalar_to_double(sorted[middle]);
+    return ScalarValue{require_finite_result((lhs + rhs) / 2.0)};
+}
+
 [[nodiscard]] Value evaluate_scalar_builtin(Function function, std::span<const Value> arguments) {
     switch (function) {
     case Function::abs: {
@@ -414,6 +435,8 @@ template <typename Operation>
                 require_finite_result(total / static_cast<double>(values.size()))};
         });
     }
+    case Function::median:
+        return evaluate_multi_list_reducer(arguments[0], median_of_list);
     case Function::min: {
         return evaluate_multi_list_reducer(arguments[0], [](const ListValue& values) {
             if (values.empty()) {

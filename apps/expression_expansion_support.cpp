@@ -85,7 +85,7 @@ bool is_inside_placeholder_expression(const std::vector<ExpansionFrame>& frames)
     for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
         if (it->kind == ExpansionFrameKind::call &&
             (it->identifier == "map" || it->identifier == "map_at" ||
-             it->identifier == "list_where") &&
+             it->identifier == "list_where" || it->identifier == "sort_by") &&
             it->argument_index == 1) {
             return true;
         }

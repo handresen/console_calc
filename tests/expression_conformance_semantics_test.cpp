@@ -657,6 +657,9 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value nested_product_list = parser.evaluate_value("product({{2, 3}, {4, 5}})");
     const Value nested_avg_list = parser.evaluate_value("avg({{1, 2}, {10, 20, 30}})");
     const Value nested_avg_avg = parser.evaluate_value("avg(avg({{1, 2}, {10, 20, 30}}))");
+    const Value median_list = parser.evaluate_value("median({5, 1, 9})");
+    const Value even_median_list = parser.evaluate_value("median({1, 2, 10, 20})");
+    const Value nested_median_list = parser.evaluate_value("median({{5, 1, 9}, {1, 2, 10, 20}})");
     const Value nested_min_list = parser.evaluate_value("min({{2, -1, 5}, {10, 7}})");
     const Value nested_max_list = parser.evaluate_value("max({{2, -1, 5}, {10, 7}})");
     const Value nested_first_list = parser.evaluate_value("first({{1, 2, 3}, {10, 20}}, 1)");
@@ -698,6 +701,14 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         std::get<ListValue>(nested_sum_list).size() != 2 ||
         !almost_equal(scalar_to_double(std::get<ListValue>(nested_sum_list)[0]), 6.0) ||
         !almost_equal(scalar_to_double(std::get<ListValue>(nested_sum_list)[1]), 30.0) ||
+        !std::holds_alternative<std::int64_t>(median_list) ||
+        !almost_equal(scalar_to_double(std::get<std::int64_t>(median_list)), 5.0) ||
+        !std::holds_alternative<double>(even_median_list) ||
+        !almost_equal(std::get<double>(even_median_list), 6.0) ||
+        !std::holds_alternative<ListValue>(nested_median_list) ||
+        std::get<ListValue>(nested_median_list).size() != 2 ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(nested_median_list)[0]), 5.0) ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(nested_median_list)[1]), 6.0) ||
         !std::holds_alternative<ListValue>(nested_product_list) ||
         std::get<ListValue>(nested_product_list).size() != 2 ||
         !almost_equal(scalar_to_double(std::get<ListValue>(nested_product_list)[0]), 6.0) ||

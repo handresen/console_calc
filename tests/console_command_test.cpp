@@ -150,6 +150,7 @@ bool expect_builtin_function_metadata() {
     const auto shr_info = console_calc::builtin_function_info(console_calc::Function::shr);
     const auto sqrt_info = console_calc::builtin_function_info(console_calc::Function::sqrt);
     const auto rand_info = console_calc::builtin_function_info(console_calc::Function::rand);
+    const auto median_info = console_calc::builtin_function_info(console_calc::Function::median);
     const auto list_add_info = console_calc::builtin_function_info(console_calc::Function::list_add);
     const auto list_div_info = console_calc::builtin_function_info(console_calc::Function::list_div);
     const auto list_mul_info = console_calc::builtin_function_info(console_calc::Function::list_mul);
@@ -227,6 +228,12 @@ bool expect_builtin_function_metadata() {
            sum_info.signature == "sum(list|multilist)" &&
            sum_info.summary == "sum list elements or each inner list" &&
            !sum_info.mappable &&
+           median_info.name == "median" &&
+           median_info.min_arity == 1 &&
+           median_info.max_arity == 1 &&
+           median_info.category == console_calc::BuiltinFunctionCategory::list &&
+           median_info.signature == "median(list|multilist)" &&
+           median_info.summary == "median list element or each inner list" &&
            list_add_info.name == "list_add" && list_add_info.min_arity == 2 &&
            list_add_info.max_arity == 2 &&
            list_add_info.category == console_calc::BuiltinFunctionCategory::list &&
@@ -444,6 +451,10 @@ bool expect_expression_identifier_expansion() {
                         console_calc::expand_expression_identifiers(
                             "list_where(vals, _ <= 2)", constants, definitions, std::nullopt),
                         "list_where({1, 2, 3}, _ <= 2)") &&
+           expect_equal("expand sort_by(vals, abs(_))",
+                        console_calc::expand_expression_identifiers(
+                            "sort_by(vals, abs(_))", constants, definitions, std::nullopt),
+                        "sort_by({1, 2, 3}, abs(_))") &&
            expect_equal("expand f(3)",
                         console_calc::expand_expression_identifiers(
                             "f(3)", constants, definitions, std::nullopt),
