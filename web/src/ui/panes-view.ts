@@ -17,7 +17,7 @@ import {
   sampleExpressions,
 } from "./pane-renderers";
 import { createPlotPaneView } from "./plot-pane-view";
-import { renderStackList } from "./stack-pane-renderers";
+import { createStackPaneView } from "./stack-pane-view";
 
 export interface PanesView {
   element: HTMLElement;
@@ -54,7 +54,12 @@ export function createPanesView(
     }
   };
 
-  const stackPane = createPane("Stack", handlePaneToggle);
+  const stackPaneView = createStackPaneView(
+    handlePaneToggle,
+    onClearStack,
+    displaySettings,
+  );
+  const stackPane = stackPaneView.pane;
   const definitionsPane = createPane("Definitions", handlePaneToggle);
   const constantsPane = createPane("Constants", handlePaneToggle);
   const functionsPane = createPane("Functions", handlePaneToggle);
@@ -98,23 +103,9 @@ export function createPanesView(
   }
 
   functionsPane.body.classList.add("functions-pane-body");
-  const stackTitleLabel = stackPane.title.querySelector<HTMLElement>(".pane-title-label");
 
   const functionTableContainer = document.createElement("div");
   functionTableContainer.className = "function-table-container";
-
-  const clearStackButton = document.createElement("button");
-  clearStackButton.type = "button";
-  clearStackButton.className = "pane-icon-button";
-  clearStackButton.textContent = "×";
-  clearStackButton.setAttribute("aria-label", "Clear stack");
-  clearStackButton.title = "Clear stack";
-  clearStackButton.addEventListener("click", () => {
-    onClearStack?.();
-  });
-
-  const stackList = document.createElement("div");
-  stackList.className = "stack-list";
 
   const samplesList = document.createElement("div");
   samplesList.className = "sample-list";
@@ -130,8 +121,6 @@ export function createPanesView(
     samplesList.append(button);
   }
 
-  stackPane.actions.append(clearStackButton);
-  stackPane.body.append(stackList);
   functionsPane.body.append(functionTableContainer);
   samplesPane.body.append(samplesList);
 
@@ -157,18 +146,12 @@ export function createPanesView(
     element: section,
     render(snapshot) {
       latestSnapshot = snapshot;
-      if (stackTitleLabel !== null) {
-        stackTitleLabel.textContent = `Stack d${displaySettings.stackDecimals}`;
-      }
       status.textContent = `Mode ${snapshot.display_mode} | stack ${snapshot.stack.length}/${snapshot.max_stack_depth}`;
-      stackPane.count.textContent = `${snapshot.stack.length}`;
-      clearStackButton.disabled = snapshot.stack.length === 0;
+      stackPaneView.render(snapshot);
       definitionsPane.count.textContent = `${snapshot.definitions.length}`;
       constantsPane.count.textContent = `${snapshot.constants.length}`;
       functionsPane.count.textContent = `${snapshot.functions.length}`;
       samplesPane.count.textContent = `${sampleExpressions.length}`;
-      renderStackList(stackList, snapshot.stack, displaySettings);
-      stackList.scrollTop = stackList.scrollHeight;
       renderTextList(
         definitionsPane.body,
         snapshot.definitions.map((entry) => definitionDisplay(entry)),
@@ -180,16 +163,13 @@ export function createPanesView(
     },
     setDisplaySettings(settings) {
       displaySettings = settings;
-      if (stackTitleLabel !== null) {
-        stackTitleLabel.textContent = `Stack d${displaySettings.stackDecimals}`;
-      }
+      stackPaneView.setDisplaySettings(displaySettings);
       if (displaySettings.rememberPaneState) {
         persistPaneState();
       }
       restorePaneState();
       if (latestSnapshot !== null) {
-        renderStackList(stackList, latestSnapshot.stack, displaySettings);
-        stackList.scrollTop = stackList.scrollHeight;
+        stackPaneView.render(latestSnapshot);
         plotPaneView.setDisplaySettings(displaySettings);
         mapPaneView.setDisplaySettings(displaySettings);
       }
