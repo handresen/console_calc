@@ -13,11 +13,11 @@ import {
   definitionDisplay,
   renderConstantList,
   renderFunctionTable,
-  renderStackList,
   renderTextList,
   sampleExpressions,
 } from "./pane-renderers";
 import { createPlotPaneView } from "./plot-pane-view";
+import { renderStackList } from "./stack-pane-renderers";
 
 export interface PanesView {
   element: HTMLElement;
