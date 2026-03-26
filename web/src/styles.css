@@ -325,7 +325,7 @@ body.is-resizing-shell {
 }
 
 .prompt-editor-shell[data-validity-state="invalid"] {
-  background: rgba(214, 96, 96, 0.055);
+  background: rgba(214, 96, 96, 0.025);
 }
 
 .prompt-placeholder,
@@ -362,6 +362,12 @@ body.is-resizing-shell {
   background: rgba(46, 93, 49, 0.16);
   border-radius: 0.2rem;
   color: #214325;
+}
+
+.prompt-invalid-suffix {
+  background: rgba(214, 96, 96, 0.18);
+  border-radius: 0.2rem;
+  color: #6f2f2f;
 }
 
 .prompt-input {

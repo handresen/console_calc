@@ -84,23 +84,43 @@ export function createApp(root: HTMLElement): void {
   let promptValidationToken = 0;
   const updatePromptValidity = async (input: string): Promise<void> => {
     const currentToken = ++promptValidationToken;
-    const trimmedInput = input.trim();
-    if (trimmedInput.length === 0) {
+    if (input.trim().length === 0) {
       prompt.setValidityState("neutral");
       return;
     }
 
     try {
-      const isValid = await bridge.isValidInput(trimmedInput);
+      const isValid = await bridge.isValidInput(input);
       if (currentToken !== promptValidationToken) {
         return;
       }
-      prompt.setValidityState(isValid ? "valid" : "invalid");
+      if (isValid) {
+        prompt.setValidityState("valid");
+        return;
+      }
+
+      let invalidStart = 0;
+      for (let index = input.length - 1; index >= 0; index -= 1) {
+        const candidate = input.slice(0, index);
+        if (candidate.trim().length === 0) {
+          continue;
+        }
+        const candidateIsValid = await bridge.isValidInput(candidate);
+        if (currentToken !== promptValidationToken) {
+          return;
+        }
+        if (candidateIsValid) {
+          invalidStart = index;
+          break;
+        }
+      }
+
+      prompt.setValidityState("invalid", invalidStart);
     } catch {
       if (currentToken !== promptValidationToken) {
         return;
       }
-      prompt.setValidityState("invalid");
+      prompt.setValidityState("invalid", 0);
     }
   };
 

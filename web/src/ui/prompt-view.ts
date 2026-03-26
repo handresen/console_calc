@@ -5,7 +5,10 @@ export interface PromptView {
   setEnabled(enabled: boolean): void;
   setDepth(depth: number): void;
   setPlaceholder(text: string): void;
-  setValidityState(state: "neutral" | "valid" | "invalid"): void;
+  setValidityState(
+    state: "neutral" | "valid" | "invalid",
+    invalidStart?: number,
+  ): void;
   setValue(value: string): void;
   submit(value: string): void;
   focus(): void;
@@ -102,22 +105,33 @@ function findMatchingBracePair(text: string, cursorStart: number, cursorEnd: num
   return null;
 }
 
-function renderHighlightedText(text: string, pair: BracePair | null): string {
+function renderHighlightedText(
+  text: string,
+  pair: BracePair | null,
+  validityState: ValidityState,
+  invalidStart: number | null,
+): string {
   if (text.length === 0) {
     return "";
-  }
-  if (pair === null) {
-    return escapeHtml(text);
   }
 
   let html = "";
   for (let index = 0; index < text.length; index += 1) {
     const character = escapeHtml(text[index]!);
-    if (index === pair.openIndex || index === pair.closeIndex) {
-      html += `<span class="prompt-brace-match">${character}</span>`;
+    const classes: string[] = [];
+    if (pair !== null && (index === pair.openIndex || index === pair.closeIndex)) {
+      classes.push("prompt-brace-match");
+    }
+    if (validityState === "invalid" && invalidStart !== null && index >= invalidStart) {
+      classes.push("prompt-invalid-suffix");
+    }
+
+    if (classes.length === 0) {
+      html += character;
       continue;
     }
-    html += character;
+
+    html += `<span class="${classes.join(" ")}">${character}</span>`;
   }
   return html;
 }
@@ -128,6 +142,7 @@ export function createPromptView(
 ): PromptView {
   const history = createPromptHistory();
   let validityState: ValidityState = "neutral";
+  let invalidStart: number | null = null;
 
   const wrapper = document.createElement("section");
   wrapper.className = "prompt-view";
@@ -156,7 +171,7 @@ export function createPromptView(
 
   const syncMirror = () => {
     const pair = findMatchingBracePair(input.value, input.selectionStart, input.selectionEnd);
-    mirror.innerHTML = `${renderHighlightedText(input.value, pair)}<span class="prompt-mirror-trailing-space"> </span>`;
+    mirror.innerHTML = `${renderHighlightedText(input.value, pair, validityState, invalidStart)}<span class="prompt-mirror-trailing-space"> </span>`;
     mirror.style.transform = `translateX(${-input.scrollLeft}px)`;
     placeholder.hidden = input.value.length !== 0;
   };
@@ -237,9 +252,12 @@ export function createPromptView(
     setPlaceholder(text) {
       placeholder.textContent = text;
     },
-    setValidityState(state) {
+    setValidityState(state, nextInvalidStart) {
       validityState = state;
+      invalidStart =
+        state === "invalid" && nextInvalidStart !== undefined ? nextInvalidStart : null;
       editorShell.dataset.validityState = validityState;
+      syncMirror();
     },
     setValue(value) {
       input.value = value;
