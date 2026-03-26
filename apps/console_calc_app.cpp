@@ -12,6 +12,7 @@
 #include "currency_rate_provider.h"
 #include "expression_environment.h"
 #include "console_calc/expression_parser.h"
+#include "console_calc/value_format.h"
 
 namespace console_calc {
 
@@ -34,8 +35,9 @@ int evaluate_expression(const ExpressionParser& parser, std::string_view express
                         const ConstantTable& constants, std::ostream& output,
                         std::ostream& error) {
     try {
-        output << parser.evaluate(
-            expand_expression_identifiers(expression, constants, DefinitionTable{}, std::nullopt))
+        output << format_value(parser.evaluate_value(
+                      expand_expression_identifiers(expression, constants, DefinitionTable{},
+                                                    std::nullopt)))
                << '\n';
         return 0;
     } catch (const std::exception& ex) {
