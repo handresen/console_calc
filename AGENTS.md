@@ -44,28 +44,13 @@
 - Use third-party packages for heavier capabilities that are out of scope for the core parser, such as symbolic manipulation, advanced numeric methods, or similar specialized features.
 - Introduce external dependencies only when they clearly improve correctness, maintainability, test quality, or provide substantial heavy-lifting functionality.
 
-## Current Language Scope
-- The CLI supports both one-shot evaluation from command-line arguments and an interactive console mode when started with no arguments.
-- Scalar values are intrinsic `int64` or floating-point values. Scalar lists are first-class and currently flat. Homogeneous position lists are also supported as a separate value type. Geographic positions are a first-class intrinsic value type using the `(lat, lon)` convention in degrees.
-- Supported unary operators are `-` and `~`.
-- Supported binary operators are `+`, `-`, `*`, `/`, `%`, `^`, `=`, `<`, `<=`, `>`, `>=`, `&`, and `|`.
-- Parentheses, list literals, and postfix list indexing are supported for grouping and collection access.
-- Operator precedence is currently: function calls / postfix indexing / list literals / parentheses, `^`, unary `-` `~`, `*` `/` `%`, `+` `-`, comparisons, `&`, `|`.
-- `^` is right-associative. The other binary operators are left-associative.
-- `/` always yields floating-point results.
-- `%` preserves integer results for integer operands and otherwise uses floating-point modulo semantics.
-- Comparisons return integer `1` or `0`.
-- `&`, `|`, and `~` require integer-valued operands and should reject non-integer inputs.
-- Builtin constants include root math aliases `pi`, `e`, and `tau`, plus namespaced builtin constants such as `m.pi`, `c.deg`, and `ph.c`.
-- Builtin scalar functions include arithmetic/trig helpers, `pow`, `rand([min, max])`, and explicit bitwise helpers such as `and`, `or`, `xor`, `nand`, `nor`, `shl`, and `shr`.
-- Builtin position functions include `pos`, `lat`, `lon`, `dist`, `bearing`, `br_to_pos`, `to_list`, and `to_poslist`.
-- Builtin list functions include aggregation (`sum`, `product`, `avg`, `min`, `max`, `len`), slicing (`first`, `drop`), pairwise operations (`list_add`, `list_sub`, `list_mul`, `list_div`), and list generation (`range`, `geom`, `repeat`, `linspace`, `powers`).
-- Special forms currently include `map(list, expr[, start[, step[, count]]])`, `map_at(list, expr[, start[, step[, count]]])`, `list_where(list, expr)`, `reduce(list, op)`, `guard(expr, fallback)`, `timed_loop(expr, count)`, and `fill(expr, count)`.
-- `_` is reserved as the current-element placeholder inside `map`, `map_at`, and `list_where`.
-- The console supports late-bound value definitions and fixed-arity user-defined functions, result-stack semantics, integer display modes (`dec`, `hex`, `bin`), and console-native commands such as `s`, `vars`, `consts`, and `funcs`.
-- Console mode also supports best-effort currency-rate refresh in the app layer.
-- The app layer is responsible for console-only syntax and identifier expansion, including `r` result references and late-bound definitions.
-- The web frontend is active on `main`, consumes the wasm host bridge, and provides transcript, helper panes, samples, and plotting without reimplementing calculator semantics in TypeScript.
+## Current Project Shape
+- The project has two active hosts: terminal and web. Treat both as real product surfaces.
+- The language currently includes scalar math, comparisons, bitwise integer operations, builtin constants, builtin scalar/list/position functions, console definitions, and one-level nested list values.
+- Geographic positions and path operations are first-class; geodesic behavior lives below the host/UI layer.
+- The app/runtime layer owns console-native syntax such as late-bound definitions, result references, listings, and other session behavior.
+- The web frontend consumes structured host data and should not reimplement calculator semantics in TypeScript when the host bridge already exposes them.
+- For detailed language behavior, grammar, and examples, use `docs/grammar.md` as the canonical reference rather than duplicating inventories here.
 
 ## Working Rules For Agents
 - Follow the existing CMake and `vcpkg` structure unless the user asks to replace it.
@@ -103,6 +88,16 @@
   - whether the refactor was useful or should be reverted
 - If a requested change appears unreasonable, internally inconsistent, or likely to degrade project cohesion, notify the user before proceeding instead of silently implementing it.
 - When terms, naming, or category labels are inconsistent or can be improved materially, call that out explicitly before or alongside implementation so the vocabulary stays coherent.
+
+## Canonical Supporting Docs
+- `docs/development.md`
+  workflow rationale, cleanup/refactor policy, verification flow, and host-build guidance
+- `docs/architecture.md`
+  current layering, ownership boundaries, and shared-behavior placement rules
+- `docs/grammar.md`
+  canonical language behavior, syntax notes, and user-facing examples
+- `docs/wasm_extension_plan.md`
+  current status-and-direction note for the browser/WebAssembly host path
 
 ## Near-Term Priorities
 1. Preserve correctness while extending the grammar in small, test-backed steps.
