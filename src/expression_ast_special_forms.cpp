@@ -17,6 +17,8 @@ Expression Parser::parse_special_form_call(Function form) {
         return parse_map_call();
     case Function::list_where:
         return parse_list_where_call();
+    case Function::sort_by:
+        return parse_sort_by_call();
     case Function::guard:
         return parse_guard_call();
     case Function::reduce:
@@ -184,6 +186,45 @@ Expression Parser::parse_list_where_call() {
         ListWhereCall{
             .list_argument = std::move(list_argument),
             .predicate_expression = std::move(predicate_expression),
+        }};
+}
+
+Expression Parser::parse_sort_by_call() {
+    const auto sort_signature = std::string(special_form_signature(Function::sort_by));
+    advance();
+    if (current_.kind != TokenKind::left_paren) {
+        throw ParseError("expected '(' after function name");
+    }
+
+    advance();
+    if (!starts_operand_expression(current_.kind)) {
+        throw ParseError("function 'sort_by' expects " + sort_signature);
+    }
+
+    auto list_argument = make_expression(parse_bitwise_or_expression());
+    if (current_.kind != TokenKind::comma) {
+        throw ParseError("function 'sort_by' expects " + sort_signature);
+    }
+
+    advance();
+    if (!starts_operand_expression(current_.kind)) {
+        throw ParseError("function 'sort_by' expects " + sort_signature);
+    }
+
+    const bool previous_allow_placeholder_expression = allow_placeholder_expression_;
+    allow_placeholder_expression_ = true;
+    auto key_expression = make_expression(parse_bitwise_or_expression());
+    allow_placeholder_expression_ = previous_allow_placeholder_expression;
+
+    if (current_.kind != TokenKind::right_paren) {
+        throw ParseError("function 'sort_by' expects " + sort_signature);
+    }
+
+    advance();
+    return Expression{
+        SortByCall{
+            .list_argument = std::move(list_argument),
+            .key_expression = std::move(key_expression),
         }};
 }
 

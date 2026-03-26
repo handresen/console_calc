@@ -665,6 +665,7 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value default_last_list = parser.evaluate_value("last({9, 8, 7})");
     const Value nested_drop_list = parser.evaluate_value("drop({{1, 2, 3}, {10, 20}}, 1)");
     const Value sorted_list = parser.evaluate_value("sort({3, 1, 2})");
+    const Value sorted_by_abs_list = parser.evaluate_value("sort_by({-3, 2, -1}, abs(_))");
     const Value reversed_list = parser.evaluate_value("reverse({3, 1, 2})");
     const Value reversed_multi_list = parser.evaluate_value("reverse({{1, 2}, {3, 4}})");
     const Value flattened_multi_list = parser.evaluate_value("flatten({{1, 2}, {3, 4}})");
@@ -739,6 +740,11 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         std::get<ListValue>(sorted_list).size() != 3 ||
         !almost_equal(scalar_to_double(std::get<ListValue>(sorted_list)[0]), 1.0) ||
         !almost_equal(scalar_to_double(std::get<ListValue>(sorted_list)[2]), 3.0) ||
+        !std::holds_alternative<ListValue>(sorted_by_abs_list) ||
+        std::get<ListValue>(sorted_by_abs_list).size() != 3 ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(sorted_by_abs_list)[0]), -1.0) ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(sorted_by_abs_list)[1]), 2.0) ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(sorted_by_abs_list)[2]), -3.0) ||
         !std::holds_alternative<ListValue>(reversed_list) ||
         std::get<ListValue>(reversed_list).size() != 3 ||
         !almost_equal(scalar_to_double(std::get<ListValue>(reversed_list)[0]), 2.0) ||

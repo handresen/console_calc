@@ -267,6 +267,7 @@ m.pi
 - `last(list|multilist[, n])`    last `n` list elements or inner lists; default `n` is `1`
 - `drop(list|multilist, n)`    drop first `n` list elements or each inner list
 - `sort(list)`    sort scalar list elements ascending
+- `sort_by(list, expr)`    stable-sort scalar lists by a scalar key expression using `_`
 - `reverse(list|multilist)`    reverse scalar list elements or outer multilist order
 - `flatten(multilist|multi_pos_list)` flatten one nested collection level
 - `list_div(a, b)`   divide matching list elements

@@ -7,7 +7,7 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<SpecialFormInfo, 7> k_special_forms = {{
+constexpr std::array<SpecialFormInfo, 8> k_special_forms = {{
     {Function::guard, "guard", 2, 2, BuiltinFunctionCategory::scalar, "guard(expr, fallback)",
      "use fallback when expr evaluation fails"},
     {Function::reduce, "reduce", 2, 2, BuiltinFunctionCategory::list, "reduce(list, op)",
@@ -24,6 +24,8 @@ constexpr std::array<SpecialFormInfo, 7> k_special_forms = {{
      "map inline expression onto selected list positions"},
     {Function::list_where, "list_where", 2, 2, BuiltinFunctionCategory::list,
      "list_where(list, expr)", "keep list elements where inline expression is non-zero"},
+    {Function::sort_by, "sort_by", 2, 2, BuiltinFunctionCategory::list,
+     "sort_by(list, expr)", "stable-sort list by scalar key expression"},
 }};
 
 }  // namespace
@@ -45,7 +47,7 @@ bool is_special_form(Function function) {
     return function == Function::guard || function == Function::reduce ||
            function == Function::timed_loop || function == Function::fill ||
            function == Function::map || function == Function::map_at ||
-           function == Function::list_where;
+           function == Function::list_where || function == Function::sort_by;
 }
 
 const SpecialFormInfo& special_form_info(Function function) {

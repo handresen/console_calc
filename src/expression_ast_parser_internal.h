@@ -33,6 +33,7 @@ private:
     [[nodiscard]] Expression parse_function_call();
     [[nodiscard]] Expression parse_map_call();
     [[nodiscard]] Expression parse_list_where_call();
+    [[nodiscard]] Expression parse_sort_by_call();
     [[nodiscard]] Expression parse_guard_call();
     [[nodiscard]] Expression parse_reduce_call();
     [[nodiscard]] Expression parse_timed_loop_call();

@@ -3,7 +3,9 @@
 #include "console_calc/expression_error.h"
 
 #include <chrono>
+#include <algorithm>
 #include <optional>
+#include <vector>
 
 #include "scalar_math.h"
 
@@ -77,6 +79,39 @@ Value evaluate_list_where_call(const ListWhereCall& node,
     }
 
     return filtered_values;
+}
+
+Value evaluate_sort_by_call(const SortByCall& node,
+                            const std::optional<ScalarValue>& placeholder_value) {
+    const ListValue input_values =
+        require_list(evaluate_expression_with_placeholder(*node.list_argument, placeholder_value));
+
+    struct KeyedValue {
+        ScalarValue key;
+        ScalarValue value;
+    };
+
+    std::vector<KeyedValue> keyed_values;
+    keyed_values.reserve(input_values.size());
+    for (const auto& input_value : input_values) {
+        keyed_values.push_back(KeyedValue{
+            .key = require_scalar_value(
+                evaluate_expression_with_placeholder(*node.key_expression, input_value)),
+            .value = input_value,
+        });
+    }
+
+    std::stable_sort(keyed_values.begin(), keyed_values.end(),
+                     [](const KeyedValue& lhs, const KeyedValue& rhs) {
+                         return scalar_to_double(lhs.key) < scalar_to_double(rhs.key);
+                     });
+
+    ListValue sorted_values;
+    sorted_values.reserve(keyed_values.size());
+    for (const auto& keyed_value : keyed_values) {
+        sorted_values.push_back(keyed_value.value);
+    }
+    return sorted_values;
 }
 
 Value evaluate_guard_call(const GuardCall& node,

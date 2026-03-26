@@ -191,6 +191,8 @@ bool expect_builtin_function_metadata() {
     const auto map_at_info = console_calc::special_form_info(console_calc::Function::map_at);
     const auto list_where_info =
         console_calc::special_form_info(console_calc::Function::list_where);
+    const auto sort_by_info =
+        console_calc::special_form_info(console_calc::Function::sort_by);
     const auto range_info = console_calc::builtin_function_info(console_calc::Function::range);
     const auto geom_info = console_calc::builtin_function_info(console_calc::Function::geom);
     const auto repeat_info = console_calc::builtin_function_info(console_calc::Function::repeat);
@@ -364,6 +366,12 @@ bool expect_builtin_function_metadata() {
            list_where_info.category == console_calc::BuiltinFunctionCategory::list &&
            list_where_info.signature == "list_where(list, expr)" &&
            list_where_info.summary == "keep list elements where inline expression is non-zero" &&
+           sort_by_info.name == "sort_by" &&
+           sort_by_info.min_arity == 2 &&
+           sort_by_info.max_arity == 2 &&
+           sort_by_info.category == console_calc::BuiltinFunctionCategory::list &&
+           sort_by_info.signature == "sort_by(list, expr)" &&
+           sort_by_info.summary == "stable-sort list by scalar key expression" &&
            range_info.name == "range" && range_info.min_arity == 2 && range_info.max_arity == 3 &&
            range_info.category == console_calc::BuiltinFunctionCategory::list_generation &&
            range_info.summary == "generate linear series from start" &&

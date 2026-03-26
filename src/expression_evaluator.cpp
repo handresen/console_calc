@@ -345,6 +345,8 @@ Value evaluate_expression_with_placeholder(const Expression& expression,
                 return evaluate_map_call(node, placeholder_value);
             } else if constexpr (std::is_same_v<Node, ListWhereCall>) {
                 return evaluate_list_where_call(node, placeholder_value);
+            } else if constexpr (std::is_same_v<Node, SortByCall>) {
+                return evaluate_sort_by_call(node, placeholder_value);
             } else if constexpr (std::is_same_v<Node, GuardCall>) {
                 return evaluate_guard_call(node, placeholder_value);
             } else if constexpr (std::is_same_v<Node, ReduceCall>) {

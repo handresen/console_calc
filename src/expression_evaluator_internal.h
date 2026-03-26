@@ -30,6 +30,8 @@ namespace console_calc::detail {
                                       const std::optional<ScalarValue>& placeholder_value);
 [[nodiscard]] Value evaluate_list_where_call(const ListWhereCall& node,
                                              const std::optional<ScalarValue>& placeholder_value);
+[[nodiscard]] Value evaluate_sort_by_call(const SortByCall& node,
+                                          const std::optional<ScalarValue>& placeholder_value);
 [[nodiscard]] Value evaluate_guard_call(const GuardCall& node,
                                         const std::optional<ScalarValue>& placeholder_value);
 [[nodiscard]] Value evaluate_reduce_call(const ReduceCall& node,
