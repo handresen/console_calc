@@ -389,6 +389,36 @@ body.is-resizing-shell {
   overflow-x: hidden;
 }
 
+.stack-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.35rem;
+}
+
+.stack-row-text {
+  min-width: 0;
+}
+
+.stack-copy-button {
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.28rem;
+  background: transparent;
+  color: #5e5a4c;
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.stack-copy-button:hover {
+  background: rgba(46, 93, 49, 0.08);
+  color: #2e5d31;
+}
+
 .pane-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;

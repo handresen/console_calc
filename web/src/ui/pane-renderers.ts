@@ -49,6 +49,99 @@ export function renderTextList(container: HTMLElement, values: string[]): void {
   }
 }
 
+function formatScalarExact(value: number): string {
+  return `${value}`;
+}
+
+function formatPositionExact(value: BindingPositionEntry): string {
+  return `pos(${formatScalarExact(value.latitude_deg)}, ${formatScalarExact(value.longitude_deg)})`;
+}
+
+function formatScalarListExact(values: number[]): string {
+  return `{${values.map(formatScalarExact).join(", ")}}`;
+}
+
+function formatPositionListExact(values: BindingPositionEntry[]): string {
+  return `{${values.map(formatPositionExact).join(", ")}}`;
+}
+
+export function stackEntryExactValue(entry: BindingStackEntry): string {
+  const multiPositionListValues = entry.multi_position_list_values ?? [];
+  if (multiPositionListValues.length > 0) {
+    return `{${multiPositionListValues.map(formatPositionListExact).join(", ")}}`;
+  }
+
+  const multiListValues = entry.multi_list_values ?? [];
+  if (multiListValues.length > 0) {
+    return `{${multiListValues.map(formatScalarListExact).join(", ")}}`;
+  }
+
+  const positionListValues = entry.position_list_values ?? [];
+  if (positionListValues.length > 0) {
+    return formatPositionListExact(positionListValues);
+  }
+
+  const listValues = entry.list_values ?? [];
+  if (listValues.length > 0 || entry.display.trim() === "{}") {
+    return formatScalarListExact(listValues);
+  }
+
+  if (entry.position !== undefined && entry.position !== null) {
+    return formatPositionExact(entry.position);
+  }
+
+  return entry.display;
+}
+
+export function renderStackList(
+  container: HTMLElement,
+  values: BindingStackEntry[],
+  settings: DisplaySettings,
+): void {
+  container.replaceChildren();
+  if (values.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "pane-empty";
+    empty.textContent = "Empty";
+    container.append(empty);
+    return;
+  }
+
+  for (const entry of values) {
+    const row = document.createElement("div");
+    row.className = "stack-row";
+
+    const copyButton = document.createElement("button");
+    copyButton.type = "button";
+    copyButton.className = "stack-copy-button";
+    copyButton.textContent = "⧉";
+    copyButton.setAttribute("aria-label", `Copy stack ${entry.level}`);
+    copyButton.title = "Copy value";
+    copyButton.addEventListener("click", async () => {
+      const previousLabel = copyButton.textContent;
+      try {
+        await navigator.clipboard.writeText(stackEntryExactValue(entry));
+        copyButton.textContent = "✓";
+        globalThis.setTimeout(() => {
+          copyButton.textContent = previousLabel;
+        }, 900);
+      } catch {
+        copyButton.textContent = "!";
+        globalThis.setTimeout(() => {
+          copyButton.textContent = previousLabel;
+        }, 900);
+      }
+    });
+
+    const text = document.createElement("div");
+    text.className = "pane-line stack-row-text";
+    text.textContent = stackDisplay(entry, settings);
+
+    row.append(copyButton, text);
+    container.append(row);
+  }
+}
+
 function constantNamespace(name: string): string {
   const separator = name.indexOf(".");
   return separator === -1 ? "root" : name.slice(0, separator);

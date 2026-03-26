@@ -13,9 +13,9 @@ import {
   definitionDisplay,
   renderConstantList,
   renderFunctionTable,
+  renderStackList,
   renderTextList,
   sampleExpressions,
-  stackDisplay,
 } from "./pane-renderers";
 import { createPlotPaneView } from "./plot-pane-view";
 
@@ -167,10 +167,7 @@ export function createPanesView(
       constantsPane.count.textContent = `${snapshot.constants.length}`;
       functionsPane.count.textContent = `${snapshot.functions.length}`;
       samplesPane.count.textContent = `${sampleExpressions.length}`;
-      renderTextList(
-        stackList,
-        snapshot.stack.map((entry) => stackDisplay(entry, displaySettings)),
-      );
+      renderStackList(stackList, snapshot.stack, displaySettings);
       stackList.scrollTop = stackList.scrollHeight;
       renderTextList(
         definitionsPane.body,
@@ -191,10 +188,7 @@ export function createPanesView(
       }
       restorePaneState();
       if (latestSnapshot !== null) {
-        renderTextList(
-          stackList,
-          latestSnapshot.stack.map((entry) => stackDisplay(entry, displaySettings)),
-        );
+        renderStackList(stackList, latestSnapshot.stack, displaySettings);
         stackList.scrollTop = stackList.scrollHeight;
         plotPaneView.setDisplaySettings(displaySettings);
         mapPaneView.setDisplaySettings(displaySettings);
