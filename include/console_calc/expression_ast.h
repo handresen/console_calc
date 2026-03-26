@@ -75,6 +75,8 @@ enum class Function {
     first,
     last,
     drop,
+    sort,
+    reverse,
     flatten,
     list_add,
     list_sub,

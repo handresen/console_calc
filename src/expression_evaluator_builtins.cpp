@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <algorithm>
 #include <limits>
 #include <numbers>
 #include <random>
@@ -491,6 +492,24 @@ template <typename Operation>
         const ListValue values = require_list(arguments[0]);
         const std::size_t skip = std::min(count, values.size());
         return ListValue(values.begin() + static_cast<std::ptrdiff_t>(skip), values.end());
+    }
+    case Function::sort: {
+        ListValue values = require_list(arguments[0]);
+        std::sort(values.begin(), values.end(),
+                  [](const ScalarValue& lhs, const ScalarValue& rhs) {
+                      return scalar_to_double(lhs) < scalar_to_double(rhs);
+                  });
+        return values;
+    }
+    case Function::reverse: {
+        if (const auto* multi_values = std::get_if<MultiListValue>(&arguments[0])) {
+            MultiListValue reversed = *multi_values;
+            std::reverse(reversed.begin(), reversed.end());
+            return reversed;
+        }
+        ListValue values = require_list(arguments[0]);
+        std::reverse(values.begin(), values.end());
+        return values;
     }
     case Function::flatten: {
         if (const auto* multi_values = std::get_if<MultiListValue>(&arguments[0])) {

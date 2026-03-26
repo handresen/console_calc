@@ -10,7 +10,7 @@ namespace console_calc {
 
 namespace {
 
-constexpr std::array<BuiltinFunctionInfo, 50> k_builtin_functions = {{
+constexpr std::array<BuiltinFunctionInfo, 52> k_builtin_functions = {{
     {Function::abs, "abs", 1, 1, BuiltinFunctionCategory::scalar, true, true, "abs(x)", "absolute value"},
     {Function::sin, "sin", 1, 1, BuiltinFunctionCategory::scalar, true, true, "sin(x)", "sine in radians"},
     {Function::cos, "cos", 1, 1, BuiltinFunctionCategory::scalar, true, true, "cos(x)", "cosine in radians"},
@@ -51,6 +51,8 @@ constexpr std::array<BuiltinFunctionInfo, 50> k_builtin_functions = {{
     {Function::first, "first", 1, 2, BuiltinFunctionCategory::list, true, false, "first(list|multilist[, n])", "first n list elements or inner lists"},
     {Function::last, "last", 1, 2, BuiltinFunctionCategory::list, true, false, "last(list|multilist[, n])", "last n list elements or inner lists"},
     {Function::drop, "drop", 2, 2, BuiltinFunctionCategory::list, true, false, "drop(list|multilist, n)", "drop first n list elements or each inner list"},
+    {Function::sort, "sort", 1, 1, BuiltinFunctionCategory::list, false, false, "sort(list)", "sort list elements ascending"},
+    {Function::reverse, "reverse", 1, 1, BuiltinFunctionCategory::list, false, false, "reverse(list|multilist)", "reverse list elements or outer multilist order"},
     {Function::flatten, "flatten", 1, 1, BuiltinFunctionCategory::list, false, false, "flatten(multilist|multi_pos_list)", "flatten one nested collection level"},
     {Function::list_add, "list_add", 2, 2, BuiltinFunctionCategory::list, true, false,
      "list_add(a, b)", "add matching list elements"},

@@ -664,6 +664,9 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value default_first_list = parser.evaluate_value("first({9, 8, 7})");
     const Value default_last_list = parser.evaluate_value("last({9, 8, 7})");
     const Value nested_drop_list = parser.evaluate_value("drop({{1, 2, 3}, {10, 20}}, 1)");
+    const Value sorted_list = parser.evaluate_value("sort({3, 1, 2})");
+    const Value reversed_list = parser.evaluate_value("reverse({3, 1, 2})");
+    const Value reversed_multi_list = parser.evaluate_value("reverse({{1, 2}, {3, 4}})");
     const Value flattened_multi_list = parser.evaluate_value("flatten({{1, 2}, {3, 4}})");
     const Value flattened_multi_position_list = parser.evaluate_value(
         "flatten({{pos(60, 10), pos(61, 11)}, {pos(62, 12)}})");
@@ -732,6 +735,18 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         std::get<MultiListValue>(nested_drop_list)[1].size() != 1 ||
         !almost_equal(scalar_to_double(std::get<MultiListValue>(nested_drop_list)[0][0]), 2.0) ||
         !almost_equal(scalar_to_double(std::get<MultiListValue>(nested_drop_list)[1][0]), 20.0) ||
+        !std::holds_alternative<ListValue>(sorted_list) ||
+        std::get<ListValue>(sorted_list).size() != 3 ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(sorted_list)[0]), 1.0) ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(sorted_list)[2]), 3.0) ||
+        !std::holds_alternative<ListValue>(reversed_list) ||
+        std::get<ListValue>(reversed_list).size() != 3 ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(reversed_list)[0]), 2.0) ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(reversed_list)[2]), 3.0) ||
+        !std::holds_alternative<MultiListValue>(reversed_multi_list) ||
+        std::get<MultiListValue>(reversed_multi_list).size() != 2 ||
+        !almost_equal(scalar_to_double(std::get<MultiListValue>(reversed_multi_list)[0][0]), 3.0) ||
+        !almost_equal(scalar_to_double(std::get<MultiListValue>(reversed_multi_list)[1][1]), 2.0) ||
         !std::holds_alternative<ListValue>(flattened_multi_list) ||
         std::get<ListValue>(flattened_multi_list).size() != 4 ||
         !almost_equal(scalar_to_double(std::get<ListValue>(flattened_multi_list)[2]), 3.0) ||

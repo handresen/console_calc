@@ -125,6 +125,8 @@ Builtin functions:
 - `first(list|multilist[, n])` returns the first `n` items as a list, or the first `n` inner lists of a multilist; the default `n` is `1`
 - `last(list|multilist[, n])` returns the last `n` items as a list, or the last `n` inner lists of a multilist; the default `n` is `1`
 - `drop(list|multilist, n)` returns the list without its first `n` items, or drops from each inner list of a multilist
+- `sort(list)` returns a scalar list sorted in ascending numeric order
+- `reverse(list|multilist)` reverses scalar list elements or the outer order of a multilist
 - `flatten(multilist|multi_pos_list)` flattens one nested collection level into a list or position list
 - `list_div(list_a, list_b)` divides list elements pairwise and requires equal list lengths
 - `list_mul(list_a, list_b)` multiplies list elements pairwise and requires equal list lengths

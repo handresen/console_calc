@@ -157,6 +157,9 @@ bool expect_builtin_function_metadata() {
     const auto first_info = console_calc::builtin_function_info(console_calc::Function::first);
     const auto last_info = console_calc::builtin_function_info(console_calc::Function::last);
     const auto drop_info = console_calc::builtin_function_info(console_calc::Function::drop);
+    const auto sort_info = console_calc::builtin_function_info(console_calc::Function::sort);
+    const auto reverse_info =
+        console_calc::builtin_function_info(console_calc::Function::reverse);
     const auto flatten_info = console_calc::builtin_function_info(console_calc::Function::flatten);
     const auto guard_info = console_calc::special_form_info(console_calc::Function::guard);
     const auto pos_info = console_calc::builtin_function_info(console_calc::Function::pos);
@@ -251,6 +254,12 @@ bool expect_builtin_function_metadata() {
            drop_info.name == "drop" &&
            drop_info.signature == "drop(list|multilist, n)" &&
            drop_info.summary == "drop first n list elements or each inner list" &&
+           sort_info.name == "sort" &&
+           sort_info.signature == "sort(list)" &&
+           sort_info.summary == "sort list elements ascending" &&
+           reverse_info.name == "reverse" &&
+           reverse_info.signature == "reverse(list|multilist)" &&
+           reverse_info.summary == "reverse list elements or outer multilist order" &&
            flatten_info.name == "flatten" &&
            flatten_info.signature == "flatten(multilist|multi_pos_list)" &&
            flatten_info.summary == "flatten one nested collection level" &&
