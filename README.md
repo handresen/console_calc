@@ -263,8 +263,8 @@ m.pi
 - `avg(list|multilist)`        average of list elements or each inner list
 - `min(list|multilist)`        minimum list element or each inner list
 - `max(list|multilist)`        maximum list element or each inner list
-- `first(list, n)`   first `n` list elements
-- `drop(list, n)`    drop first `n` list elements
+- `first(list|multilist, n)`   first `n` list elements or each inner list
+- `drop(list|multilist, n)`    drop first `n` list elements or each inner list
 - `list_div(a, b)`   divide matching list elements
 - `list_mul(a, b)`   multiply matching list elements
 - `reduce(list, op)` reduce a list with a binary operator

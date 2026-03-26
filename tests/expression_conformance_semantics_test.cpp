@@ -659,6 +659,8 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value nested_avg_avg = parser.evaluate_value("avg(avg({{1, 2}, {10, 20, 30}}))");
     const Value nested_min_list = parser.evaluate_value("min({{2, -1, 5}, {10, 7}})");
     const Value nested_max_list = parser.evaluate_value("max({{2, -1, 5}, {10, 7}})");
+    const Value nested_first_list = parser.evaluate_value("first({{1, 2, 3}, {10, 20}}, 2)");
+    const Value nested_drop_list = parser.evaluate_value("drop({{1, 2, 3}, {10, 20}}, 1)");
     const Value integer_modulo = parser.evaluate_value("7 % 3");
     const Value floating_modulo = parser.evaluate_value("7.5 % 2");
     const Value integer_length = parser.evaluate_value("len({1, 2, 3})");
@@ -704,6 +706,18 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         std::get<ListValue>(nested_max_list).size() != 2 ||
         !almost_equal(scalar_to_double(std::get<ListValue>(nested_max_list)[0]), 5.0) ||
         !almost_equal(scalar_to_double(std::get<ListValue>(nested_max_list)[1]), 10.0) ||
+        !std::holds_alternative<MultiListValue>(nested_first_list) ||
+        std::get<MultiListValue>(nested_first_list).size() != 2 ||
+        std::get<MultiListValue>(nested_first_list)[0].size() != 2 ||
+        std::get<MultiListValue>(nested_first_list)[1].size() != 2 ||
+        !almost_equal(scalar_to_double(std::get<MultiListValue>(nested_first_list)[0][1]), 2.0) ||
+        !almost_equal(scalar_to_double(std::get<MultiListValue>(nested_first_list)[1][1]), 20.0) ||
+        !std::holds_alternative<MultiListValue>(nested_drop_list) ||
+        std::get<MultiListValue>(nested_drop_list).size() != 2 ||
+        std::get<MultiListValue>(nested_drop_list)[0].size() != 2 ||
+        std::get<MultiListValue>(nested_drop_list)[1].size() != 1 ||
+        !almost_equal(scalar_to_double(std::get<MultiListValue>(nested_drop_list)[0][0]), 2.0) ||
+        !almost_equal(scalar_to_double(std::get<MultiListValue>(nested_drop_list)[1][0]), 20.0) ||
         !std::holds_alternative<std::int64_t>(integer_modulo) || std::get<std::int64_t>(integer_modulo) != 1 ||
         !std::holds_alternative<double>(floating_modulo) || !almost_equal(std::get<double>(floating_modulo), 1.5) ||
         !std::holds_alternative<std::int64_t>(integer_length) || std::get<std::int64_t>(integer_length) != 3 ||

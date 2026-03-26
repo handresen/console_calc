@@ -217,7 +217,9 @@ bool expect_builtin_function_metadata() {
            rand_info.summary == "random number in half-open interval" &&
            sum_info.name == "sum" && sum_info.min_arity == 1 && sum_info.max_arity == 1 &&
            sum_info.category == console_calc::BuiltinFunctionCategory::list &&
-           sum_info.summary == "sum list elements" && !sum_info.mappable &&
+           sum_info.signature == "sum(list|multilist)" &&
+           sum_info.summary == "sum list elements or each inner list" &&
+           !sum_info.mappable &&
            list_add_info.name == "list_add" && list_add_info.min_arity == 2 &&
            list_add_info.max_arity == 2 &&
            list_add_info.category == console_calc::BuiltinFunctionCategory::list &&
@@ -234,10 +236,12 @@ bool expect_builtin_function_metadata() {
            list_sub_info.max_arity == 2 &&
            list_sub_info.category == console_calc::BuiltinFunctionCategory::list &&
            list_sub_info.summary == "subtract matching list elements" &&
-           first_info.name == "first" && first_info.signature == "first(list, n)" &&
-           first_info.summary == "first n list elements" &&
-           drop_info.name == "drop" && drop_info.signature == "drop(list, n)" &&
-           drop_info.summary == "drop first n list elements" &&
+           first_info.name == "first" &&
+           first_info.signature == "first(list|multilist, n)" &&
+           first_info.summary == "first n list elements or each inner list" &&
+           drop_info.name == "drop" &&
+           drop_info.signature == "drop(list|multilist, n)" &&
+           drop_info.summary == "drop first n list elements or each inner list" &&
            guard_info.name == "guard" && guard_info.min_arity == 2 &&
            guard_info.max_arity == 2 &&
            guard_info.category == console_calc::BuiltinFunctionCategory::scalar &&
