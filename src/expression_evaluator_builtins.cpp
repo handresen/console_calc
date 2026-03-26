@@ -272,16 +272,23 @@ template <typename Operation>
                     scalar_to_double(require_scalar_or_singleton_list_value(arguments[2])));
             });
     case Function::rotate_path: {
+        const double degrees =
+            scalar_to_double(require_scalar_or_singleton_list_value(arguments[1]));
+        if (arguments.size() == 2U) {
+            return evaluate_position_path_collection_builtin(
+                arguments[0], [&](const PositionListValue& positions) {
+                    return rotate_wgs84_path(positions, degrees);
+                });
+        }
         const auto center_index =
-            require_integer_operand(require_scalar_or_singleton_list_value(arguments[1]));
+            require_integer_operand(require_scalar_or_singleton_list_value(arguments[2]));
         if (center_index < 0) {
             throw EvaluationError("rotate_path() center index must be non-negative");
         }
         return evaluate_position_path_collection_builtin(
             arguments[0], [&](const PositionListValue& positions) {
                 return rotate_wgs84_path(
-                    positions, static_cast<std::size_t>(center_index),
-                    scalar_to_double(require_scalar_or_singleton_list_value(arguments[2])));
+                    positions, degrees, static_cast<std::size_t>(center_index));
             });
     }
     case Function::scale_path:

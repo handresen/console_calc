@@ -274,10 +274,10 @@ bool expect_builtin_function_metadata() {
            offset_path_info.signature == "offset_path(poslist|multi_pos_list, offset_x_m, offset_y_m)" &&
            !offset_path_info.scalar_arguments &&
            rotate_path_info.name == "rotate_path" &&
-           rotate_path_info.min_arity == 3 &&
+           rotate_path_info.min_arity == 2 &&
            rotate_path_info.max_arity == 3 &&
            rotate_path_info.category == console_calc::BuiltinFunctionCategory::position &&
-           rotate_path_info.signature == "rotate_path(poslist|multi_pos_list, center_index, degrees)" &&
+           rotate_path_info.signature == "rotate_path(poslist|multi_pos_list, degrees[, center_index])" &&
            !rotate_path_info.scalar_arguments &&
            scale_path_info.name == "scale_path" &&
            scale_path_info.min_arity == 2 &&

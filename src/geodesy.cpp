@@ -115,6 +115,66 @@ struct CompressionCandidate {
     return normalize_bearing_degrees(std::atan2(y, x) * 180.0 / k_pi);
 }
 
+[[nodiscard]] PositionValue weighted_path_center(std::span<const PositionValue> positions) {
+    if (positions.empty()) {
+        throw EvaluationError("path center requires a non-empty position list");
+    }
+    if (positions.size() == 1U) {
+        return positions.front();
+    }
+
+    const bool closed =
+        positions.size() > 1U &&
+        positions.front().latitude_deg == positions.back().latitude_deg &&
+        positions.front().longitude_deg == positions.back().longitude_deg;
+    const std::size_t point_count = closed ? positions.size() - 1U : positions.size();
+    if (point_count == 1U) {
+        return positions.front();
+    }
+
+    std::vector<double> weights(point_count, 0.0);
+    for (std::size_t index = 1; index < point_count; ++index) {
+        const double leg_distance = wgs84_inverse(positions[index - 1U], positions[index]).distance_m;
+        weights[index - 1U] += leg_distance * 0.5;
+        weights[index] += leg_distance * 0.5;
+    }
+    if (closed) {
+        const double closing_leg_distance =
+            wgs84_inverse(positions[point_count - 1U], positions[0]).distance_m;
+        weights[point_count - 1U] += closing_leg_distance * 0.5;
+        weights[0] += closing_leg_distance * 0.5;
+    }
+
+    double x = 0.0;
+    double y = 0.0;
+    double z = 0.0;
+    double total_weight = 0.0;
+    constexpr double k_pi = 3.14159265358979323846;
+    for (std::size_t index = 0; index < point_count; ++index) {
+        const double weight = weights[index];
+        if (!(weight > 0.0)) {
+            continue;
+        }
+
+        const double latitude_rad = positions[index].latitude_deg * k_pi / 180.0;
+        const double longitude_rad = positions[index].longitude_deg * k_pi / 180.0;
+        const double cos_latitude = std::cos(latitude_rad);
+        x += weight * cos_latitude * std::cos(longitude_rad);
+        y += weight * cos_latitude * std::sin(longitude_rad);
+        z += weight * std::sin(latitude_rad);
+        total_weight += weight;
+    }
+
+    if (!(total_weight > 0.0) || (x == 0.0 && y == 0.0 && z == 0.0)) {
+        return positions[point_count / 2U];
+    }
+
+    const double longitude_rad = std::atan2(y, x);
+    const double horizontal = std::hypot(x, y);
+    const double latitude_rad = std::atan2(z, horizontal);
+    return normalize_position(latitude_rad * 180.0 / k_pi, longitude_rad * 180.0 / k_pi);
+}
+
 [[nodiscard]] double point_to_segment_distance_m(const PositionValue& point,
                                                  const PositionValue& start,
                                                  const PositionValue& end) {
@@ -291,8 +351,28 @@ PositionListValue offset_wgs84_path(const PositionListValue& positions, double o
     return shifted_positions;
 }
 
-PositionListValue rotate_wgs84_path(const PositionListValue& positions, std::size_t center_index,
-                                    double degrees) {
+PositionListValue rotate_wgs84_path(const PositionListValue& positions, double degrees) {
+    if (!std::isfinite(degrees)) {
+        throw EvaluationError("rotate_path() degrees must be finite");
+    }
+    if (positions.size() < 2U || degrees == 0.0) {
+        return positions;
+    }
+
+    const PositionValue center = weighted_path_center(positions);
+    PositionListValue rotated_positions;
+    rotated_positions.reserve(positions.size());
+    for (const auto& position : positions) {
+        const GeodesicInverseResult relative = wgs84_inverse(center, position);
+        rotated_positions.push_back(
+            wgs84_direct(center, normalize_bearing_degrees(relative.initial_bearing_deg + degrees),
+                         relative.distance_m));
+    }
+    return rotated_positions;
+}
+
+PositionListValue rotate_wgs84_path(const PositionListValue& positions, double degrees,
+                                    std::size_t center_index) {
     if (!std::isfinite(degrees)) {
         throw EvaluationError("rotate_path() degrees must be finite");
     }

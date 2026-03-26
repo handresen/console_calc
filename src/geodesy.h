@@ -34,8 +34,10 @@ struct GeodesicInverseResult {
 [[nodiscard]] PositionListValue offset_wgs84_path(const PositionListValue& positions,
                                                   double offset_x_m, double offset_y_m);
 [[nodiscard]] PositionListValue rotate_wgs84_path(const PositionListValue& positions,
-                                                  std::size_t center_index,
                                                   double degrees);
+[[nodiscard]] PositionListValue rotate_wgs84_path(const PositionListValue& positions,
+                                                  double degrees,
+                                                  std::size_t center_index);
 [[nodiscard]] PositionListValue scale_wgs84_path(const PositionListValue& positions,
                                                  double scale_factor);
 [[nodiscard]] PositionListValue simplify_wgs84_path(const PositionListValue& positions,

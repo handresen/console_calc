@@ -229,16 +229,16 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         parser.evaluate("dist(offset_path(offset_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 10000, 10000), 10000, 10000))") -
         parser.evaluate("dist(offset_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 20000, 20000))"));
     const double rotated_center_distance = parser.evaluate(
-        "dist(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 90)[1], pos(0, 1))");
+        "dist(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 90, 1)[1], pos(0, 1))");
     const double rotated_first_radius_delta = std::fabs(
-        parser.evaluate("dist(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 90)[0], pos(0, 1))") -
+        parser.evaluate("dist(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 90, 1)[0], pos(0, 1))") -
         parser.evaluate("dist(pos(0, 0), pos(0, 1))"));
     const double rotated_second_radius_delta = std::fabs(
-        parser.evaluate("dist(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 90)[2], pos(0, 1))") -
+        parser.evaluate("dist(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 90, 1)[2], pos(0, 1))") -
         parser.evaluate("dist(pos(1, 1), pos(0, 1))"));
     const double repeated_rotation_middle_distance = parser.evaluate(
-        "dist(rotate_path(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 45), 1, 45)[0],"
-        " rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 90)[0])");
+        "dist(rotate_path(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 45, 1), 45, 1)[0],"
+        " rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 90, 1)[0])");
     const Value scaled_positions = parser.evaluate_value(
         "scale_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 2)");
     const auto* scaled_values = std::get_if<PositionListValue>(&scaled_positions);
@@ -297,7 +297,7 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         "offset_path({{pos(0, 0), pos(0, 1)}, {pos(0, 2), pos(0, 3)}}, 1000, 0)");
     const auto* multi_offset_values = std::get_if<MultiPositionListValue>(&multi_offset_positions);
     const Value multi_rotated_positions = parser.evaluate_value(
-        "rotate_path({{pos(0, 0), pos(0, 1), pos(1, 1)}, {pos(0, 2), pos(0, 3), pos(1, 3)}}, 1, 90)");
+        "rotate_path({{pos(0, 0), pos(0, 1), pos(1, 1)}, {pos(0, 2), pos(0, 3), pos(1, 3)}}, 90, 1)");
     const auto* multi_rotated_values = std::get_if<MultiPositionListValue>(&multi_rotated_positions);
     const Value multi_scaled_positions = parser.evaluate_value(
         "scale_path({{pos(0, 0), pos(0, 1), pos(1, 1)}, {pos(0, 2), pos(0, 3), pos(1, 3)}}, 2)");
@@ -328,15 +328,15 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const double high_lat_offset_distance =
         parser.evaluate("dist(offset_path({pos(70, 10), pos(70, 11)}, 1000, 0))");
     const Value high_lat_rotated_positions =
-        parser.evaluate_value("rotate_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 1, 90)");
+        parser.evaluate_value("rotate_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 90, 1)");
     const auto* high_lat_rotated_values = std::get_if<PositionListValue>(&high_lat_rotated_positions);
     const double high_lat_rotated_center_distance = parser.evaluate(
-        "dist(rotate_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 1, 90)[1], pos(70, 11))");
+        "dist(rotate_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 90, 1)[1], pos(70, 11))");
     const double high_lat_rotated_first_radius_delta = std::fabs(
-        parser.evaluate("dist(rotate_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 1, 90)[0], pos(70, 11))") -
+        parser.evaluate("dist(rotate_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 90, 1)[0], pos(70, 11))") -
         parser.evaluate("dist(pos(70, 10), pos(70, 11))"));
     const double high_lat_rotated_second_radius_delta = std::fabs(
-        parser.evaluate("dist(rotate_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 1, 90)[2], pos(70, 11))") -
+        parser.evaluate("dist(rotate_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 90, 1)[2], pos(70, 11))") -
         parser.evaluate("dist(pos(71, 11), pos(70, 11))"));
     const Value high_lat_scaled_positions =
         parser.evaluate_value("scale_path({pos(70, 10), pos(70, 11), pos(71, 11)}, 2)");
@@ -355,6 +355,20 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value high_lat_compressed_positions = parser.evaluate_value(
         "compress_path(densify_path({pos(70, 10), pos(70, 11)}, 4), 2)");
     const auto* high_lat_compressed_values = std::get_if<PositionListValue>(&high_lat_compressed_positions);
+    const std::string medium_rotation_base =
+        "{pos(60, 10), pos(60, 12), pos(62, 12), pos(62, 10), pos(60, 10)}";
+    const std::string medium_rotated_full_cycle =
+        nest(medium_rotation_base, "rotate_path({}, 1)", 360);
+    const double medium_rotate_cycle_first_drift = parser.evaluate(
+        "dist(" + medium_rotated_full_cycle + "[0], pos(60, 10))");
+    const double medium_rotate_cycle_second_drift = parser.evaluate(
+        "dist(" + medium_rotated_full_cycle + "[1], pos(60, 12))");
+    const double medium_rotate_cycle_third_drift = parser.evaluate(
+        "dist(" + medium_rotated_full_cycle + "[2], pos(62, 12))");
+    const double medium_rotate_cycle_fourth_drift = parser.evaluate(
+        "dist(" + medium_rotated_full_cycle + "[3], pos(62, 10))");
+    const double medium_rotate_cycle_closed_drift = parser.evaluate(
+        "dist(" + medium_rotated_full_cycle + "[4], pos(60, 10))");
     const std::string polar_base = "{pos(89, 0), pos(89, 50), pos(89.5, 25)}";
     const std::string polar_rotated_full_cycle = nest(polar_base, "rotate_path({}, 1, 1)", 360);
     const double polar_rotate_cycle_first_drift = parser.evaluate(
@@ -618,6 +632,11 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         !require(!high_lat_compressed_values ||
                      almost_equal(high_lat_compressed_values->back().longitude_deg, 11.0, 1e-12),
                  "high_lat_compressed_back") ||
+        !require(medium_rotate_cycle_first_drift < 100.0, "medium_rotate_cycle_first_drift") ||
+        !require(medium_rotate_cycle_second_drift < 100.0, "medium_rotate_cycle_second_drift") ||
+        !require(medium_rotate_cycle_third_drift < 100.0, "medium_rotate_cycle_third_drift") ||
+        !require(medium_rotate_cycle_fourth_drift < 100.0, "medium_rotate_cycle_fourth_drift") ||
+        !require(medium_rotate_cycle_closed_drift < 100.0, "medium_rotate_cycle_closed_drift") ||
         !require(polar_rotate_cycle_first_drift < 1e-5, "polar_rotate_cycle_first_drift") ||
         !require(polar_rotate_cycle_center_drift < 1e-9, "polar_rotate_cycle_center_drift") ||
         !require(polar_rotate_cycle_second_drift < 1e-5, "polar_rotate_cycle_second_drift") ||

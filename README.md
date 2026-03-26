@@ -243,7 +243,7 @@ m.pi
 - `to_poslist(list)` pair scalar list values into positions
 - `densify_path(poslist|multi_pos_list, count)` insert `count` evenly spaced geodesic points per path leg
 - `offset_path(poslist|multi_pos_list, offset_x_m, offset_y_m)` translate path list(s) in a midpoint-centered local right/forward frame; positive `offset_x_m` is to the right of travel at the midpoint
-- `rotate_path(poslist|multi_pos_list, center_index, degrees)` rotate path list(s) around `poslist[center_index]` using center-relative geodesic bearings
+- `rotate_path(poslist|multi_pos_list, degrees[, center_index])` rotate path list(s) around a weighted center, or around `poslist[center_index]` when the optional final argument is provided
 - `scale_path(poslist|multi_pos_list, scale_factor)` scale path list(s) around `poslist[N/2]` in azimuthal-equidistant coordinates
 - `simplify_path(poslist|multi_pos_list, tolerance_m)` remove path points whose deviation stays within the tolerance
 - `compress_path(poslist|multi_pos_list, count[, max_points])` remove path points to reach an exact count while preserving endpoints
@@ -359,11 +359,12 @@ map(range(-2, 5), guard(1 / _, 0))
 sum(map({1, 2, 3}, sin(_)))   => 1.89189...
 len(densify_path({pos(0, 0), pos(0, 1)}, 2)) => 4
 lat(offset_path({pos(0, 0), pos(0, 1)}, 1000, 0)[0]) => about -0.00904231
-dist(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 1, 90)[1], pos(0, 1)) => 0
+dist(rotate_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 90, 1)[1], pos(0, 1)) => 0
 len(scale_path({pos(0, 0), pos(0, 1), pos(1, 1)}, 2)) => 3
 
 Notes:
-- `rotate_path` and `scale_path` are center-relative transforms and stay highly stable under repeated application.
+- `rotate_path` and `scale_path` are center-relative transforms and stay highly stable under repeated application when using an explicit center index.
+- `rotate_path(..., degrees)` uses a weighted path center by default; this is convenient, but repeated long rotation chains can accumulate moderate drift on medium-to-large shapes.
 - `offset_path` recomputes a local right/forward frame from the moved path, so `offset_path(offset_path(p, x, y), -x, -y)` is only approximately reversible, especially near the poles.
 len(simplify_path(densify_path({pos(0, 0), pos(0, 1)}, 2), 1.0)) => 2
 len(compress_path(densify_path({pos(0, 0), pos(0, 1)}, 4), 2)) => 2

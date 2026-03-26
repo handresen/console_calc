@@ -71,6 +71,7 @@
 - Follow the existing CMake and `vcpkg` structure unless the user asks to replace it.
 - Prefer small, reviewable commits and isolated edits.
 - Do not parallelize git index-mutating commands such as `git add`, `git commit`, or similar staging/commit operations; run them sequentially to avoid stale index locks.
+- Do not run parallel build or test commands that can touch the same compiled artifacts or build directories; keep native builds, `ctest`, and wasm builds sequential unless they are fully isolated.
 - For normal feature work, follow this order when practical: implement the feature, run the relevant checks, update docs/tests/comments, summarize the resulting state briefly, optionally perform narrow adjacent cleanup, run the relevant checks again, then commit.
 - Narrow adjacent cleanup is allowed during feature work when it stays local to the touched code: rename a confusing local variable, extract a tiny helper, remove obvious duplication introduced by the feature, or tidy directly touched docs/comments/tests.
 - Treat structural refactors as a separate decision unless the user explicitly asks for them or the current task cannot be completed cleanly without them. Structural refactors include changing subsystem boundaries, introducing new abstractions, consolidating concepts across modules, reworking public API shapes, or moving ownership between components.
