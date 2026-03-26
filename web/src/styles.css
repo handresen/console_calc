@@ -383,6 +383,12 @@ body.is-resizing-shell {
   caret-color: #7d7b73;
 }
 
+.stack-list {
+  height: 8.4rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 .pane-header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;

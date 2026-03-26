@@ -114,6 +114,7 @@ export function createPanesView(
   });
 
   const stackList = document.createElement("div");
+  stackList.className = "stack-list";
 
   const samplesList = document.createElement("div");
   samplesList.className = "sample-list";
@@ -170,6 +171,7 @@ export function createPanesView(
         stackList,
         snapshot.stack.map((entry) => stackDisplay(entry, displaySettings)),
       );
+      stackList.scrollTop = stackList.scrollHeight;
       renderTextList(
         definitionsPane.body,
         snapshot.definitions.map((entry) => definitionDisplay(entry)),
@@ -193,6 +195,7 @@ export function createPanesView(
           stackList,
           latestSnapshot.stack.map((entry) => stackDisplay(entry, displaySettings)),
         );
+        stackList.scrollTop = stackList.scrollHeight;
         plotPaneView.setDisplaySettings(displaySettings);
         mapPaneView.setDisplaySettings(displaySettings);
       }
