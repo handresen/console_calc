@@ -477,6 +477,37 @@ template <typename Operation>
         const std::size_t skip = std::min(count, values.size());
         return ListValue(values.begin() + static_cast<std::ptrdiff_t>(skip), values.end());
     }
+    case Function::flatten: {
+        if (const auto* multi_values = std::get_if<MultiListValue>(&arguments[0])) {
+            std::size_t total_size = 0;
+            for (const auto& values : *multi_values) {
+                total_size += values.size();
+            }
+
+            ListValue flattened;
+            flattened.reserve(total_size);
+            for (const auto& values : *multi_values) {
+                flattened.insert(flattened.end(), values.begin(), values.end());
+            }
+            return flattened;
+        }
+
+        if (const auto* multi_positions = std::get_if<MultiPositionListValue>(&arguments[0])) {
+            std::size_t total_size = 0;
+            for (const auto& positions : *multi_positions) {
+                total_size += positions.size();
+            }
+
+            PositionListValue flattened;
+            flattened.reserve(total_size);
+            for (const auto& positions : *multi_positions) {
+                flattened.insert(flattened.end(), positions.begin(), positions.end());
+            }
+            return flattened;
+        }
+
+        throw EvaluationError("multi-list or multi position list value required");
+    }
     case Function::list_add:
         return evaluate_pairwise_list_builtin(arguments, "list_add", add_scalars);
     case Function::list_sub:

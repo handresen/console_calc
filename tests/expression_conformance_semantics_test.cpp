@@ -661,6 +661,9 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value nested_max_list = parser.evaluate_value("max({{2, -1, 5}, {10, 7}})");
     const Value nested_first_list = parser.evaluate_value("first({{1, 2, 3}, {10, 20}}, 2)");
     const Value nested_drop_list = parser.evaluate_value("drop({{1, 2, 3}, {10, 20}}, 1)");
+    const Value flattened_multi_list = parser.evaluate_value("flatten({{1, 2}, {3, 4}})");
+    const Value flattened_multi_position_list = parser.evaluate_value(
+        "flatten({{pos(60, 10), pos(61, 11)}, {pos(62, 12)}})");
     const Value integer_modulo = parser.evaluate_value("7 % 3");
     const Value floating_modulo = parser.evaluate_value("7.5 % 2");
     const Value integer_length = parser.evaluate_value("len({1, 2, 3})");
@@ -718,6 +721,13 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         std::get<MultiListValue>(nested_drop_list)[1].size() != 1 ||
         !almost_equal(scalar_to_double(std::get<MultiListValue>(nested_drop_list)[0][0]), 2.0) ||
         !almost_equal(scalar_to_double(std::get<MultiListValue>(nested_drop_list)[1][0]), 20.0) ||
+        !std::holds_alternative<ListValue>(flattened_multi_list) ||
+        std::get<ListValue>(flattened_multi_list).size() != 4 ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(flattened_multi_list)[2]), 3.0) ||
+        !std::holds_alternative<PositionListValue>(flattened_multi_position_list) ||
+        std::get<PositionListValue>(flattened_multi_position_list).size() != 3 ||
+        !almost_equal(std::get<PositionListValue>(flattened_multi_position_list)[2].latitude_deg, 62.0) ||
+        !almost_equal(std::get<PositionListValue>(flattened_multi_position_list)[2].longitude_deg, 12.0) ||
         !std::holds_alternative<std::int64_t>(integer_modulo) || std::get<std::int64_t>(integer_modulo) != 1 ||
         !std::holds_alternative<double>(floating_modulo) || !almost_equal(std::get<double>(floating_modulo), 1.5) ||
         !std::holds_alternative<std::int64_t>(integer_length) || std::get<std::int64_t>(integer_length) != 3 ||

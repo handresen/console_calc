@@ -124,6 +124,7 @@ Builtin functions:
 - `min(list|multilist)` and `max(list|multilist)` require non-empty lists; for multilists, each inner list must be non-empty
 - `first(list|multilist, n)` returns the first `n` items as a list, or each inner list of a multilist
 - `drop(list|multilist, n)` returns the list without its first `n` items, or drops from each inner list of a multilist
+- `flatten(multilist|multi_pos_list)` flattens one nested collection level into a list or position list
 - `list_div(list_a, list_b)` divides list elements pairwise and requires equal list lengths
 - `list_mul(list_a, list_b)` multiplies list elements pairwise and requires equal list lengths
 - `guard(expr, fallback)` returns `expr` when it evaluates successfully, otherwise evaluates and returns `fallback`

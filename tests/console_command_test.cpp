@@ -156,6 +156,7 @@ bool expect_builtin_function_metadata() {
     const auto list_sub_info = console_calc::builtin_function_info(console_calc::Function::list_sub);
     const auto first_info = console_calc::builtin_function_info(console_calc::Function::first);
     const auto drop_info = console_calc::builtin_function_info(console_calc::Function::drop);
+    const auto flatten_info = console_calc::builtin_function_info(console_calc::Function::flatten);
     const auto guard_info = console_calc::special_form_info(console_calc::Function::guard);
     const auto pos_info = console_calc::builtin_function_info(console_calc::Function::pos);
     const auto lat_info = console_calc::builtin_function_info(console_calc::Function::lat);
@@ -242,6 +243,9 @@ bool expect_builtin_function_metadata() {
            drop_info.name == "drop" &&
            drop_info.signature == "drop(list|multilist, n)" &&
            drop_info.summary == "drop first n list elements or each inner list" &&
+           flatten_info.name == "flatten" &&
+           flatten_info.signature == "flatten(multilist|multi_pos_list)" &&
+           flatten_info.summary == "flatten one nested collection level" &&
            guard_info.name == "guard" && guard_info.min_arity == 2 &&
            guard_info.max_arity == 2 &&
            guard_info.category == console_calc::BuiltinFunctionCategory::scalar &&

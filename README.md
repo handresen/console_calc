@@ -265,6 +265,7 @@ m.pi
 - `max(list|multilist)`        maximum list element or each inner list
 - `first(list|multilist, n)`   first `n` list elements or each inner list
 - `drop(list|multilist, n)`    drop first `n` list elements or each inner list
+- `flatten(multilist|multi_pos_list)` flatten one nested collection level
 - `list_div(a, b)`   divide matching list elements
 - `list_mul(a, b)`   multiply matching list elements
 - `reduce(list, op)` reduce a list with a binary operator
