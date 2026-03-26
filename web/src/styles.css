@@ -316,24 +316,71 @@ body.is-resizing-shell {
   color: #2e5d31;
 }
 
-.prompt-view input {
-  width: 100%;
-  padding: 0.38rem 0.5rem;
-  border: 0;
+.prompt-editor-shell {
+  position: relative;
+  min-width: 0;
   border-radius: 0.45rem;
-  outline: 0;
-  background: transparent;
   color: inherit;
-  font: inherit;
   transition: background-color 120ms ease;
 }
 
-.prompt-view input[data-validity-state="invalid"] {
-  background: rgba(214, 96, 96, 0.12);
+.prompt-editor-shell[data-validity-state="invalid"] {
+  background: rgba(214, 96, 96, 0.055);
 }
 
-.prompt-view input:disabled {
+.prompt-placeholder,
+.prompt-mirror,
+.prompt-input {
+  width: 100%;
+  padding: 0.38rem 0.5rem;
+  font: inherit;
+  white-space: pre;
+  line-height: 1.25;
+}
+
+.prompt-placeholder,
+.prompt-mirror {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.prompt-placeholder {
+  color: rgba(94, 90, 76, 0.68);
+}
+
+.prompt-mirror {
+  color: inherit;
+}
+
+.prompt-mirror-trailing-space {
+  visibility: hidden;
+}
+
+.prompt-brace-match {
+  background: rgba(46, 93, 49, 0.16);
+  border-radius: 0.2rem;
+  color: #214325;
+}
+
+.prompt-input {
+  position: relative;
+  min-height: calc(1.25em + 0.76rem);
+  border: 0;
+  border-radius: 0.45rem;
+  outline: 0;
+  resize: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: transparent;
+  color: transparent;
+  caret-color: #1d241c;
+}
+
+.prompt-input:disabled {
   color: #7d7b73;
+  caret-color: #7d7b73;
 }
 
 .pane-header {
