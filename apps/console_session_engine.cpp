@@ -183,6 +183,66 @@ ConsoleCommandResult ConsoleSessionEngine::submit(std::string_view line) {
     return result;
 }
 
+bool ConsoleSessionEngine::is_valid_input(std::string_view line) {
+    initialize();
+
+    const std::string trimmed = trim(line);
+    if (trimmed.empty()) {
+        return true;
+    }
+
+    try {
+        const ConsoleCommand command = classify_console_command(trimmed);
+        if (command.kind == ConsoleCommandKind::quit ||
+            command.kind == ConsoleCommandKind::refresh_currency_rates ||
+            is_listing_command(command.kind) ||
+            is_non_evaluating_console_command(command.kind) ||
+            command.kind == ConsoleCommandKind::stack_operator) {
+            return true;
+        }
+
+        const std::optional<Value> result_reference = top_result();
+        if (command.kind == ConsoleCommandKind::assignment) {
+            const auto assignment = parse_user_assignment(trimmed);
+            if (!assignment.has_value()) {
+                return false;
+            }
+            if (constants_.contains(assignment->name)) {
+                return false;
+            }
+
+            const std::string normalized_expression =
+                normalize_assignment_expression(assignment->expression);
+            if (assignment->is_function()) {
+                if (assignment->emit_result) {
+                    return false;
+                }
+                DefinitionTable validation_definitions = definitions_;
+                validation_definitions[assignment->name] =
+                    make_function_definition(assignment->parameters, normalized_expression);
+                const std::string expanded_expression = expand_expression_identifiers(
+                    normalized_expression, constants_, validation_definitions, result_reference);
+                (void)parser_.evaluate_value(expanded_expression);
+                return true;
+            }
+
+            DefinitionTable validation_definitions = definitions_;
+            validation_definitions[assignment->name] =
+                make_value_definition(normalized_expression);
+            const std::string expanded_expression = expand_expression_identifiers(
+                normalized_expression, constants_, validation_definitions, result_reference);
+            (void)parser_.evaluate_value(expanded_expression);
+            return true;
+        }
+
+        (void)evaluate_expanded_expression(parser_, trimmed, constants_, definitions_,
+                                           result_reference);
+        return true;
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+
 ConsoleSessionSnapshot ConsoleSessionEngine::state() const {
     return ConsoleSessionSnapshot{
         .stack_entries = stack_entry_views(result_stack_),

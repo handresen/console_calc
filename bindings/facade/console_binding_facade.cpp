@@ -275,6 +275,10 @@ BindingCommandResult ConsoleBindingFacade::submit(std::string_view input) {
     return binding_result;
 }
 
+bool ConsoleBindingFacade::is_valid_input(std::string_view input) {
+    return impl_->engine.is_valid_input(input);
+}
+
 BindingSnapshot ConsoleBindingFacade::snapshot() const {
     return to_binding_snapshot(impl_->engine.state());
 }

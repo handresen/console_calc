@@ -64,6 +64,7 @@ public:
 
     void initialize();
     [[nodiscard]] ConsoleCommandResult submit(std::string_view line);
+    [[nodiscard]] bool is_valid_input(std::string_view line);
     [[nodiscard]] ConsoleSessionSnapshot state() const;
 
     [[nodiscard]] std::size_t stack_depth() const;

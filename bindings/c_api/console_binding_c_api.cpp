@@ -381,6 +381,19 @@ int console_calc_binding_session_submit(console_calc_binding_session* session, c
     return 0;
 }
 
+int console_calc_binding_session_is_valid_input(console_calc_binding_session* session,
+                                                const char* input) {
+    if (session == nullptr || input == nullptr) {
+        return 0;
+    }
+
+    try {
+        return session->facade.is_valid_input(input) ? 1 : 0;
+    } catch (...) {
+        return 0;
+    }
+}
+
 const char* console_calc_binding_session_last_result_json(
     const console_calc_binding_session* session) {
     if (session == nullptr) {

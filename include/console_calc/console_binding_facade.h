@@ -94,6 +94,7 @@ public:
 
     void initialize();
     [[nodiscard]] BindingCommandResult submit(std::string_view input);
+    [[nodiscard]] bool is_valid_input(std::string_view input);
     [[nodiscard]] BindingSnapshot snapshot() const;
 
 private:

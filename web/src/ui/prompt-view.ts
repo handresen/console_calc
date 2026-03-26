@@ -5,12 +5,16 @@ export interface PromptView {
   setEnabled(enabled: boolean): void;
   setDepth(depth: number): void;
   setPlaceholder(text: string): void;
+  setValidityState(state: "neutral" | "valid" | "invalid"): void;
   setValue(value: string): void;
   submit(value: string): void;
   focus(): void;
 }
 
-export function createPromptView(onSubmit: (input: string) => void): PromptView {
+export function createPromptView(
+  onSubmit: (input: string) => void,
+  onInputChanged?: (input: string) => void,
+): PromptView {
   const history = createPromptHistory();
 
   const submitValue = (value: string) => {
@@ -36,6 +40,9 @@ export function createPromptView(onSubmit: (input: string) => void): PromptView 
   input.placeholder = "0> enter expression or command";
   input.autocomplete = "off";
   input.spellcheck = false;
+  input.addEventListener("input", () => {
+    onInputChanged?.(input.value);
+  });
   input.addEventListener("keydown", (event) => {
     if (event.key === "ArrowUp") {
       if (!history.hasEntries()) {
@@ -45,6 +52,7 @@ export function createPromptView(onSubmit: (input: string) => void): PromptView 
       event.preventDefault();
       input.value = history.previous(input.value) ?? input.value;
       input.setSelectionRange(input.value.length, input.value.length);
+      onInputChanged?.(input.value);
       return;
     }
 
@@ -57,6 +65,7 @@ export function createPromptView(onSubmit: (input: string) => void): PromptView 
       event.preventDefault();
       input.value = nextValue;
       input.setSelectionRange(input.value.length, input.value.length);
+      onInputChanged?.(input.value);
       return;
     }
 
@@ -79,9 +88,13 @@ export function createPromptView(onSubmit: (input: string) => void): PromptView 
     setPlaceholder(text) {
       input.placeholder = text;
     },
+    setValidityState(state) {
+      input.dataset.validityState = state;
+    },
     setValue(value) {
       input.value = value;
       input.setSelectionRange(input.value.length, input.value.length);
+      onInputChanged?.(input.value);
     },
     submit(value) {
       submitValue(value);

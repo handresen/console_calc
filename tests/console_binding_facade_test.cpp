@@ -155,6 +155,24 @@ bool expect_binding_multilist_snapshot_values() {
            position_entry.multi_position_list_values[1][0].longitude_deg == 1.0;
 }
 
+bool expect_binding_input_validation() {
+    console_calc::ExpressionParser parser;
+    console_calc::ConsoleBindingFacade facade(parser, default_constants());
+
+    facade.initialize();
+    (void)facade.submit("x:10");
+
+    return facade.is_valid_input("") && facade.is_valid_input("1+1") &&
+           facade.is_valid_input("map({1,2,3}, _+1)") &&
+           facade.is_valid_input("x+2") &&
+           facade.is_valid_input("vars") &&
+           facade.is_valid_input("#x:pi+1") &&
+           !facade.is_valid_input("guard()") &&
+           !facade.is_valid_input("unknown_name") &&
+           !facade.is_valid_input("#f(x):x+1") &&
+           !facade.is_valid_input("x:");
+}
+
 bool expect_binding_listing_and_display_modes() {
     console_calc::ExpressionParser parser;
     console_calc::ConsoleBindingFacade facade(parser, default_constants());
@@ -232,6 +250,9 @@ int main() {
         return EXIT_FAILURE;
     }
     if (!expect_binding_multilist_snapshot_values()) {
+        return EXIT_FAILURE;
+    }
+    if (!expect_binding_input_validation()) {
         return EXIT_FAILURE;
     }
     if (!expect_binding_currency_and_errors()) {

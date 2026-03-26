@@ -63,6 +63,7 @@ interface ConsoleCalcWasmModule {
   _console_calc_binding_session_destroy(session: number): void;
   _console_calc_binding_session_initialize(session: number): number;
   _console_calc_binding_session_submit(session: number, inputPtr: number): number;
+  _console_calc_binding_session_is_valid_input(session: number, inputPtr: number): number;
   _console_calc_binding_session_last_result_json(session: number): number;
   _free(pointer: number): void;
   stringToNewUTF8(input: string): number;
@@ -120,6 +121,27 @@ export class ConsoleWasmBridge {
     }
 
     return this.readLastResult(module);
+  }
+
+  async isValidInput(input: string): Promise<boolean> {
+    const module = await this.loadModule();
+    if (this.sessionPointer === null) {
+      await this.initialize();
+    }
+
+    if (this.sessionPointer === null) {
+      throw new Error("Binding session is not initialized");
+    }
+
+    const inputPointer = module.stringToNewUTF8(input);
+    try {
+      return (
+        module._console_calc_binding_session_is_valid_input(this.sessionPointer, inputPointer) !==
+        0
+      );
+    } finally {
+      module._free(inputPointer);
+    }
   }
 
   dispose(): void {

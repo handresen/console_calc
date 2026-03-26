@@ -81,6 +81,29 @@ export function createApp(root: HTMLElement): void {
     }
   };
 
+  let promptValidationToken = 0;
+  const updatePromptValidity = async (input: string): Promise<void> => {
+    const currentToken = ++promptValidationToken;
+    const trimmedInput = input.trim();
+    if (trimmedInput.length === 0) {
+      prompt.setValidityState("neutral");
+      return;
+    }
+
+    try {
+      const isValid = await bridge.isValidInput(trimmedInput);
+      if (currentToken !== promptValidationToken) {
+        return;
+      }
+      prompt.setValidityState(isValid ? "valid" : "invalid");
+    } catch {
+      if (currentToken !== promptValidationToken) {
+        return;
+      }
+      prompt.setValidityState("invalid");
+    }
+  };
+
   const renderResult = (
     result: Awaited<ReturnType<ConsoleWasmBridge["submit"]>>,
     input?: string,
@@ -99,9 +122,15 @@ export function createApp(root: HTMLElement): void {
     transcript.scrollToBottom();
   };
 
-  const prompt = createPromptView(async (input) => {
-    await executeInput(input);
-  });
+  const prompt = createPromptView(
+    async (input) => {
+      await executeInput(input);
+      prompt.setValidityState("neutral");
+    },
+    (input) => {
+      void updatePromptValidity(input);
+    },
+  );
   const panes = createPanesView((expression) => {
     prompt.submit(expression);
     prompt.focus();
@@ -130,6 +159,7 @@ export function createApp(root: HTMLElement): void {
       bridgeBannerText.textContent = "WebAssembly bridge ready.";
       prompt.setEnabled(true);
       prompt.setPlaceholder("enter expression or command");
+      prompt.setValidityState("neutral");
       renderResult(result, undefined, performance.now() - startedAt);
       prompt.focus();
     } catch (error) {

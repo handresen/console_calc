@@ -135,11 +135,37 @@ bool expect_c_api_multilist_payloads() {
     return position_ok;
 }
 
+bool expect_c_api_input_validation() {
+    console_calc_binding_session* const session = console_calc_binding_session_create();
+    if (session == nullptr) {
+        std::cerr << "Failed to create binding session\n";
+        return false;
+    }
+
+    const auto cleanup = [&]() { console_calc_binding_session_destroy(session); };
+
+    if (console_calc_binding_session_initialize(session) != 0) {
+        std::cerr << "Failed to initialize binding session\n";
+        cleanup();
+        return false;
+    }
+
+    const bool ok =
+        console_calc_binding_session_is_valid_input(session, "") != 0 &&
+        console_calc_binding_session_is_valid_input(session, "1+1") != 0 &&
+        console_calc_binding_session_is_valid_input(session, "vars") != 0 &&
+        console_calc_binding_session_is_valid_input(session, "guard()") == 0 &&
+        console_calc_binding_session_is_valid_input(session, "#f(x):x+1") == 0;
+
+    cleanup();
+    return ok;
+}
+
 }  // namespace
 
 int main() {
     return expect_c_api_round_trip() && expect_c_api_invalid_input_error_result() &&
-                   expect_c_api_multilist_payloads()
+                   expect_c_api_multilist_payloads() && expect_c_api_input_validation()
                ? EXIT_SUCCESS
                : EXIT_FAILURE;
 }
