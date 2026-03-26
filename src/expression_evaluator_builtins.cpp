@@ -68,6 +68,42 @@ template <typename Operation>
     return values;
 }
 
+template <typename Operation>
+[[nodiscard]] Value evaluate_position_path_collection_builtin(const Value& argument,
+                                                              Operation operation) {
+    if (const auto* positions = std::get_if<PositionListValue>(&argument)) {
+        return operation(*positions);
+    }
+    if (const auto* multi_positions = std::get_if<MultiPositionListValue>(&argument)) {
+        MultiPositionListValue values;
+        values.reserve(multi_positions->size());
+        for (const auto& positions : *multi_positions) {
+            values.push_back(operation(positions));
+        }
+        return values;
+    }
+
+    throw EvaluationError("position list or multi position list value required");
+}
+
+template <typename Operation>
+[[nodiscard]] Value evaluate_position_path_scalar_builtin(const Value& argument,
+                                                          Operation operation) {
+    if (const auto* positions = std::get_if<PositionListValue>(&argument)) {
+        return to_value(operation(*positions));
+    }
+    if (const auto* multi_positions = std::get_if<MultiPositionListValue>(&argument)) {
+        ListValue values;
+        values.reserve(multi_positions->size());
+        for (const auto& positions : *multi_positions) {
+            values.push_back(operation(positions));
+        }
+        return values;
+    }
+
+    throw EvaluationError("position list or multi position list value required");
+}
+
 [[nodiscard]] Value evaluate_scalar_builtin(Function function, std::span<const Value> arguments) {
     switch (function) {
     case Function::abs: {
@@ -192,51 +228,76 @@ template <typename Operation>
         return positions;
     }
     case Function::to_list: {
-        const PositionListValue positions = require_position_list(arguments[0]);
-        ListValue values;
-        values.reserve(positions.size() * 2U);
-        for (const auto& position : positions) {
-            values.push_back(position.latitude_deg);
-            values.push_back(position.longitude_deg);
+        if (const auto* positions = std::get_if<PositionListValue>(&arguments[0])) {
+            ListValue values;
+            values.reserve(positions->size() * 2U);
+            for (const auto& position : *positions) {
+                values.push_back(position.latitude_deg);
+                values.push_back(position.longitude_deg);
+            }
+            return values;
         }
-        return values;
+        if (const auto* multi_positions = std::get_if<MultiPositionListValue>(&arguments[0])) {
+            MultiListValue values;
+            values.reserve(multi_positions->size());
+            for (const auto& positions : *multi_positions) {
+                ListValue flattened;
+                flattened.reserve(positions.size() * 2U);
+                for (const auto& position : positions) {
+                    flattened.push_back(position.latitude_deg);
+                    flattened.push_back(position.longitude_deg);
+                }
+                values.push_back(std::move(flattened));
+            }
+            return values;
+        }
+        throw EvaluationError("position list or multi position list value required");
     }
     case Function::densify_path: {
-        const PositionListValue positions = require_position_list(arguments[0]);
         const auto inserted_per_leg =
             require_integer_operand(require_scalar_or_singleton_list_value(arguments[1]));
         if (inserted_per_leg < 0) {
             throw EvaluationError("densify_path() count must be a non-negative integer");
         }
-        return densify_wgs84_path(positions, static_cast<std::size_t>(inserted_per_leg));
+        return evaluate_position_path_collection_builtin(
+            arguments[0], [&](const PositionListValue& positions) {
+                return densify_wgs84_path(positions, static_cast<std::size_t>(inserted_per_leg));
+            });
     }
     case Function::offset_path:
-        return offset_wgs84_path(
-            require_position_list(arguments[0]),
-            scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])),
-            scalar_to_double(require_scalar_or_singleton_list_value(arguments[2])));
+        return evaluate_position_path_collection_builtin(
+            arguments[0], [&](const PositionListValue& positions) {
+                return offset_wgs84_path(
+                    positions, scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])),
+                    scalar_to_double(require_scalar_or_singleton_list_value(arguments[2])));
+            });
     case Function::rotate_path: {
-        const PositionListValue positions = require_position_list(arguments[0]);
         const auto center_index =
             require_integer_operand(require_scalar_or_singleton_list_value(arguments[1]));
         if (center_index < 0) {
             throw EvaluationError("rotate_path() center index must be non-negative");
         }
-        return rotate_wgs84_path(
-            positions, static_cast<std::size_t>(center_index),
-            scalar_to_double(require_scalar_or_singleton_list_value(arguments[2])));
+        return evaluate_position_path_collection_builtin(
+            arguments[0], [&](const PositionListValue& positions) {
+                return rotate_wgs84_path(
+                    positions, static_cast<std::size_t>(center_index),
+                    scalar_to_double(require_scalar_or_singleton_list_value(arguments[2])));
+            });
     }
     case Function::scale_path:
-        return scale_wgs84_path(
-            require_position_list(arguments[0]),
-            scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])));
+        return evaluate_position_path_collection_builtin(
+            arguments[0], [&](const PositionListValue& positions) {
+                return scale_wgs84_path(
+                    positions, scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])));
+            });
     case Function::simplify_path:
-        return simplify_wgs84_path(
-            require_position_list(arguments[0]),
-            scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])));
+        return evaluate_position_path_collection_builtin(
+            arguments[0], [&](const PositionListValue& positions) {
+                return simplify_wgs84_path(
+                    positions, scalar_to_double(require_scalar_or_singleton_list_value(arguments[1])));
+            });
     case Function::compress_path: {
         constexpr std::int64_t k_default_max_points = 5000;
-        const PositionListValue positions = require_position_list(arguments[0]);
         const auto target_count =
             require_integer_operand(require_scalar_or_singleton_list_value(arguments[1]));
         const auto max_points =
@@ -249,12 +310,18 @@ template <typename Operation>
         if (max_points < 0) {
             throw EvaluationError("compress_path() max_points must be non-negative");
         }
-        return compress_wgs84_path(positions, static_cast<std::size_t>(target_count),
-                                   static_cast<std::size_t>(max_points));
+        return evaluate_position_path_collection_builtin(
+            arguments[0], [&](const PositionListValue& positions) {
+                return compress_wgs84_path(positions, static_cast<std::size_t>(target_count),
+                                           static_cast<std::size_t>(max_points));
+            });
     }
     case Function::dist:
         if (arguments.size() == 1U) {
-            return wgs84_path_distance(require_position_list(arguments[0]));
+            return evaluate_position_path_scalar_builtin(arguments[0],
+                                                        [](const PositionListValue& positions) {
+                                                            return wgs84_path_distance(positions);
+                                                        });
         }
         return wgs84_inverse(require_position(arguments[0]), require_position(arguments[1]))
             .distance_m;

@@ -239,15 +239,15 @@ m.pi
 - `pos(lat, lon)` construct WGS84 position in degrees
 - `lat(pos)`    extract latitude in degrees
 - `lon(pos)`    extract longitude in degrees
-- `to_list(poslist)` expand positions into a scalar list using `(lat, lon)` order
+- `to_list(poslist|multi_pos_list)` expand positions into scalar list(s) using `(lat, lon)` order
 - `to_poslist(list)` pair scalar list values into positions
-- `densify_path(poslist, count)` insert `count` evenly spaced geodesic points per path leg
-- `offset_path(poslist, offset_x_m, offset_y_m)` translate a path in a midpoint-centered local right/forward frame; positive `offset_x_m` is to the right of travel at the midpoint
-- `rotate_path(poslist, center_index, degrees)` rotate a path around `poslist[center_index]` using center-relative geodesic bearings
-- `scale_path(poslist, scale_factor)` scale a path around `poslist[N/2]` in azimuthal-equidistant coordinates
-- `simplify_path(poslist, tolerance_m)` remove path points whose deviation stays within the tolerance
-- `compress_path(poslist, count[, max_points])` remove path points to reach an exact count while preserving endpoints
-- `dist(pos1, pos2)` WGS84 ellipsoid distance in meters
+- `densify_path(poslist|multi_pos_list, count)` insert `count` evenly spaced geodesic points per path leg
+- `offset_path(poslist|multi_pos_list, offset_x_m, offset_y_m)` translate path list(s) in a midpoint-centered local right/forward frame; positive `offset_x_m` is to the right of travel at the midpoint
+- `rotate_path(poslist|multi_pos_list, center_index, degrees)` rotate path list(s) around `poslist[center_index]` using center-relative geodesic bearings
+- `scale_path(poslist|multi_pos_list, scale_factor)` scale path list(s) around `poslist[N/2]` in azimuthal-equidistant coordinates
+- `simplify_path(poslist|multi_pos_list, tolerance_m)` remove path points whose deviation stays within the tolerance
+- `compress_path(poslist|multi_pos_list, count[, max_points])` remove path points to reach an exact count while preserving endpoints
+- `dist(pos1, pos2)` or `dist(poslist|multi_pos_list)` WGS84 ellipsoid distance or path length(s) in meters
 - `dist(poslist)` summed WGS84 path length over consecutive positions
 - `bearing(pos1, pos2)` initial WGS84 bearing in degrees
 - `br_to_pos(pos, bearing_deg, range_m)` destination position from bearing and range
@@ -284,6 +284,7 @@ m.pi
 Position lists:
 - homogeneous position lists are supported with literals such as `{pos(60, 10), pos(61, 11)}`
 - `to_list({pos(60, 10), pos(61, 11)})` converts a position list into `{60, 10, 61, 11}`
+- `to_list({{pos(0, 0), pos(0, 1)}, {pos(0, 2), pos(0, 3)}})` converts a multi-position-list into `{{0, 0, 0, 1}, {0, 2, 0, 3}}`
 - `to_poslist({60, 10, 61, 11})` converts a scalar list into `{pos(60, 10), pos(61, 11)}`
 - scalar lists remain scalar-only; mixed scalar/position lists are invalid
 - existing numeric list functions still require scalar lists

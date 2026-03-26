@@ -105,16 +105,16 @@ Builtin functions:
 - `rand([min, max])` returns a random floating-point value in a half-open interval
 - `pos(lat, lon)` constructs a WGS84 position from latitude/longitude in degrees
 - `lat(pos)` and `lon(pos)` extract latitude and longitude in degrees
-- `to_list(poslist)` expands positions into scalar values using `(lat, lon)` order
+- `to_list(poslist|multi_pos_list)` expands positions into scalar value list(s) using `(lat, lon)` order
 - `to_poslist(list)` pairs scalar list values into positions using `(lat, lon)` order
-- `densify_path(poslist, count)` inserts `count` evenly spaced geodesic points per path leg
-- `offset_path(poslist, offset_x_m, offset_y_m)` translates a path in a midpoint-centered local right/forward frame; positive `offset_x_m` is to the right of travel at the midpoint
-- `rotate_path(poslist, center_index, degrees)` rotates a path around `poslist[center_index]` using center-relative geodesic bearings
-- `scale_path(poslist, scale_factor)` scales a path around `poslist[N/2]` in azimuthal-equidistant coordinates
-- `simplify_path(poslist, tolerance_m)` removes path points whose deviation stays within the tolerance
-- `compress_path(poslist, count[, max_points])` removes path points to reach an exact count while preserving endpoints
+- `densify_path(poslist|multi_pos_list, count)` inserts `count` evenly spaced geodesic points per path leg
+- `offset_path(poslist|multi_pos_list, offset_x_m, offset_y_m)` translates path list(s) in a midpoint-centered local right/forward frame; positive `offset_x_m` is to the right of travel at the midpoint
+- `rotate_path(poslist|multi_pos_list, center_index, degrees)` rotates path list(s) around `poslist[center_index]` using center-relative geodesic bearings
+- `scale_path(poslist|multi_pos_list, scale_factor)` scales path list(s) around `poslist[N/2]` in azimuthal-equidistant coordinates
+- `simplify_path(poslist|multi_pos_list, tolerance_m)` removes path points whose deviation stays within the tolerance
+- `compress_path(poslist|multi_pos_list, count[, max_points])` removes path points to reach an exact count while preserving endpoints
 - `dist(pos1, pos2)` returns WGS84 ellipsoid distance in meters
-- `dist(poslist)` returns summed WGS84 path length over consecutive positions
+- `dist(poslist|multi_pos_list)` returns summed WGS84 path length over consecutive positions, or one scalar per inner path
 - `bearing(pos1, pos2)` returns initial WGS84 bearing in degrees
 - `br_to_pos(pos, bearing_deg, range_m)` returns a destination position from a start position, bearing, and range in meters
 - `sum(list)` sums a list value
@@ -161,8 +161,9 @@ Geo positions are a dedicated value type, separate from scalars and lists. They 
 Position lists are also supported as a separate homogeneous collection type. A
 literal such as `{pos(60, 10), pos(61, 11)}` produces a position list. Scalar
 lists remain scalar-only, and mixed scalar/position list literals are invalid.
-`to_list(poslist)` converts a position list into a scalar list by expanding each
-position as `lat, lon`.
+`to_list(poslist|multi_pos_list)` converts a position list into a scalar list,
+or a multi-position-list into a multi-list, by expanding each position as
+`lat, lon`.
 `to_poslist(list)` converts an even-length scalar list into a position list by
 pairing values as `(lat, lon)`. An odd number of values is invalid, and an
 empty list returns an empty position list.
@@ -188,6 +189,7 @@ Examples:
 - `lat(pos(60, 10))` => `60`
 - `lon(pos(60, 10))` => `10`
 - `to_list({pos(60, 10), pos(61, 11)})` => `{60, 10, 61, 11}`
+- `to_list({{pos(0, 0), pos(0, 1)}, {pos(0, 2), pos(0, 3)}})` => `{{0, 0, 0, 1}, {0, 2, 0, 3}}`
 - `to_poslist({60, 10, 61, 11})` => `{pos(60, 10), pos(61, 11)}`
 - `len(densify_path({pos(0, 0), pos(0, 1)}, 2))` => `4`
 - `lat(offset_path({pos(0, 0), pos(0, 1)}, 1000, 0)[0])` => about `-0.00904231`

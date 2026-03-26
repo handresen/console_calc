@@ -58,7 +58,7 @@ bool expect_builtin_function_listing() {
            listing.find("\nList functions\n") != std::string::npos &&
            listing.find("\nList generation functions\n") != std::string::npos &&
            listing.find("abs(x)") != std::string::npos &&
-           listing.find("to_list(poslist)") != std::string::npos &&
+           listing.find("to_list(poslist|multi_pos_list)") != std::string::npos &&
            listing.find("to_poslist(list)") != std::string::npos &&
            listing.find("map(list, expr[, start[, step[, count]]])") != std::string::npos &&
            listing.find("map_at(list, expr[, start[, step[, count]]])") != std::string::npos &&
@@ -255,7 +255,7 @@ bool expect_builtin_function_metadata() {
            !lon_info.scalar_arguments &&
            to_list_info.name == "to_list" &&
            to_list_info.category == console_calc::BuiltinFunctionCategory::position &&
-           to_list_info.signature == "to_list(poslist)" &&
+           to_list_info.signature == "to_list(poslist|multi_pos_list)" &&
            !to_list_info.scalar_arguments &&
            to_poslist_info.name == "to_poslist" &&
            to_poslist_info.category == console_calc::BuiltinFunctionCategory::position &&
@@ -265,43 +265,43 @@ bool expect_builtin_function_metadata() {
            densify_path_info.min_arity == 2 &&
            densify_path_info.max_arity == 2 &&
            densify_path_info.category == console_calc::BuiltinFunctionCategory::position &&
-           densify_path_info.signature == "densify_path(poslist, count)" &&
+           densify_path_info.signature == "densify_path(poslist|multi_pos_list, count)" &&
            !densify_path_info.scalar_arguments &&
            offset_path_info.name == "offset_path" &&
            offset_path_info.min_arity == 3 &&
            offset_path_info.max_arity == 3 &&
            offset_path_info.category == console_calc::BuiltinFunctionCategory::position &&
-           offset_path_info.signature == "offset_path(poslist, offset_x_m, offset_y_m)" &&
+           offset_path_info.signature == "offset_path(poslist|multi_pos_list, offset_x_m, offset_y_m)" &&
            !offset_path_info.scalar_arguments &&
            rotate_path_info.name == "rotate_path" &&
            rotate_path_info.min_arity == 3 &&
            rotate_path_info.max_arity == 3 &&
            rotate_path_info.category == console_calc::BuiltinFunctionCategory::position &&
-           rotate_path_info.signature == "rotate_path(poslist, center_index, degrees)" &&
+           rotate_path_info.signature == "rotate_path(poslist|multi_pos_list, center_index, degrees)" &&
            !rotate_path_info.scalar_arguments &&
            scale_path_info.name == "scale_path" &&
            scale_path_info.min_arity == 2 &&
            scale_path_info.max_arity == 2 &&
            scale_path_info.category == console_calc::BuiltinFunctionCategory::position &&
-           scale_path_info.signature == "scale_path(poslist, scale_factor)" &&
+           scale_path_info.signature == "scale_path(poslist|multi_pos_list, scale_factor)" &&
            !scale_path_info.scalar_arguments &&
            simplify_path_info.name == "simplify_path" &&
            simplify_path_info.min_arity == 2 &&
            simplify_path_info.max_arity == 2 &&
            simplify_path_info.category == console_calc::BuiltinFunctionCategory::position &&
-           simplify_path_info.signature == "simplify_path(poslist, tolerance_m)" &&
+           simplify_path_info.signature == "simplify_path(poslist|multi_pos_list, tolerance_m)" &&
            !simplify_path_info.scalar_arguments &&
            compress_path_info.name == "compress_path" &&
            compress_path_info.min_arity == 2 &&
            compress_path_info.max_arity == 3 &&
            compress_path_info.category == console_calc::BuiltinFunctionCategory::position &&
-           compress_path_info.signature == "compress_path(poslist, count[, max_points])" &&
+           compress_path_info.signature == "compress_path(poslist|multi_pos_list, count[, max_points])" &&
            !compress_path_info.scalar_arguments &&
            dist_info.name == "dist" &&
            dist_info.min_arity == 1 &&
            dist_info.max_arity == 2 &&
            dist_info.category == console_calc::BuiltinFunctionCategory::position &&
-           dist_info.signature == "dist(pos1, pos2) / dist(poslist)" &&
+           dist_info.signature == "dist(pos1, pos2) / dist(poslist|multi_pos_list)" &&
            !dist_info.scalar_arguments &&
            bearing_info.name == "bearing" &&
            bearing_info.category == console_calc::BuiltinFunctionCategory::position &&
@@ -483,35 +483,23 @@ bool expect_user_assignment_parsing() {
 }  // namespace
 
 int main() {
-    if (!expect_command_classification()) {
-        return EXIT_FAILURE;
-    }
+    const auto require = [](bool condition, const char* label) {
+        if (!condition) {
+            std::cerr << "console command test failed: " << label << '\n';
+        }
+        return condition;
+    };
 
-    if (!expect_builtin_function_listing()) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_constant_and_definition_listing()) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_structured_listing_views()) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_builtin_function_metadata()) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_builtin_function_helpers()) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_expression_identifier_expansion()) {
-        return EXIT_FAILURE;
-    }
-
-    if (!expect_user_assignment_parsing()) {
+    if (!require(expect_command_classification(), "expect_command_classification") ||
+        !require(expect_builtin_function_listing(), "expect_builtin_function_listing") ||
+        !require(expect_constant_and_definition_listing(),
+                 "expect_constant_and_definition_listing") ||
+        !require(expect_structured_listing_views(), "expect_structured_listing_views") ||
+        !require(expect_builtin_function_metadata(), "expect_builtin_function_metadata") ||
+        !require(expect_builtin_function_helpers(), "expect_builtin_function_helpers") ||
+        !require(expect_expression_identifier_expansion(),
+                 "expect_expression_identifier_expansion") ||
+        !require(expect_user_assignment_parsing(), "expect_user_assignment_parsing")) {
         return EXIT_FAILURE;
     }
 

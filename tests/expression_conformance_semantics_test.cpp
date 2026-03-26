@@ -284,6 +284,30 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         std::get_if<PositionListValue>(&zigzag_compressed_positions);
     const Value indexed_position = parser.evaluate_value("to_poslist({60, 10, 61, 11})[1]");
     const auto* indexed_position_value = std::get_if<PositionValue>(&indexed_position);
+    const Value multi_position_distances = parser.evaluate_value(
+        "dist({{pos(0, 0), pos(0, 1)}, {pos(0, 2), pos(0, 3)}})");
+    const auto* multi_position_distance_values = std::get_if<ListValue>(&multi_position_distances);
+    const Value flattened_multi_positions = parser.evaluate_value(
+        "to_list({{pos(0, 0), pos(0, 1)}, {pos(0, 2), pos(0, 3)}})");
+    const auto* flattened_multi_position_values = std::get_if<MultiListValue>(&flattened_multi_positions);
+    const Value multi_densified_positions = parser.evaluate_value(
+        "densify_path({{pos(0, 0), pos(0, 1)}, {pos(0, 2), pos(0, 3)}}, 2)");
+    const auto* multi_densified_values = std::get_if<MultiPositionListValue>(&multi_densified_positions);
+    const Value multi_offset_positions = parser.evaluate_value(
+        "offset_path({{pos(0, 0), pos(0, 1)}, {pos(0, 2), pos(0, 3)}}, 1000, 0)");
+    const auto* multi_offset_values = std::get_if<MultiPositionListValue>(&multi_offset_positions);
+    const Value multi_rotated_positions = parser.evaluate_value(
+        "rotate_path({{pos(0, 0), pos(0, 1), pos(1, 1)}, {pos(0, 2), pos(0, 3), pos(1, 3)}}, 1, 90)");
+    const auto* multi_rotated_values = std::get_if<MultiPositionListValue>(&multi_rotated_positions);
+    const Value multi_scaled_positions = parser.evaluate_value(
+        "scale_path({{pos(0, 0), pos(0, 1), pos(1, 1)}, {pos(0, 2), pos(0, 3), pos(1, 3)}}, 2)");
+    const auto* multi_scaled_values = std::get_if<MultiPositionListValue>(&multi_scaled_positions);
+    const Value multi_simplified_positions = parser.evaluate_value(
+        "simplify_path(densify_path({{pos(0, 0), pos(0, 1)}, {pos(0, 2), pos(0, 3)}}, 2), 1.0)");
+    const auto* multi_simplified_values = std::get_if<MultiPositionListValue>(&multi_simplified_positions);
+    const Value multi_compressed_positions = parser.evaluate_value(
+        "compress_path(densify_path({{pos(0, 0), pos(0, 1)}, {pos(0, 2), pos(0, 3)}}, 4), 2)");
+    const auto* multi_compressed_values = std::get_if<MultiPositionListValue>(&multi_compressed_positions);
     const double high_lat_segment_distance =
         parser.evaluate("dist(pos(70, 10), pos(70, 11))");
     const double high_lat_segment_bearing =
@@ -471,6 +495,66 @@ bool expect_expression_semantics(ExpressionParser& parser) {
                  "indexed_position_lat") ||
         !require(!indexed_position_value || almost_equal(indexed_position_value->longitude_deg, 11.0),
                  "indexed_position_lon") ||
+        !require(multi_position_distance_values != nullptr && multi_position_distance_values->size() == 2,
+                 "multi_position_distance_values") ||
+        !require(!multi_position_distance_values ||
+                     almost_equal(scalar_to_double((*multi_position_distance_values)[0]), 111319.4907932264, 1e-6),
+                 "multi_position_distance_0") ||
+        !require(!multi_position_distance_values ||
+                     almost_equal(scalar_to_double((*multi_position_distance_values)[1]), 111319.4907932264, 1e-6),
+                 "multi_position_distance_1") ||
+        !require(flattened_multi_position_values != nullptr && flattened_multi_position_values->size() == 2,
+                 "flattened_multi_position_values") ||
+        !require(!flattened_multi_position_values ||
+                     (*flattened_multi_position_values)[0].size() == 4,
+                 "flattened_multi_position_0_size") ||
+        !require(!flattened_multi_position_values ||
+                     almost_equal(scalar_to_double((*flattened_multi_position_values)[1][3]), 3.0),
+                 "flattened_multi_position_1_3") ||
+        !require(multi_densified_values != nullptr && multi_densified_values->size() == 2,
+                 "multi_densified_values") ||
+        !require(!multi_densified_values || (*multi_densified_values)[0].size() == 4,
+                 "multi_densified_0_size") ||
+        !require(!multi_densified_values || (*multi_densified_values)[1].size() == 4,
+                 "multi_densified_1_size") ||
+        !require(multi_offset_values != nullptr && multi_offset_values->size() == 2,
+                 "multi_offset_values") ||
+        !require(!multi_offset_values || (*multi_offset_values)[0].size() == 2,
+                 "multi_offset_0_size") ||
+        !require(!multi_offset_values || (*multi_offset_values)[1].size() == 2,
+                 "multi_offset_1_size") ||
+        !require(multi_rotated_values != nullptr && multi_rotated_values->size() == 2,
+                 "multi_rotated_values") ||
+        !require(!multi_rotated_values || (*multi_rotated_values)[0].size() == 3,
+                 "multi_rotated_0_size") ||
+        !require(!multi_rotated_values ||
+                     almost_equal((*multi_rotated_values)[1][1].latitude_deg, 0.0, 1e-9),
+                 "multi_rotated_center_lat") ||
+        !require(!multi_rotated_values ||
+                     almost_equal((*multi_rotated_values)[1][1].longitude_deg, 3.0, 1e-9),
+                 "multi_rotated_center_lon") ||
+        !require(multi_scaled_values != nullptr && multi_scaled_values->size() == 2,
+                 "multi_scaled_values") ||
+        !require(!multi_scaled_values || (*multi_scaled_values)[0].size() == 3,
+                 "multi_scaled_0_size") ||
+        !require(!multi_scaled_values ||
+                     almost_equal((*multi_scaled_values)[1][1].latitude_deg, 0.0, 1e-9),
+                 "multi_scaled_center_lat") ||
+        !require(!multi_scaled_values ||
+                     almost_equal((*multi_scaled_values)[1][1].longitude_deg, 3.0, 1e-9),
+                 "multi_scaled_center_lon") ||
+        !require(multi_simplified_values != nullptr && multi_simplified_values->size() == 2,
+                 "multi_simplified_values") ||
+        !require(!multi_simplified_values || (*multi_simplified_values)[0].size() == 2,
+                 "multi_simplified_0_size") ||
+        !require(!multi_simplified_values || (*multi_simplified_values)[1].size() == 2,
+                 "multi_simplified_1_size") ||
+        !require(multi_compressed_values != nullptr && multi_compressed_values->size() == 2,
+                 "multi_compressed_values") ||
+        !require(!multi_compressed_values || (*multi_compressed_values)[0].size() == 2,
+                 "multi_compressed_0_size") ||
+        !require(!multi_compressed_values || (*multi_compressed_values)[1].size() == 2,
+                 "multi_compressed_1_size") ||
         !require(high_lat_segment_distance > 38000.0 && high_lat_segment_distance < 38200.0,
                  "high_lat_segment_distance") ||
         !require(high_lat_segment_bearing > 89.5 && high_lat_segment_bearing < 90.5,
