@@ -117,11 +117,11 @@ Builtin functions:
 - `dist(poslist|multi_pos_list)` returns summed WGS84 path length over consecutive positions, or one scalar per inner path
 - `bearing(pos1, pos2)` returns initial WGS84 bearing in degrees
 - `br_to_pos(pos, bearing_deg, range_m)` returns a destination position from a start position, bearing, and range in meters
-- `sum(list)` sums a list value
+- `sum(list|multilist)` sums a list value, or each inner list of a multilist
 - `len(list)`, `len(multilist)`, `len(poslist)`, and `len(multi_pos_list)` return collection length
-- `product(list)` multiplies all list values; `product({})` is `1`
-- `avg(list)` returns the arithmetic mean of a non-empty list
-- `min(list)` and `max(list)` require non-empty lists
+- `product(list|multilist)` multiplies list values; `product({})` is `1`
+- `avg(list|multilist)` returns the arithmetic mean of a non-empty list or each inner list
+- `min(list|multilist)` and `max(list|multilist)` require non-empty lists; for multilists, each inner list must be non-empty
 - `first(list, n)` returns the first `n` items as a list
 - `drop(list, n)` returns the list without its first `n` items
 - `list_div(list_a, list_b)` divides list elements pairwise and requires equal list lengths

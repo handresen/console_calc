@@ -104,6 +104,23 @@ template <typename Operation>
     throw EvaluationError("position list or multi position list value required");
 }
 
+template <typename Operation>
+[[nodiscard]] Value evaluate_multi_list_reducer(const Value& argument, Operation operation) {
+    if (const auto* values = std::get_if<ListValue>(&argument)) {
+        return to_value(operation(*values));
+    }
+    if (const auto* multi_values = std::get_if<MultiListValue>(&argument)) {
+        ListValue reduced_values;
+        reduced_values.reserve(multi_values->size());
+        for (const auto& values : *multi_values) {
+            reduced_values.push_back(operation(values));
+        }
+        return reduced_values;
+    }
+
+    throw EvaluationError("list or multi-list value required");
+}
+
 [[nodiscard]] Value evaluate_scalar_builtin(Function function, std::span<const Value> arguments) {
     switch (function) {
     case Function::abs: {
@@ -350,12 +367,13 @@ template <typename Operation>
 [[nodiscard]] Value evaluate_list_builtin(Function function, std::span<const Value> arguments) {
     switch (function) {
     case Function::sum: {
-        const ListValue values = require_list(arguments[0]);
-        ScalarValue total = std::int64_t{0};
-        for (const auto& value : values) {
-            total = add_scalars(total, value);
-        }
-        return to_value(total);
+        return evaluate_multi_list_reducer(arguments[0], [](const ListValue& values) {
+            ScalarValue total = std::int64_t{0};
+            for (const auto& value : values) {
+                total = add_scalars(total, value);
+            }
+            return total;
+        });
     }
     case Function::len: {
         if (const auto* values = std::get_if<ListValue>(&arguments[0])) {
@@ -373,52 +391,57 @@ template <typename Operation>
         throw EvaluationError("list, multi-list, position list, or multi position list value required");
     }
     case Function::product: {
-        const ListValue values = require_list(arguments[0]);
-        ScalarValue total = std::int64_t{1};
-        for (const auto& value : values) {
-            total = multiply_scalars(total, value);
-        }
-        return to_value(total);
+        return evaluate_multi_list_reducer(arguments[0], [](const ListValue& values) {
+            ScalarValue total = std::int64_t{1};
+            for (const auto& value : values) {
+                total = multiply_scalars(total, value);
+            }
+            return total;
+        });
     }
     case Function::avg: {
-        const ListValue values = require_list(arguments[0]);
-        if (values.empty()) {
-            throw EvaluationError("avg() requires a non-empty list");
-        }
+        return evaluate_multi_list_reducer(arguments[0], [](const ListValue& values) {
+            if (values.empty()) {
+                throw EvaluationError("avg() requires non-empty inner lists");
+            }
 
-        double total = 0.0;
-        for (const auto& value : values) {
-            total = require_finite_result(total + scalar_to_double(value));
-        }
-        return require_finite_result(total / static_cast<double>(values.size()));
+            double total = 0.0;
+            for (const auto& value : values) {
+                total = require_finite_result(total + scalar_to_double(value));
+            }
+            return ScalarValue{
+                require_finite_result(total / static_cast<double>(values.size()))};
+        });
     }
     case Function::min: {
-        const ListValue values = require_list(arguments[0]);
-        if (values.empty()) {
-            throw EvaluationError("min() requires a non-empty list");
-        }
-
-        ScalarValue result = values.front();
-        for (std::size_t index = 1; index < values.size(); ++index) {
-            if (scalar_to_double(values[index]) < scalar_to_double(result)) {
-                result = values[index];
+        return evaluate_multi_list_reducer(arguments[0], [](const ListValue& values) {
+            if (values.empty()) {
+                throw EvaluationError("min() requires non-empty inner lists");
             }
-        }
-        return to_value(result);
+
+            ScalarValue result = values.front();
+            for (std::size_t index = 1; index < values.size(); ++index) {
+                if (scalar_to_double(values[index]) < scalar_to_double(result)) {
+                    result = values[index];
+                }
+            }
+            return result;
+        });
     }
     case Function::max: {
-        const ListValue values = require_list(arguments[0]);
-        if (values.empty()) {
-            throw EvaluationError("max() requires a non-empty list");
-        }
-
-        ScalarValue result = values.front();
-        for (std::size_t index = 1; index < values.size(); ++index) {
-            if (scalar_to_double(values[index]) > scalar_to_double(result)) {
-                result = values[index];
+        return evaluate_multi_list_reducer(arguments[0], [](const ListValue& values) {
+            if (values.empty()) {
+                throw EvaluationError("max() requires non-empty inner lists");
             }
-        }
-        return to_value(result);
+
+            ScalarValue result = values.front();
+            for (std::size_t index = 1; index < values.size(); ++index) {
+                if (scalar_to_double(values[index]) > scalar_to_double(result)) {
+                    result = values[index];
+                }
+            }
+            return result;
+        });
     }
     case Function::first: {
         const std::size_t count =

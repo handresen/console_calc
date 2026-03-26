@@ -653,6 +653,12 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const Value floating_division = parser.evaluate_value("1 / 2");
     const Value integer_sum_list = parser.evaluate_value("sum({1, 2, 3})");
     const Value mixed_sum_list = parser.evaluate_value("sum({1, 2.5})");
+    const Value nested_sum_list = parser.evaluate_value("sum({{1, 2, 3}, {10, 20}})");
+    const Value nested_product_list = parser.evaluate_value("product({{2, 3}, {4, 5}})");
+    const Value nested_avg_list = parser.evaluate_value("avg({{1, 2}, {10, 20, 30}})");
+    const Value nested_avg_avg = parser.evaluate_value("avg(avg({{1, 2}, {10, 20, 30}}))");
+    const Value nested_min_list = parser.evaluate_value("min({{2, -1, 5}, {10, 7}})");
+    const Value nested_max_list = parser.evaluate_value("max({{2, -1, 5}, {10, 7}})");
     const Value integer_modulo = parser.evaluate_value("7 % 3");
     const Value floating_modulo = parser.evaluate_value("7.5 % 2");
     const Value integer_length = parser.evaluate_value("len({1, 2, 3})");
@@ -676,6 +682,28 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         !std::holds_alternative<double>(floating_division) || !almost_equal(std::get<double>(floating_division), 0.5) ||
         !std::holds_alternative<std::int64_t>(integer_sum_list) || std::get<std::int64_t>(integer_sum_list) != 6 ||
         !std::holds_alternative<double>(mixed_sum_list) || !almost_equal(std::get<double>(mixed_sum_list), 3.5) ||
+        !std::holds_alternative<ListValue>(nested_sum_list) ||
+        std::get<ListValue>(nested_sum_list).size() != 2 ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(nested_sum_list)[0]), 6.0) ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(nested_sum_list)[1]), 30.0) ||
+        !std::holds_alternative<ListValue>(nested_product_list) ||
+        std::get<ListValue>(nested_product_list).size() != 2 ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(nested_product_list)[0]), 6.0) ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(nested_product_list)[1]), 20.0) ||
+        !std::holds_alternative<ListValue>(nested_avg_list) ||
+        std::get<ListValue>(nested_avg_list).size() != 2 ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(nested_avg_list)[0]), 1.5) ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(nested_avg_list)[1]), 20.0) ||
+        !std::holds_alternative<double>(nested_avg_avg) ||
+        !almost_equal(std::get<double>(nested_avg_avg), 10.75) ||
+        !std::holds_alternative<ListValue>(nested_min_list) ||
+        std::get<ListValue>(nested_min_list).size() != 2 ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(nested_min_list)[0]), -1.0) ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(nested_min_list)[1]), 7.0) ||
+        !std::holds_alternative<ListValue>(nested_max_list) ||
+        std::get<ListValue>(nested_max_list).size() != 2 ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(nested_max_list)[0]), 5.0) ||
+        !almost_equal(scalar_to_double(std::get<ListValue>(nested_max_list)[1]), 10.0) ||
         !std::holds_alternative<std::int64_t>(integer_modulo) || std::get<std::int64_t>(integer_modulo) != 1 ||
         !std::holds_alternative<double>(floating_modulo) || !almost_equal(std::get<double>(floating_modulo), 1.5) ||
         !std::holds_alternative<std::int64_t>(integer_length) || std::get<std::int64_t>(integer_length) != 3 ||

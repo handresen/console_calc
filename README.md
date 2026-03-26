@@ -257,12 +257,12 @@ m.pi
 
 ### List Functions
 
-- `sum(list)`        sum list elements
+- `sum(list|multilist)`        sum list elements or each inner list
 - `len(list)` / `len(multilist)` / `len(poslist)` / `len(multi_pos_list)` collection length
-- `product(list)`    product of list elements
-- `avg(list)`        average of list elements
-- `min(list)`        minimum list element
-- `max(list)`        maximum list element
+- `product(list|multilist)`    product of list elements or each inner list
+- `avg(list|multilist)`        average of list elements or each inner list
+- `min(list|multilist)`        minimum list element or each inner list
+- `max(list|multilist)`        maximum list element or each inner list
 - `first(list, n)`   first `n` list elements
 - `drop(list, n)`    drop first `n` list elements
 - `list_div(a, b)`   divide matching list elements
@@ -291,7 +291,8 @@ Position lists:
 
 Function notes:
 - `product({})` is `1`
-- `avg`, `min`, and `max` require a non-empty list
+- `avg`, `min`, and `max` require a non-empty list; on a `multilist`, each inner list must be non-empty
+- reducers on a `multilist` return one scalar per inner list, so `avg(avg(ml))` composes naturally
 - `first` and `drop` require `n` to be a non-negative integer
 - `list_div` requires both inputs to be lists of equal length
 - `list_mul` requires both inputs to be lists of equal length
