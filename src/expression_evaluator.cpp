@@ -254,10 +254,37 @@ double require_finite_result(double value) {
 
 [[nodiscard]] Value evaluate_binary_expression(const BinaryExpression& node,
                                                const std::optional<ScalarValue>& placeholder_value) {
-    const ScalarValue lhs = require_scalar_or_singleton_list_value(
-        evaluate_expression_with_placeholder(*node.left, placeholder_value));
-    const ScalarValue rhs = require_scalar_or_singleton_list_value(
-        evaluate_expression_with_placeholder(*node.right, placeholder_value));
+    const Value lhs_value =
+        evaluate_expression_with_placeholder(*node.left, placeholder_value);
+    const Value rhs_value =
+        evaluate_expression_with_placeholder(*node.right, placeholder_value);
+
+    if (node.op == BinaryOperator::multiply) {
+        if (const auto* lhs_list = std::get_if<ListValue>(&lhs_value)) {
+            const ScalarValue rhs =
+                require_scalar_or_singleton_list_value(rhs_value);
+            ListValue result;
+            result.reserve(lhs_list->size());
+            for (const auto& element : *lhs_list) {
+                result.push_back(multiply_scalars(element, rhs));
+            }
+            return result;
+        }
+
+        if (const auto* rhs_list = std::get_if<ListValue>(&rhs_value)) {
+            const ScalarValue lhs =
+                require_scalar_or_singleton_list_value(lhs_value);
+            ListValue result;
+            result.reserve(rhs_list->size());
+            for (const auto& element : *rhs_list) {
+                result.push_back(multiply_scalars(lhs, element));
+            }
+            return result;
+        }
+    }
+
+    const ScalarValue lhs = require_scalar_or_singleton_list_value(lhs_value);
+    const ScalarValue rhs = require_scalar_or_singleton_list_value(rhs_value);
     return to_value(apply_binary_operator(node.op, lhs, rhs));
 }
 

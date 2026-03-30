@@ -267,6 +267,7 @@ m.pi
 - `sort_by(list, expr)`    stable-sort scalar lists by a scalar key expression using `_`
 - `reverse(list|multilist)`    reverse scalar list elements or outer multilist order
 - `flatten(multilist|multi_pos_list)` flatten one nested collection level
+- `scalar * list` / `list * scalar`    multiply each list element by a scalar
 - `list_div(a, b)`   divide matching list elements
 - `list_mul(a, b)`   multiply matching list elements
 - `reduce(list, op)` reduce a list with a binary operator
@@ -305,6 +306,7 @@ Function notes:
 - `first` and `drop` require `n` to be a non-negative integer
 - `list_div` requires both inputs to be lists of equal length
 - `list_mul` requires both inputs to be lists of equal length
+- infix `*` supports `scalar * list` and `list * scalar`, but not `list * list`
 - `reduce` requires a non-empty list
 - `reduce` uses existing binary operators such as `+`, `-`, `*`, `/`, `%`, `^`, `&`, `|` and does not accept comparison operators
 - `map` accepts an inline expression using `_` as the current-element placeholder
