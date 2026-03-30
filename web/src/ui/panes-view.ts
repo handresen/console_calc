@@ -33,6 +33,8 @@ export function createPanesView(
 ): PanesView {
   const section = document.createElement("section");
   section.className = "panes-view";
+  const paneOverlayHost = document.createElement("div");
+  paneOverlayHost.className = "pane-overlay-host";
 
   const infoPanel = document.createElement("section");
   infoPanel.className = "info-panel";
@@ -45,6 +47,17 @@ export function createPanesView(
   let displaySettings = initialDisplaySettings;
   let latestSnapshot: BindingSnapshot | null = null;
   const paneStateStorageKey = "console-calc-pane-state";
+  let expandedPaneState: {
+    key: string;
+    panel: HTMLElement;
+    pane: { setExpanded(expanded: boolean): void; isExpanded(): boolean };
+    previousPaneState: boolean;
+    anchor: Comment;
+    refreshLayout: () => void;
+    button: HTMLButtonElement;
+    buttonCollapsedIcon: string;
+    buttonCollapsedLabel: string;
+  } | null = null;
 
   const status = document.createElement("div");
   status.className = "pane-status";
@@ -129,8 +142,138 @@ export function createPanesView(
 
   mapPanel.append(mapPaneView.pane.section);
 
+  const setExpandedButtonState = (
+    button: HTMLButtonElement,
+    expanded: boolean,
+    collapsedIcon: string,
+    collapsedLabel: string,
+  ) => {
+    button.textContent = expanded ? "⤡" : collapsedIcon;
+    button.setAttribute("aria-label", expanded ? "Collapse" : collapsedLabel);
+    button.title = expanded ? "Collapse" : collapsedLabel;
+  };
+
+  const setOverlayExpanded = (
+    key: string,
+    panel: HTMLElement,
+    pane: { setExpanded(expanded: boolean): void; isExpanded(): boolean },
+    refreshLayout: () => void,
+    button: HTMLButtonElement,
+    buttonCollapsedIcon: string,
+    buttonCollapsedLabel: string,
+    expanded: boolean,
+  ) => {
+    const isCurrent = expandedPaneState?.key === key;
+    if ((expanded && isCurrent) || (!expanded && !isCurrent)) {
+      return;
+    }
+
+    if (!expanded && expandedPaneState !== null) {
+      const current = expandedPaneState;
+      current.panel.classList.remove("pane-panel-expanded");
+      if (paneOverlayHost.contains(current.panel)) {
+        current.anchor.replaceWith(current.panel);
+      }
+      current.pane.setExpanded(current.previousPaneState);
+      setExpandedButtonState(
+        current.button,
+        false,
+        current.buttonCollapsedIcon,
+        current.buttonCollapsedLabel,
+      );
+      current.refreshLayout();
+      expandedPaneState = null;
+    }
+
+    if (!expanded) {
+      return;
+    }
+
+    const appShell =
+      section.closest(".app-shell") ?? document.querySelector<HTMLElement>(".app-shell");
+    if (appShell !== null && !paneOverlayHost.isConnected) {
+      appShell.append(paneOverlayHost);
+    }
+    const anchor = document.createComment(`${key}-overlay-anchor`);
+    panel.before(anchor);
+    paneOverlayHost.append(panel);
+    panel.classList.add("pane-panel-expanded");
+    expandedPaneState = {
+      key,
+      panel,
+      pane,
+      previousPaneState: pane.isExpanded(),
+      anchor,
+      refreshLayout,
+      button,
+      buttonCollapsedIcon,
+      buttonCollapsedLabel,
+    };
+    pane.setExpanded(true);
+    setExpandedButtonState(button, true, buttonCollapsedIcon, buttonCollapsedLabel);
+    refreshLayout();
+  };
+
+  const addExpandButton = (
+    key: string,
+    panel: HTMLElement,
+    pane: { setExpanded(expanded: boolean): void; isExpanded(): boolean; actions: HTMLElement },
+    refreshLayout: () => void,
+    collapsedLabel: string,
+    collapsedIcon = "⤢",
+  ) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "pane-icon-button";
+    setExpandedButtonState(button, false, collapsedIcon, collapsedLabel);
+    button.addEventListener("click", () => {
+      setOverlayExpanded(
+        key,
+        panel,
+        pane,
+        refreshLayout,
+        button,
+        collapsedIcon,
+        collapsedLabel,
+        expandedPaneState?.key !== key,
+      );
+    });
+    pane.actions.append(button);
+  };
+
+  addExpandButton(
+    "plot",
+    plotPanel,
+    plotPaneView.pane,
+    () => plotPaneView.refreshLayout(),
+    "Expand plot",
+  );
+  addExpandButton(
+    "map",
+    mapPanel,
+    mapPaneView.pane,
+    () => mapPaneView.refreshLayout(),
+    "Expand map",
+  );
+
   section.append(infoPanel, plotPanel, mapPanel);
   restorePaneState();
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && expandedPaneState !== null) {
+      event.preventDefault();
+      setOverlayExpanded(
+        expandedPaneState.key,
+        expandedPaneState.panel,
+        expandedPaneState.pane,
+        expandedPaneState.refreshLayout,
+        expandedPaneState.button,
+        expandedPaneState.buttonCollapsedIcon,
+        expandedPaneState.buttonCollapsedLabel,
+        false,
+      );
+    }
+  });
 
   return {
     element: section,

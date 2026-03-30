@@ -17,6 +17,7 @@ import type { PlotGroup, PlotItem, PlotPoint, PlotSeries } from "./plot-support"
 export interface PlotPaneView {
   pane: PaneElements;
   render(stack: BindingStackEntry[]): void;
+  refreshLayout(): void;
   setDisplaySettings(settings: DisplaySettings): void;
 }
 
@@ -408,6 +409,10 @@ export function createPlotPaneView(
     pane,
     render(stack) {
       latestStack = stack;
+      rerenderPlot();
+    },
+    refreshLayout() {
+      hidePlotHover();
       rerenderPlot();
     },
     setDisplaySettings(settings) {

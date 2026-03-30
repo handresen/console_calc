@@ -21,12 +21,20 @@ body {
 }
 
 .app-shell {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 2.2fr) 12px minmax(24rem, 1.5fr);
   gap: 0;
   height: 100vh;
   min-height: 100vh;
   padding: 1.25rem;
+}
+
+.pane-overlay-host {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
 }
 
 .console-column,
@@ -82,7 +90,10 @@ body.is-resizing-shell {
 }
 
 .side-column {
+  display: flex;
+  flex-direction: column;
   padding: 1rem;
+  overflow: hidden;
 }
 
 .bridge-banner,
@@ -97,6 +108,8 @@ body.is-resizing-shell {
   gap: 1rem;
   padding: 0;
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
 }
 
 .info-panel,
@@ -107,6 +120,27 @@ body.is-resizing-shell {
   background: rgba(252, 248, 239, 0.7);
   padding: 1rem 1.1rem;
   min-width: 0;
+}
+
+.pane-panel-expanded {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-color: rgba(29, 36, 28, 0.16);
+  background: rgba(252, 248, 239, 0.96);
+  box-shadow: 0 20px 50px rgba(64, 53, 28, 0.16);
+  overflow: hidden;
+  border-radius: 0;
+  pointer-events: auto;
+}
+
+.pane-panel-expanded .pane {
+  height: 100%;
+  margin-bottom: 0;
+}
+
+.pane-panel-expanded .pane-body {
+  height: calc(100% - 2rem);
 }
 
 .bridge-banner {
@@ -268,6 +302,12 @@ body.is-resizing-shell {
   color: #1d241c;
 }
 
+.transcript-line-value:not(.transcript-line-value-list) .transcript-line-content {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .transcript-line-value-list {
   align-items: flex-start;
 }
@@ -311,18 +351,21 @@ body.is-resizing-shell {
 .prompt-view {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
+  align-items: start;
   gap: 0.75rem;
 }
 
 .prompt-label {
   color: #2e5d31;
+  padding-top: 0.38rem;
 }
 
 .prompt-editor-shell {
   position: relative;
   min-width: 0;
+  min-height: calc(2.5em + 1.05rem);
   border-radius: 0.45rem;
+  overflow: hidden;
   color: inherit;
   transition: background-color 120ms ease;
 }
@@ -335,7 +378,7 @@ body.is-resizing-shell {
 .prompt-mirror,
 .prompt-input {
   width: 100%;
-  padding: 0.38rem 0.5rem;
+  padding: 0.38rem 0.5rem 0.67rem;
   font: inherit;
   white-space: pre;
   line-height: 1.25;
@@ -345,7 +388,6 @@ body.is-resizing-shell {
 .prompt-mirror {
   position: absolute;
   inset: 0;
-  overflow: hidden;
   pointer-events: none;
 }
 
@@ -375,7 +417,7 @@ body.is-resizing-shell {
 
 .prompt-input {
   position: relative;
-  min-height: calc(1.25em + 0.76rem);
+  height: calc(2.5em + 1.05rem);
   border: 0;
   border-radius: 0.45rem;
   outline: 0;
@@ -518,6 +560,22 @@ body.is-resizing-shell {
 .pane-icon-button:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+.pane-panel-expanded .plot-svg {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.pane-panel-expanded .map-canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100% !important;
+}
+
+.pane-panel-expanded .map-resize-handle {
+  display: none;
 }
 
 .functions-pane-body {

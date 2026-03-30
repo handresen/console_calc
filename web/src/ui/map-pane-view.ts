@@ -26,6 +26,7 @@ export interface MapPaneView {
   pane: PaneElements;
   render(stack: BindingStackEntry[]): void;
   setDisplaySettings(settings: DisplaySettings): void;
+  refreshLayout(): void;
 }
 
 interface ApplyMapViewOptions {
@@ -311,6 +312,15 @@ export function createMapPaneView(
     renderMap(latestStack.map((entry) => parseMapGroup(entry)).filter(isPlotGroup));
   };
 
+  const refreshLayout = () => {
+    requestAnimationFrame(() => {
+      map.updateSize();
+      if (!pane.body.hidden) {
+        applyMapView(latestMapGroup);
+      }
+    });
+  };
+
   const applyMapHeight = (height: number) => {
     const clampedHeight = Math.max(180, Math.min(height, 640));
     mapElement.style.height = `${Math.round(clampedHeight)}px`;
@@ -363,5 +373,6 @@ export function createMapPaneView(
       connectMapLinesToggle.checked = displaySettings.mapDefaultConnectLines;
       rerenderMap();
     },
+    refreshLayout,
   };
 }
