@@ -764,7 +764,7 @@ body.is-resizing-shell {
 }
 
 .map-layers-dialog {
-  width: min(26rem, calc(100vw - 2rem));
+  width: min(38rem, calc(100vw - 2rem));
 }
 
 .map-layers-dialog-copy {
@@ -781,6 +781,50 @@ body.is-resizing-shell {
   background: rgba(220, 233, 211, 0.12);
   color: #5e5a4c;
   font-size: 0.92rem;
+}
+
+.map-layers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.map-layer-entry {
+  display: flex;
+  align-items: start;
+  gap: 0.6rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(29, 36, 28, 0.12);
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.map-layer-entry-text {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.map-layer-entry-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.map-layer-entry-url {
+  margin-top: 0.2rem;
+  color: #5e5a4c;
+  font-size: 0.83rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.map-layers-dialog .settings-field {
+  min-width: 0;
+}
+
+.map-layers-dialog .settings-field input {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .map-meta {

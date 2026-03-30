@@ -67,9 +67,10 @@ const mapPalette = [
 ];
 
 const mapLayerStorageKey = "console-calc-map-layer";
+const userMapLayersStorageKey = "console-calc-user-map-layers";
 const manageMapLayersKey = "__manage__";
 
-const mapLayerOptions = [
+const builtinMapLayerOptions = [
   {
     key: "osm-standard",
     label: "OSM Standard",
@@ -122,15 +123,57 @@ const mapLayerOptions = [
         maxZoom: 20,
       }),
   },
-] as const;
+];
 
-type MapLayerKey = (typeof mapLayerOptions)[number]["key"];
+type UserMapLayer = {
+  key: string;
+  label: string;
+  urlTemplate: string;
+};
 
-function readStoredMapLayer(): MapLayerKey {
-  const rawValue = localStorage.getItem(mapLayerStorageKey);
-  return mapLayerOptions.some((option) => option.key === rawValue)
-    ? (rawValue as MapLayerKey)
-    : "osm-standard";
+type MapLayerOption = {
+  key: string;
+  label: string;
+  createSource: () => OSM | XYZ;
+};
+
+function readStoredMapLayer(): string {
+  return localStorage.getItem(mapLayerStorageKey) ?? "osm-standard";
+}
+
+function readStoredUserMapLayers(): UserMapLayer[] {
+  const rawValue = localStorage.getItem(userMapLayersStorageKey);
+  if (rawValue == null) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue) as UserMapLayer[];
+    return parsed.filter(
+      (entry) =>
+        typeof entry.key === "string" &&
+        typeof entry.label === "string" &&
+        typeof entry.urlTemplate === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
+function saveUserMapLayers(entries: UserMapLayer[]) {
+  localStorage.setItem(userMapLayersStorageKey, JSON.stringify(entries));
+}
+
+function toUserMapLayerOption(entry: UserMapLayer): MapLayerOption {
+  return {
+    key: entry.key,
+    label: entry.label,
+    createSource: () =>
+      new XYZ({
+        url: entry.urlTemplate,
+        maxZoom: 20,
+      }),
+  };
 }
 
 export function createMapPaneView(
@@ -142,6 +185,7 @@ export function createMapPaneView(
   let latestMapGroup: PlotGroup | null = null;
   let latestMapSignature = "";
   let selectedMapLayerKey = readStoredMapLayer();
+  let userMapLayers = readStoredUserMapLayers();
 
   const mapMeta = document.createElement("div");
   mapMeta.className = "map-meta";
@@ -157,17 +201,6 @@ export function createMapPaneView(
 
   const mapLayerSelect = document.createElement("select");
   mapLayerSelect.className = "map-layer-select";
-  mapLayerOptions.forEach((option) => {
-    const element = document.createElement("option");
-    element.value = option.key;
-    element.textContent = option.label;
-    mapLayerSelect.append(element);
-  });
-  const manageMapLayersOption = document.createElement("option");
-  manageMapLayersOption.value = manageMapLayersKey;
-  manageMapLayersOption.textContent = "<Manage>";
-  mapLayerSelect.append(manageMapLayersOption);
-  mapLayerSelect.value = selectedMapLayerKey;
 
   const mapLayerText = document.createElement("span");
   mapLayerText.textContent = "Layer";
@@ -214,7 +247,36 @@ export function createMapPaneView(
 
   const mapLayersPlaceholder = document.createElement("div");
   mapLayersPlaceholder.className = "map-layers-placeholder";
-  mapLayersPlaceholder.textContent = "No user basemaps yet.";
+  const mapLayersList = document.createElement("div");
+  mapLayersList.className = "map-layers-list";
+
+  const mapLayerNameField = document.createElement("label");
+  mapLayerNameField.className = "settings-field";
+  const mapLayerNameLabel = document.createElement("span");
+  mapLayerNameLabel.textContent = "Name";
+  const mapLayerNameInput = document.createElement("input");
+  mapLayerNameInput.type = "text";
+  mapLayerNameInput.placeholder = "My basemap";
+  mapLayerNameField.append(mapLayerNameLabel, mapLayerNameInput);
+
+  const mapLayerUrlField = document.createElement("label");
+  mapLayerUrlField.className = "settings-field";
+  const mapLayerUrlLabel = document.createElement("span");
+  mapLayerUrlLabel.textContent = "URL template";
+  const mapLayerUrlInput = document.createElement("input");
+  mapLayerUrlInput.type = "text";
+  mapLayerUrlInput.placeholder =
+    "https://localhost:5103/...&lvl={z}&col={x}&row={y}";
+  mapLayerUrlField.append(mapLayerUrlLabel, mapLayerUrlInput);
+
+  const mapLayersHint = document.createElement("p");
+  mapLayersHint.className = "map-layers-dialog-copy";
+  mapLayersHint.textContent = "Use {z}, {x}, and {y} placeholders in the tile URL template.";
+
+  const mapLayersAddButton = document.createElement("button");
+  mapLayersAddButton.type = "button";
+  mapLayersAddButton.className = "toolbar-button";
+  mapLayersAddButton.textContent = "Add basemap";
 
   const mapLayersActions = document.createElement("div");
   mapLayersActions.className = "settings-actions";
@@ -228,10 +290,98 @@ export function createMapPaneView(
   mapLayersForm.append(
     mapLayersHeading,
     mapLayersIntro,
+    mapLayerNameField,
+    mapLayerUrlField,
+    mapLayersHint,
+    mapLayersAddButton,
     mapLayersPlaceholder,
+    mapLayersList,
     mapLayersActions,
   );
   mapLayersDialog.append(mapLayersForm);
+
+  const allMapLayerOptions = (): MapLayerOption[] => [
+    ...builtinMapLayerOptions,
+    ...userMapLayers.map(toUserMapLayerOption),
+  ];
+
+  const findMapLayerOption = (key: string): MapLayerOption | undefined =>
+    allMapLayerOptions().find((option) => option.key === key);
+
+  const syncMapLayerSelect = () => {
+    mapLayerSelect.replaceChildren();
+    allMapLayerOptions().forEach((option) => {
+      const element = document.createElement("option");
+      element.value = option.key;
+      element.textContent = option.label;
+      mapLayerSelect.append(element);
+    });
+    const manageMapLayersOption = document.createElement("option");
+    manageMapLayersOption.value = manageMapLayersKey;
+    manageMapLayersOption.textContent = "<Manage>";
+    mapLayerSelect.append(manageMapLayersOption);
+
+    if (findMapLayerOption(selectedMapLayerKey) == null) {
+      selectedMapLayerKey = "osm-standard";
+    }
+    mapLayerSelect.value = selectedMapLayerKey;
+  };
+
+  const renderUserMapLayers = () => {
+    mapLayersList.replaceChildren();
+    if (userMapLayers.length === 0) {
+      mapLayersPlaceholder.hidden = false;
+      mapLayersPlaceholder.textContent = "No user basemaps yet.";
+      return;
+    }
+
+    mapLayersPlaceholder.hidden = true;
+    userMapLayers.forEach((entry) => {
+      const row = document.createElement("div");
+      row.className = "map-layer-entry";
+
+      const text = document.createElement("div");
+      text.className = "map-layer-entry-text";
+
+      const label = document.createElement("div");
+      label.className = "map-layer-entry-label";
+      label.textContent = entry.label;
+
+      const url = document.createElement("div");
+      url.className = "map-layer-entry-url";
+      url.textContent = entry.urlTemplate;
+      url.title = entry.urlTemplate;
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "pane-icon-button";
+      removeButton.textContent = "−";
+      removeButton.title = "Remove basemap";
+      removeButton.setAttribute("aria-label", "Remove basemap");
+      removeButton.addEventListener("click", () => {
+        userMapLayers = userMapLayers.filter((item) => item.key !== entry.key);
+        saveUserMapLayers(userMapLayers);
+        if (selectedMapLayerKey === entry.key) {
+          selectedMapLayerKey = "osm-standard";
+          localStorage.setItem(mapLayerStorageKey, selectedMapLayerKey);
+          baseLayer.setSource(new OSM());
+        }
+        syncMapLayerSelect();
+        renderUserMapLayers();
+        rerenderMap();
+      });
+
+      text.append(label, url);
+      row.append(text, removeButton);
+      mapLayersList.append(row);
+    });
+  };
+
+  const isValidMapLayerUrlTemplate = (value: string) =>
+    value.includes("{z}") && value.includes("{x}") && value.includes("{y}");
+
+  syncMapLayerSelect();
+  renderUserMapLayers();
 
   const mapPointSource = new VectorSource();
   const mapLineSource = new VectorSource();
@@ -278,9 +428,7 @@ export function createMapPaneView(
   });
 
   const baseLayer = new TileLayer({
-    source:
-      mapLayerOptions.find((option) => option.key === selectedMapLayerKey)?.createSource() ??
-      new OSM(),
+    source: findMapLayerOption(selectedMapLayerKey)?.createSource() ?? new OSM(),
   });
 
   const map = new OlMap({
@@ -327,7 +475,7 @@ export function createMapPaneView(
   };
 
   const currentMapLayerLabel = () =>
-    mapLayerOptions.find((option) => option.key === selectedMapLayerKey)?.label ?? "OSM Standard";
+    findMapLayerOption(selectedMapLayerKey)?.label ?? "OSM Standard";
 
   const buildMapSignature = (group: PlotGroup | null) => {
     if (group == null || group.kind !== "position") {
@@ -500,18 +648,45 @@ export function createMapPaneView(
   });
 
   connectMapLinesToggle.addEventListener("change", rerenderMap);
+  mapLayersAddButton.addEventListener("click", () => {
+    const label = mapLayerNameInput.value.trim();
+    const urlTemplate = mapLayerUrlInput.value.trim();
+    if (label === "" || !isValidMapLayerUrlTemplate(urlTemplate)) {
+      mapLayersPlaceholder.hidden = false;
+      mapLayersPlaceholder.textContent =
+        "Enter a name and a URL template containing {z}, {x}, and {y}.";
+      return;
+    }
+
+    const entry: UserMapLayer = {
+      key: `user-${Date.now()}`,
+      label,
+      urlTemplate,
+    };
+    userMapLayers = [...userMapLayers, entry];
+    saveUserMapLayers(userMapLayers);
+    selectedMapLayerKey = entry.key;
+    localStorage.setItem(mapLayerStorageKey, selectedMapLayerKey);
+    syncMapLayerSelect();
+    renderUserMapLayers();
+    mapLayerNameInput.value = "";
+    mapLayerUrlInput.value = "";
+    baseLayer.setSource(toUserMapLayerOption(entry).createSource());
+    rerenderMap();
+  });
   mapLayerSelect.addEventListener("change", () => {
     if (mapLayerSelect.value === manageMapLayersKey) {
       mapLayerSelect.value = selectedMapLayerKey;
+      renderUserMapLayers();
       mapLayersDialog.showModal();
       return;
     }
 
-    const nextKey = mapLayerSelect.value as MapLayerKey;
+    const nextKey = mapLayerSelect.value;
     selectedMapLayerKey = nextKey;
     localStorage.setItem(mapLayerStorageKey, selectedMapLayerKey);
     baseLayer.setSource(
-      mapLayerOptions.find((option) => option.key === selectedMapLayerKey)?.createSource() ??
+      findMapLayerOption(selectedMapLayerKey)?.createSource() ??
         new OSM(),
     );
     rerenderMap();
