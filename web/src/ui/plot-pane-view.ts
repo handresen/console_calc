@@ -25,6 +25,38 @@ export function createPlotPaneView(
   onToggle: (expanded: boolean) => void,
   initialDisplaySettings: DisplaySettings,
 ): PlotPaneView {
+  type PlotLayout = {
+    width: number;
+    height: number;
+    inset: number;
+    right: number;
+    bottom: number;
+    hoverBottom: number;
+    hoverXAxisY: number;
+    hoverXAxisMinY: number;
+  };
+
+  const collapsedLayout: PlotLayout = {
+    width: 320,
+    height: 180,
+    inset: 6,
+    right: 314,
+    bottom: 174,
+    hoverBottom: 176,
+    hoverXAxisY: 170,
+    hoverXAxisMinY: 158,
+  };
+  const expandedLayout: PlotLayout = {
+    width: 640,
+    height: 360,
+    inset: 10,
+    right: 630,
+    bottom: 350,
+    hoverBottom: 352,
+    hoverXAxisY: 340,
+    hoverXAxisMinY: 320,
+  };
+
   const pane = createPane("Plot", onToggle);
   let displaySettings = initialDisplaySettings;
   let latestStack: BindingStackEntry[] = [];
@@ -64,12 +96,10 @@ export function createPlotPaneView(
   plotControls.append(lineToggleLabel, pointsToggleLabel);
 
   const plotSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  plotSvg.setAttribute("viewBox", "0 0 320 180");
   plotSvg.setAttribute("preserveAspectRatio", "xMidYMid meet");
   plotSvg.classList.add("plot-svg");
 
   const plotGrid = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  plotGrid.setAttribute("d", "M 0 0 L 0 180 M 0 180 L 320 180");
   plotGrid.setAttribute("class", "plot-grid");
 
   const plotZeroAxis = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -95,7 +125,6 @@ export function createPlotPaneView(
 
   const plotHoverPoint = document.createElementNS("http://www.w3.org/2000/svg", "circle");
   plotHoverPoint.setAttribute("class", "plot-hover-point");
-  plotHoverPoint.setAttribute("r", "3.2");
 
   const plotHoverBubble = document.createElementNS("http://www.w3.org/2000/svg", "rect");
   plotHoverBubble.setAttribute("class", "plot-hover-bubble");
@@ -139,10 +168,10 @@ export function createPlotPaneView(
     return label;
   };
 
-  const topLeftLabel = createCornerLabel("6", "6", "start", "hanging");
-  const topRightLabel = createCornerLabel("314", "6", "end", "hanging");
-  const bottomLeftLabel = createCornerLabel("6", "174", "start", "auto");
-  const bottomRightLabel = createCornerLabel("314", "174", "end", "auto");
+  const topLeftLabel = createCornerLabel("0", "0", "start", "hanging");
+  const topRightLabel = createCornerLabel("0", "0", "end", "hanging");
+  const bottomLeftLabel = createCornerLabel("0", "0", "start", "auto");
+  const bottomRightLabel = createCornerLabel("0", "0", "end", "auto");
 
   plotCornerLabels.append(
     topLeftLabel,
@@ -162,11 +191,33 @@ export function createPlotPaneView(
   );
   pane.body.append(plotMeta, plotControls, plotSvg);
 
+  const getPlotLayout = (): PlotLayout =>
+    pane.section.closest(".pane-panel-expanded") ? expandedLayout : collapsedLayout;
+
+  const applyPlotLayout = () => {
+    const layout = getPlotLayout();
+    plotSvg.setAttribute("viewBox", `0 0 ${layout.width} ${layout.height}`);
+    plotGrid.setAttribute(
+      "d",
+      `M 0 0 L 0 ${layout.height} M 0 ${layout.height} L ${layout.width} ${layout.height}`,
+    );
+    plotHoverPoint.setAttribute("r", layout === expandedLayout ? "3.6" : "3.2");
+    topLeftLabel.setAttribute("x", `${layout.inset}`);
+    topLeftLabel.setAttribute("y", `${layout.inset}`);
+    topRightLabel.setAttribute("x", `${layout.right}`);
+    topRightLabel.setAttribute("y", `${layout.inset}`);
+    bottomLeftLabel.setAttribute("x", `${layout.inset}`);
+    bottomLeftLabel.setAttribute("y", `${layout.bottom}`);
+    bottomRightLabel.setAttribute("x", `${layout.right}`);
+    bottomRightLabel.setAttribute("y", `${layout.bottom}`);
+  };
+
   const hidePlotHover = () => {
     plotHover.style.display = "none";
   };
 
   const renderPointMarkers = (seriesList: PlotItem[], pointsList: PlotPoint[][]) => {
+    const layout = getPlotLayout();
     plotPoints.replaceChildren();
     seriesList.forEach((series, seriesIndex) => {
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -175,7 +226,7 @@ export function createPlotPaneView(
         const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         circle.setAttribute("cx", point.x.toFixed(2));
         circle.setAttribute("cy", point.y.toFixed(2));
-        circle.setAttribute("r", "1.6");
+        circle.setAttribute("r", layout === expandedLayout ? "1.9" : "1.6");
         circle.setAttribute("class", "plot-point");
         group.append(circle);
       }
@@ -214,6 +265,7 @@ export function createPlotPaneView(
   };
 
   const showPlotHover = (series: PlotItem, points: PlotPoint[], index: number) => {
+    const layout = getPlotLayout();
     const point = points[index];
     if (point == null) {
       hidePlotHover();
@@ -223,14 +275,14 @@ export function createPlotPaneView(
     plotHover.style.display = "";
     plotHoverGuide.setAttribute(
       "d",
-      `M ${point.x.toFixed(2)} 174 L ${point.x.toFixed(2)} ${point.y.toFixed(2)}`,
+      `M ${point.x.toFixed(2)} ${layout.bottom} L ${point.x.toFixed(2)} ${point.y.toFixed(2)}`,
     );
     plotHoverPoint.setAttribute("cx", point.x.toFixed(2));
     plotHoverPoint.setAttribute("cy", point.y.toFixed(2));
     plotHoverLabel.textContent = formatHoverLabel(series, index);
     plotHoverXAxisLabel.textContent = formatHoverXAxisLabel(series, index);
 
-    const padding = 6;
+    const padding = layout === expandedLayout ? 8 : 6;
     const gap = 8;
     const preferredX = point.x + gap;
     const preferredY = point.y - gap;
@@ -242,11 +294,11 @@ export function createPlotPaneView(
     let textX = preferredX;
     let textY = preferredY;
 
-    if (textX + textBounds.width > 314) {
-      textX = Math.max(6, point.x - gap - textBounds.width);
+    if (textX + textBounds.width > layout.right) {
+      textX = Math.max(layout.inset, point.x - gap - textBounds.width);
     }
-    if (textY - textBounds.height < 6) {
-      textY = Math.min(174, point.y + gap + textBounds.height * 0.8);
+    if (textY - textBounds.height < layout.inset) {
+      textY = Math.min(layout.bottom, point.y + gap + textBounds.height * 0.8);
     }
 
     plotHoverLabel.setAttribute("x", textX.toFixed(2));
@@ -255,17 +307,17 @@ export function createPlotPaneView(
     const adjustedBounds = plotHoverLabel.getBBox();
     const bubbleX = Math.max(2, adjustedBounds.x - padding);
     const bubbleY = Math.max(2, adjustedBounds.y - padding / 2);
-    const bubbleWidth = Math.min(316 - bubbleX, adjustedBounds.width + padding * 2);
-    const bubbleHeight = Math.min(176 - bubbleY, adjustedBounds.height + padding);
+    const bubbleWidth = Math.min(layout.width - 4 - bubbleX, adjustedBounds.width + padding * 2);
+    const bubbleHeight =
+      Math.min(layout.hoverBottom - bubbleY, adjustedBounds.height + padding);
 
     plotHoverBubble.setAttribute("x", bubbleX.toFixed(2));
     plotHoverBubble.setAttribute("y", bubbleY.toFixed(2));
     plotHoverBubble.setAttribute("width", bubbleWidth.toFixed(2));
     plotHoverBubble.setAttribute("height", bubbleHeight.toFixed(2));
 
-    const xAxisY = 170;
     plotHoverXAxisLabel.setAttribute("x", point.x.toFixed(2));
-    plotHoverXAxisLabel.setAttribute("y", xAxisY.toFixed(2));
+    plotHoverXAxisLabel.setAttribute("y", layout.hoverXAxisY.toFixed(2));
     plotHoverXAxisLabel.setAttribute("text-anchor", "middle");
     plotHoverXAxisLabel.setAttribute("dominant-baseline", "auto");
 
@@ -274,8 +326,8 @@ export function createPlotPaneView(
     if (xAxisBounds.x < 4) {
       xAxisLabelX += 4 - xAxisBounds.x;
     }
-    if (xAxisBounds.x + xAxisBounds.width > 316) {
-      xAxisLabelX -= xAxisBounds.x + xAxisBounds.width - 316;
+    if (xAxisBounds.x + xAxisBounds.width > layout.width - 4) {
+      xAxisLabelX -= xAxisBounds.x + xAxisBounds.width - (layout.width - 4);
     }
 
     plotHoverXAxisLabel.setAttribute("x", xAxisLabelX.toFixed(2));
@@ -286,11 +338,11 @@ export function createPlotPaneView(
     );
     plotHoverXAxisBubble.setAttribute(
       "y",
-      Math.max(158, adjustedXAxisBounds.y - padding / 2).toFixed(2),
+      Math.max(layout.hoverXAxisMinY, adjustedXAxisBounds.y - padding / 2).toFixed(2),
     );
     plotHoverXAxisBubble.setAttribute(
       "width",
-      Math.min(316, adjustedXAxisBounds.width + padding * 2).toFixed(2),
+      Math.min(layout.width - 4, adjustedXAxisBounds.width + padding * 2).toFixed(2),
     );
     plotHoverXAxisBubble.setAttribute(
       "height",
@@ -299,6 +351,8 @@ export function createPlotPaneView(
   };
 
   const renderPlot = (groupList: PlotGroup[]) => {
+    applyPlotLayout();
+    const layout = getPlotLayout();
     const currentGroup = groupList[groupList.length - 1] ?? null;
     pane.count.textContent = `${currentGroup?.items.length ?? 0}`;
     latestPlotGroup = currentGroup;
@@ -333,23 +387,30 @@ export function createPlotPaneView(
       "d",
       buildZeroAxisPath(
         scalarSeries.flatMap((series) => series.rawValues),
-        320,
-        180,
+        layout.width,
+        layout.height,
         scalarBounds,
       ),
     );
     plotPrimeMeridian.setAttribute("d", "");
     const pointsList = scalarSeries.map((series) =>
-      buildScalarPlotPoints(series.values, 320, 180, scalarBounds),
+      buildScalarPlotPoints(series.values, layout.width, layout.height, scalarBounds),
     );
     latestHoverSeries = scalarSeries[scalarSeries.length - 1] ?? null;
     latestPlotPoints = latestHoverSeries
-      ? buildScalarPlotPoints(latestHoverSeries.rawValues, 320, 180, scalarBounds)
+      ? buildScalarPlotPoints(
+          latestHoverSeries.rawValues,
+          layout.width,
+          layout.height,
+          scalarBounds,
+        )
       : [];
     renderLinePaths(
       scalarSeries,
       lineToggle.checked
-        ? scalarSeries.map((series) => buildPlotPath(series.values, 320, 180, scalarBounds))
+        ? scalarSeries.map((series) =>
+            buildPlotPath(series.values, layout.width, layout.height, scalarBounds),
+          )
         : scalarSeries.map(() => ""),
     );
     renderPointMarkers(scalarSeries, pointsToggle.checked ? pointsList : scalarSeries.map(() => []));
@@ -363,6 +424,24 @@ export function createPlotPaneView(
     renderPlot(latestStack.map((entry) => parsePlotGroup(entry)).filter(isPlotGroup));
   };
 
+  const clientPointToPlotX = (clientX: number): number | null => {
+    const bounds = plotSvg.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) {
+      return null;
+    }
+
+    const layout = getPlotLayout();
+    const scale = Math.min(bounds.width / layout.width, bounds.height / layout.height);
+    const renderedWidth = layout.width * scale;
+    const offsetX = (bounds.width - renderedWidth) / 2;
+    const localX = clientX - bounds.left - offsetX;
+    if (localX < 0 || localX > renderedWidth) {
+      return null;
+    }
+
+    return (localX / renderedWidth) * layout.width;
+  };
+
   lineToggle.addEventListener("change", rerenderPlot);
   pointsToggle.addEventListener("change", rerenderPlot);
 
@@ -372,13 +451,12 @@ export function createPlotPaneView(
       return;
     }
 
-    const bounds = plotSvg.getBoundingClientRect();
-    if (bounds.width <= 0 || bounds.height <= 0) {
+    const plotX = clientPointToPlotX(event.clientX);
+    if (plotX == null) {
       hidePlotHover();
       return;
     }
 
-    const x = ((event.clientX - bounds.left) / bounds.width) * 320;
     let bestIndex = 0;
 
     if (latestHoverSeries.kind === "scalar") {
@@ -386,13 +464,13 @@ export function createPlotPaneView(
         latestHoverSeries.rawValues.length <= 1
           ? 0
           : Math.round(
-              (Math.max(0, Math.min(320, x)) / 320) *
+              (Math.max(0, Math.min(getPlotLayout().width, plotX)) / getPlotLayout().width) *
                 (latestHoverSeries.rawValues.length - 1),
             );
     } else {
       let bestDistance = Number.POSITIVE_INFINITY;
       for (let index = 0; index < latestPlotPoints.length; index += 1) {
-        const distance = Math.abs((latestPlotPoints[index]?.x ?? 0) - x);
+        const distance = Math.abs((latestPlotPoints[index]?.x ?? 0) - plotX);
         if (distance < bestDistance) {
           bestDistance = distance;
           bestIndex = index;

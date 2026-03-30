@@ -37,12 +37,15 @@ export function isPlotGroup(value: PlotGroup | null): value is PlotGroup {
 }
 
 function sampleScalarValues(listValues: number[]): { values: number[]; truncated: boolean } {
-  if (listValues.length <= 500) {
+  const maxScalarPlotPoints = 2000;
+  if (listValues.length <= maxScalarPlotPoints) {
     return { values: listValues, truncated: false };
   }
   return {
-    values: Array.from({ length: 500 }, (_, index) => {
-      const sourceIndex = Math.round((index / 499) * (listValues.length - 1));
+    values: Array.from({ length: maxScalarPlotPoints }, (_, index) => {
+      const sourceIndex = Math.round(
+        (index / (maxScalarPlotPoints - 1)) * (listValues.length - 1),
+      );
       return listValues[sourceIndex] ?? 0;
     }),
     truncated: true,

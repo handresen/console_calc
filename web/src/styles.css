@@ -568,6 +568,14 @@ body.is-resizing-shell {
   height: 100%;
 }
 
+.pane-panel-expanded .plot-meta {
+  font-size: 0.45rem;
+}
+
+.pane-panel-expanded .plot-controls {
+  font-size: 0.46rem;
+}
+
 .pane-panel-expanded .map-canvas {
   flex: 1 1 auto;
   min-height: 0;
@@ -881,6 +889,38 @@ body.is-resizing-map {
   font-size: 8px;
   font-family: "Iosevka", "Iosevka Term", "SF Mono", monospace;
   letter-spacing: -0.04em;
+}
+
+.pane-panel-expanded .plot-line {
+  stroke-width: 0.36;
+}
+
+.pane-panel-expanded .plot-grid {
+  stroke-width: 0.5;
+}
+
+.pane-panel-expanded .plot-zero-axis {
+  stroke-width: 0.6;
+}
+
+.pane-panel-expanded .plot-reference-axis {
+  stroke-width: 0.5;
+}
+
+.pane-panel-expanded .plot-hover-guide {
+  stroke-width: 0.7;
+}
+
+.pane-panel-expanded .plot-hover-point {
+  stroke-width: 0.7;
+}
+
+.pane-panel-expanded .plot-hover-label {
+  font-size: 5px;
+}
+
+.pane-panel-expanded .plot-corner-label {
+  font-size: 6.75px;
 }
 
 @media (max-width: 900px) {
