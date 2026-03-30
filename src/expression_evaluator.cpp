@@ -281,6 +281,17 @@ double require_finite_result(double value) {
             }
             return result;
         }
+    } else if (node.op == BinaryOperator::divide) {
+        if (const auto* lhs_list = std::get_if<ListValue>(&lhs_value)) {
+            const ScalarValue rhs =
+                require_scalar_or_singleton_list_value(rhs_value);
+            ListValue result;
+            result.reserve(lhs_list->size());
+            for (const auto& element : *lhs_list) {
+                result.push_back(divide_scalars(element, rhs));
+            }
+            return result;
+        }
     }
 
     const ScalarValue lhs = require_scalar_or_singleton_list_value(lhs_value);
@@ -348,12 +359,25 @@ Value evaluate_expression_with_placeholder(const Expression& expression,
                 }
                 return to_value(*placeholder_value);
             } else if constexpr (std::is_same_v<Node, UnaryExpression>) {
-                const ScalarValue operand = require_scalar_or_singleton_list_value(
-                    evaluate_expression_with_placeholder(*node.operand, placeholder_value));
                 switch (node.op) {
-                case UnaryOperator::negate:
+                case UnaryOperator::negate: {
+                    const Value operand_value =
+                        evaluate_expression_with_placeholder(*node.operand, placeholder_value);
+                    if (const auto* list = std::get_if<ListValue>(&operand_value)) {
+                        ListValue result;
+                        result.reserve(list->size());
+                        for (const auto& element : *list) {
+                            result.push_back(negate_scalar(element));
+                        }
+                        return result;
+                    }
+                    const ScalarValue operand =
+                        require_scalar_or_singleton_list_value(operand_value);
                     return to_value(negate_scalar(operand));
+                }
                 case UnaryOperator::bitwise_not:
+                    const ScalarValue operand = require_scalar_or_singleton_list_value(
+                        evaluate_expression_with_placeholder(*node.operand, placeholder_value));
                     return to_value(bitwise_not_scalar(operand));
                 }
             } else if constexpr (std::is_same_v<Node, IndexExpression>) {

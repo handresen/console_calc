@@ -137,16 +137,22 @@ bool expect_expression_semantics(ExpressionParser& parser) {
     const auto* scaled_left_values = std::get_if<ListValue>(&scaled_list_left);
     const Value scaled_list_right = parser.evaluate_value("{3, 4} * 2");
     const auto* scaled_right_values = std::get_if<ListValue>(&scaled_list_right);
+    const Value divided_by_scalar = parser.evaluate_value("{8, 10} / 2");
+    const auto* divided_by_scalar_values = std::get_if<ListValue>(&divided_by_scalar);
+    const Value negated_list = parser.evaluate_value("-{3, -4}");
+    const auto* negated_list_values = std::get_if<ListValue>(&negated_list);
     const Value divided_lists = parser.evaluate_value("list_div({8, 9, 10}, {2, 3, 5})");
     const auto* divided_values = std::get_if<ListValue>(&divided_lists);
     const Value subtracted_lists = parser.evaluate_value("list_sub({8, 9, 10}, {2, 3, 5})");
     const auto* subtracted_values = std::get_if<ListValue>(&subtracted_lists);
     if (added_values == nullptr || multiplied_values == nullptr || divided_values == nullptr ||
         subtracted_values == nullptr || scaled_left_values == nullptr ||
-        scaled_right_values == nullptr || added_values->size() != 3 ||
+        scaled_right_values == nullptr || divided_by_scalar_values == nullptr ||
+        negated_list_values == nullptr || added_values->size() != 3 ||
         multiplied_values->size() != 3 ||
         divided_values->size() != 3 || subtracted_values->size() != 3 ||
         scaled_left_values->size() != 2 || scaled_right_values->size() != 2 ||
+        divided_by_scalar_values->size() != 2 || negated_list_values->size() != 2 ||
         !almost_equal(scalar_to_double((*added_values)[0]), 7.0) ||
         !almost_equal(scalar_to_double((*added_values)[1]), 9.0) ||
         !almost_equal(scalar_to_double((*added_values)[2]), 11.0) ||
@@ -157,6 +163,10 @@ bool expect_expression_semantics(ExpressionParser& parser) {
         !almost_equal(scalar_to_double((*scaled_left_values)[1]), 8.0) ||
         !almost_equal(scalar_to_double((*scaled_right_values)[0]), 6.0) ||
         !almost_equal(scalar_to_double((*scaled_right_values)[1]), 8.0) ||
+        !almost_equal(scalar_to_double((*divided_by_scalar_values)[0]), 4.0) ||
+        !almost_equal(scalar_to_double((*divided_by_scalar_values)[1]), 5.0) ||
+        !almost_equal(scalar_to_double((*negated_list_values)[0]), -3.0) ||
+        !almost_equal(scalar_to_double((*negated_list_values)[1]), 4.0) ||
         !almost_equal(scalar_to_double((*divided_values)[0]), 4.0) ||
         !almost_equal(scalar_to_double((*divided_values)[1]), 3.0) ||
         !almost_equal(scalar_to_double((*divided_values)[2]), 2.0) ||

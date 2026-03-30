@@ -131,6 +131,8 @@ Builtin functions:
 - `reverse(list|multilist)` reverses scalar list elements or the outer order of a multilist
 - `flatten(multilist|multi_pos_list)` flattens one nested collection level into a list or position list
 - infix `*` supports `scalar * list` and `list * scalar` by multiplying each element
+- infix `/` supports `list / scalar` by dividing each element
+- unary `-` supports list negation elementwise
 - `list_div(list_a, list_b)` divides list elements pairwise and requires equal list lengths
 - `list_mul(list_a, list_b)` multiplies list elements pairwise and requires equal list lengths
 - `guard(expr, fallback)` returns `expr` when it evaluates successfully, otherwise evaluates and returns `fallback`
