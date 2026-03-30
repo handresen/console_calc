@@ -231,7 +231,7 @@ bool expect_builtin_function_metadata() {
            median_info.name == "median" &&
            median_info.min_arity == 1 &&
            median_info.max_arity == 1 &&
-           median_info.category == console_calc::BuiltinFunctionCategory::list &&
+           median_info.category == console_calc::BuiltinFunctionCategory::statistics &&
            median_info.signature == "median(list|multilist)" &&
            median_info.summary == "median list element or each inner list" &&
            list_add_info.name == "list_add" && list_add_info.min_arity == 2 &&

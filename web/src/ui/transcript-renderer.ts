@@ -4,6 +4,7 @@ import { constantDisplayRows } from "./pane-renderers";
 import type { TranscriptView } from "./transcript-view";
 
 const maxTranscriptMultiListChars = 84;
+const maxTranscriptPositionListChars = 84;
 
 function countTopLevelItems(content: string): number {
   const trimmed = content.trim();
@@ -76,6 +77,41 @@ function splitTopLevelInnerLists(payload: string): string[] | null {
   }
 
   return lists.length > 0 ? lists : null;
+}
+
+function splitTopLevelListItems(payload: string): string[] | null {
+  if (!payload.startsWith("{") || !payload.endsWith("}")) {
+    return null;
+  }
+
+  const inner = payload.slice(1, -1).trim();
+  if (inner.length === 0) {
+    return [];
+  }
+
+  const items: string[] = [];
+  let braceDepth = 0;
+  let parenDepth = 0;
+  let itemStart = 0;
+
+  for (let index = 0; index < inner.length; index += 1) {
+    const char = inner[index];
+    if (char === "{") {
+      braceDepth += 1;
+    } else if (char === "}") {
+      braceDepth = Math.max(0, braceDepth - 1);
+    } else if (char === "(") {
+      parenDepth += 1;
+    } else if (char === ")") {
+      parenDepth = Math.max(0, parenDepth - 1);
+    } else if (char === "," && braceDepth === 0 && parenDepth === 0) {
+      items.push(inner.slice(itemStart, index).trim());
+      itemStart = index + 1;
+    }
+  }
+
+  items.push(inner.slice(itemStart).trim());
+  return items;
 }
 
 function compactListWhitespace(text: string): string {
@@ -166,6 +202,59 @@ function summarizeMultiListPayload(payload: string): string {
   return `${preview},${adjustedSuffix}`;
 }
 
+function hiddenEntriesCount(item: string): number | null {
+  const match = item.match(/^<hiding (\d+) entries>$/);
+  if (match === null) {
+    return null;
+  }
+  const countText = match[1];
+  return countText === undefined ? null : Number.parseInt(countText, 10);
+}
+
+function isPositionListPayload(payload: string): boolean {
+  const items = splitTopLevelListItems(payload);
+  return (
+    items !== null &&
+    items.length > 0 &&
+    items.every((item, index) =>
+      item.startsWith("pos(") ||
+      (index === items.length - 1 && hiddenEntriesCount(item) !== null))
+  );
+}
+
+function totalPositionItems(items: string[]): number {
+  if (items.length === 0) {
+    return 0;
+  }
+
+  const lastItemHiddenCount = hiddenEntriesCount(items[items.length - 1] ?? "");
+  if (lastItemHiddenCount === null) {
+    return items.length;
+  }
+  return items.length - 1 + lastItemHiddenCount;
+}
+
+function summarizePositionListPayload(payload: string): string {
+  if (payload.length <= maxTranscriptPositionListChars) {
+    return payload;
+  }
+
+  const items = splitTopLevelListItems(payload);
+  if (items === null || items.length === 0 || !isPositionListPayload(payload)) {
+    return payload;
+  }
+
+  const totalItems = totalPositionItems(items);
+  const visibleItems = items.filter((item) => item.startsWith("pos("));
+  const previewCount = Math.min(1, visibleItems.length);
+  const previewItems = items.slice(0, previewCount).join(", ");
+  const remaining = totalItems - previewCount;
+  if (remaining <= 0) {
+    return payload;
+  }
+  return `{${previewItems}, <${remaining} more positions>}`;
+}
+
 export function formatTranscriptText(text: string, decimals: number): string {
   const formatted = formatNumericText(text, decimals);
   let output = "";
@@ -185,8 +274,40 @@ export function formatTranscriptText(text: string, decimals: number): string {
       break;
     }
 
-    output += summarizeMultiListPayload(payload);
+    if (splitTopLevelInnerLists(payload) !== null) {
+      output += summarizeMultiListPayload(payload);
+    } else if (isPositionListPayload(payload)) {
+      output += summarizePositionListPayload(payload);
+    } else {
+      output += payload;
+    }
     cursor = multiListIndex + payload.length;
+  }
+
+  let fallbackOutput = output;
+  cursor = 0;
+  output = "";
+
+  while (cursor < fallbackOutput.length) {
+    const openBraceIndex = fallbackOutput.indexOf("{", cursor);
+    if (openBraceIndex < 0) {
+      output += fallbackOutput.slice(cursor);
+      break;
+    }
+
+    output += fallbackOutput.slice(cursor, openBraceIndex);
+    const payload = extractBalancedBraceSlice(fallbackOutput, openBraceIndex);
+    if (payload === null) {
+      output += fallbackOutput.slice(openBraceIndex);
+      break;
+    }
+
+    if (isPositionListPayload(payload)) {
+      output += summarizePositionListPayload(payload);
+    } else {
+      output += payload;
+    }
+    cursor = openBraceIndex + payload.length;
   }
 
   return output;

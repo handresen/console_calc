@@ -45,10 +45,10 @@ constexpr std::array<BuiltinFunctionInfo, 53> k_builtin_functions = {{
     {Function::sum, "sum", 1, 1, BuiltinFunctionCategory::list, true, false, "sum(list|multilist)", "sum list elements or each inner list"},
     {Function::len, "len", 1, 1, BuiltinFunctionCategory::list, true, false, "len(list|multilist|poslist|multi_pos_list)", "collection length"},
     {Function::product, "product", 1, 1, BuiltinFunctionCategory::list, true, false, "product(list|multilist)", "product of list elements or each inner list"},
-    {Function::avg, "avg", 1, 1, BuiltinFunctionCategory::list, true, false, "avg(list|multilist)", "average of list elements or each inner list"},
-    {Function::median, "median", 1, 1, BuiltinFunctionCategory::list, true, false, "median(list|multilist)", "median list element or each inner list"},
-    {Function::min, "min", 1, 1, BuiltinFunctionCategory::list, true, false, "min(list|multilist)", "minimum list element or each inner list"},
-    {Function::max, "max", 1, 1, BuiltinFunctionCategory::list, true, false, "max(list|multilist)", "maximum list element or each inner list"},
+    {Function::avg, "avg", 1, 1, BuiltinFunctionCategory::statistics, true, false, "avg(list|multilist)", "average of list elements or each inner list"},
+    {Function::median, "median", 1, 1, BuiltinFunctionCategory::statistics, true, false, "median(list|multilist)", "median list element or each inner list"},
+    {Function::min, "min", 1, 1, BuiltinFunctionCategory::statistics, true, false, "min(list|multilist)", "minimum list element or each inner list"},
+    {Function::max, "max", 1, 1, BuiltinFunctionCategory::statistics, true, false, "max(list|multilist)", "maximum list element or each inner list"},
     {Function::first, "first", 1, 2, BuiltinFunctionCategory::list, true, false, "first(list|multilist[, n])", "first n list elements or inner lists"},
     {Function::last, "last", 1, 2, BuiltinFunctionCategory::list, true, false, "last(list|multilist[, n])", "last n list elements or inner lists"},
     {Function::drop, "drop", 2, 2, BuiltinFunctionCategory::list, true, false, "drop(list|multilist, n)", "drop first n list elements or each inner list"},
@@ -153,10 +153,12 @@ bool is_list_function(Function function) {
     if (is_special_form(function)) {
         const auto category = special_form_info(function).category;
         return category == BuiltinFunctionCategory::list ||
+               category == BuiltinFunctionCategory::statistics ||
                category == BuiltinFunctionCategory::list_generation;
     }
     const auto category = builtin_function_info(function).category;
     return category == BuiltinFunctionCategory::list ||
+           category == BuiltinFunctionCategory::statistics ||
            category == BuiltinFunctionCategory::list_generation;
 }
 

@@ -131,6 +131,8 @@ std::string function_category_name(BuiltinFunctionCategory category) {
         return "position";
     case BuiltinFunctionCategory::list:
         return "list";
+    case BuiltinFunctionCategory::statistics:
+        return "statistics";
     case BuiltinFunctionCategory::list_generation:
         return "list_generation";
     }

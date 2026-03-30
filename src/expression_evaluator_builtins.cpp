@@ -686,7 +686,8 @@ Value evaluate_builtin_function(Function function, std::span<const Value> argume
         return evaluate_position_builtin(function, arguments);
     }
 
-    if (category == BuiltinFunctionCategory::list) {
+    if (category == BuiltinFunctionCategory::list ||
+        category == BuiltinFunctionCategory::statistics) {
         return evaluate_list_builtin(function, arguments);
     }
 

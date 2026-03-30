@@ -37,6 +37,7 @@ body {
   backdrop-filter: blur(10px);
   box-shadow: 0 12px 40px rgba(64, 53, 28, 0.08);
   min-height: 0;
+  min-width: 0;
 }
 
 .shell-resize-handle {
@@ -95,6 +96,7 @@ body.is-resizing-shell {
   display: grid;
   gap: 1rem;
   padding: 0;
+  min-width: 0;
 }
 
 .info-panel,
@@ -104,6 +106,7 @@ body.is-resizing-shell {
   border-radius: 0.9rem;
   background: rgba(252, 248, 239, 0.7);
   padding: 1rem 1.1rem;
+  min-width: 0;
 }
 
 .bridge-banner {
@@ -534,9 +537,18 @@ body.is-resizing-shell {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  min-width: 0;
+}
+
+.sample-group-body {
+  gap: 0.35rem;
+  min-width: 0;
 }
 
 .sample-button {
+  display: block;
+  width: 100%;
+  min-width: 0;
   padding: 0.45rem 0.55rem;
   border: 1px solid rgba(29, 36, 28, 0.12);
   border-radius: 0.5rem;
@@ -544,6 +556,9 @@ body.is-resizing-shell {
   color: inherit;
   font: inherit;
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
 }
 
@@ -564,6 +579,7 @@ body.is-resizing-shell {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  min-width: 0;
 }
 
 .pane-group-toggle {
@@ -577,6 +593,7 @@ body.is-resizing-shell {
   color: inherit;
   text-align: left;
   cursor: pointer;
+  min-width: 0;
 }
 
 .pane-group-marker {
@@ -591,6 +608,7 @@ body.is-resizing-shell {
   font-weight: 600;
   letter-spacing: 0.04em;
   color: #5e5a4c;
+  min-width: 0;
 }
 
 .pane-group-body {
@@ -598,6 +616,7 @@ body.is-resizing-shell {
   flex-direction: column;
   gap: 0.2rem;
   padding-left: 1.2rem;
+  min-width: 0;
 }
 
 .pane-group-body[hidden] {

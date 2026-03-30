@@ -13,6 +13,7 @@ enum class BuiltinFunctionCategory {
     scalar,
     position,
     list,
+    statistics,
     list_generation,
 };
 

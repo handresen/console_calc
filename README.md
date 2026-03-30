@@ -260,10 +260,6 @@ m.pi
 - `sum(list|multilist)`        sum list elements or each inner list
 - `len(list)` / `len(multilist)` / `len(poslist)` / `len(multi_pos_list)` collection length
 - `product(list|multilist)`    product of list elements or each inner list
-- `avg(list|multilist)`        average of list elements or each inner list
-- `median(list|multilist)`     median of list elements or each inner list
-- `min(list|multilist)`        minimum list element or each inner list
-- `max(list|multilist)`        maximum list element or each inner list
 - `first(list|multilist[, n])`   first `n` list elements or inner lists; default `n` is `1`
 - `last(list|multilist[, n])`    last `n` list elements or inner lists; default `n` is `1`
 - `drop(list|multilist, n)`    drop first `n` list elements or each inner list
@@ -277,6 +273,13 @@ m.pi
 - `map(list, expr[, start[, step[, count]]])` map an inline expression using `_` over a list slice
 - `map_at(list, expr[, start[, step[, count]]])` map an inline expression onto selected list positions
 - `list_where(list, expr)` keep list elements where the inline predicate is non-zero
+
+### Statistics Functions
+
+- `avg(list|multilist)`        average of list elements or each inner list
+- `median(list|multilist)`     median of list elements or each inner list
+- `min(list|multilist)`        minimum list element or each inner list
+- `max(list|multilist)`        maximum list element or each inner list
 
 ### List Generation Functions
 

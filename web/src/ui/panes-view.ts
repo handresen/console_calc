@@ -13,8 +13,9 @@ import {
   definitionDisplay,
   renderConstantList,
   renderFunctionTable,
+  renderSampleList,
   renderTextList,
-  sampleExpressions,
+  sampleGroups,
 } from "./pane-renderers";
 import { createPlotPaneView } from "./plot-pane-view";
 import { createStackPaneView } from "./stack-pane-view";
@@ -110,17 +111,6 @@ export function createPanesView(
   const samplesList = document.createElement("div");
   samplesList.className = "sample-list";
 
-  for (const expression of sampleExpressions) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "sample-button";
-    button.textContent = expression;
-    button.addEventListener("click", () => {
-      onSampleSelected?.(expression);
-    });
-    samplesList.append(button);
-  }
-
   functionsPane.body.append(functionTableContainer);
   samplesPane.body.append(samplesList);
 
@@ -151,13 +141,14 @@ export function createPanesView(
       definitionsPane.count.textContent = `${snapshot.definitions.length}`;
       constantsPane.count.textContent = `${snapshot.constants.length}`;
       functionsPane.count.textContent = `${snapshot.functions.length}`;
-      samplesPane.count.textContent = `${sampleExpressions.length}`;
+      samplesPane.count.textContent = `${sampleGroups.reduce((total, group) => total + group.entries.length, 0)}`;
       renderTextList(
         definitionsPane.body,
         snapshot.definitions.map((entry) => definitionDisplay(entry)),
       );
       renderConstantList(constantsPane.body, snapshot.constants);
       renderFunctionTable(functionTableContainer, snapshot.functions);
+      renderSampleList(samplesList, sampleGroups, onSampleSelected);
       plotPaneView.render(snapshot.stack);
       mapPaneView.render(snapshot.stack);
     },

@@ -20,6 +20,8 @@ std::string category_heading(BuiltinFunctionCategory category) {
         return "Position functions";
     case BuiltinFunctionCategory::list:
         return "List functions";
+    case BuiltinFunctionCategory::statistics:
+        return "Statistics functions";
     case BuiltinFunctionCategory::list_generation:
         return "List generation functions";
     }
@@ -300,10 +302,12 @@ std::string format_builtin_function_listing(std::span<const FunctionView> views)
     std::vector<FunctionView> scalar_entries;
     std::vector<FunctionView> position_entries;
     std::vector<FunctionView> list_entries;
+    std::vector<FunctionView> statistics_entries;
     std::vector<FunctionView> list_generation_entries;
     scalar_entries.reserve(views.size());
     position_entries.reserve(views.size());
     list_entries.reserve(views.size());
+    statistics_entries.reserve(views.size());
     list_generation_entries.reserve(views.size());
     std::size_t label_width = 0;
 
@@ -314,6 +318,8 @@ std::string format_builtin_function_listing(std::span<const FunctionView> views)
             position_entries.push_back(function);
         } else if (function.category == BuiltinFunctionCategory::list) {
             list_entries.push_back(function);
+        } else if (function.category == BuiltinFunctionCategory::statistics) {
+            statistics_entries.push_back(function);
         } else if (function.category == BuiltinFunctionCategory::list_generation) {
             list_generation_entries.push_back(function);
         } else {
@@ -343,6 +349,10 @@ std::string format_builtin_function_listing(std::span<const FunctionView> views)
     output += category_heading(BuiltinFunctionCategory::list);
     output += '\n';
     append_entries(output, list_entries);
+    output += '\n';
+    output += category_heading(BuiltinFunctionCategory::statistics);
+    output += '\n';
+    append_entries(output, statistics_entries);
     output += '\n';
     output += category_heading(BuiltinFunctionCategory::list_generation);
     output += '\n';
