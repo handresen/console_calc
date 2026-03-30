@@ -67,6 +67,7 @@ const mapPalette = [
 ];
 
 const mapLayerStorageKey = "console-calc-map-layer";
+const manageMapLayersKey = "__manage__";
 
 const mapLayerOptions = [
   {
@@ -87,22 +88,6 @@ const mapLayerOptions = [
         attributions:
           'Kartendaten: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap-Mitwirkende</a>, SRTM | Kartendarstellung: &copy; <a href="https://opentopomap.org/about">OpenTopoMap</a> (CC-BY-SA)',
         maxZoom: 17,
-      }),
-  },
-  {
-    key: "carto-positron",
-    label: "CARTO Positron",
-    createSource: () =>
-      new XYZ({
-        urls: [
-          "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-          "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-          "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-          "https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-        ],
-        attributions:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        maxZoom: 20,
       }),
   },
   {
@@ -131,22 +116,6 @@ const mapLayerOptions = [
           "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
           "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
           "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-        ],
-        attributions:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        maxZoom: 20,
-      }),
-  },
-  {
-    key: "carto-voyager-no-labels",
-    label: "CARTO Voyager No Labels",
-    createSource: () =>
-      new XYZ({
-        urls: [
-          "https://a.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png",
-          "https://b.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png",
-          "https://c.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png",
-          "https://d.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png",
         ],
         attributions:
           '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -194,6 +163,10 @@ export function createMapPaneView(
     element.textContent = option.label;
     mapLayerSelect.append(element);
   });
+  const manageMapLayersOption = document.createElement("option");
+  manageMapLayersOption.value = manageMapLayersKey;
+  manageMapLayersOption.textContent = "<Manage>";
+  mapLayerSelect.append(manageMapLayersOption);
   mapLayerSelect.value = selectedMapLayerKey;
 
   const mapLayerText = document.createElement("span");
@@ -222,6 +195,43 @@ export function createMapPaneView(
   mapResizeHandle.setAttribute("role", "separator");
   mapResizeHandle.setAttribute("aria-orientation", "horizontal");
   mapResizeHandle.setAttribute("aria-label", "Resize map height");
+
+  const mapLayersDialog = document.createElement("dialog");
+  mapLayersDialog.className = "settings-dialog map-layers-dialog";
+
+  const mapLayersForm = document.createElement("form");
+  mapLayersForm.method = "dialog";
+  mapLayersForm.className = "settings-form";
+
+  const mapLayersHeading = document.createElement("h2");
+  mapLayersHeading.className = "settings-heading";
+  mapLayersHeading.textContent = "Manage basemaps";
+
+  const mapLayersIntro = document.createElement("p");
+  mapLayersIntro.className = "map-layers-dialog-copy";
+  mapLayersIntro.textContent =
+    "User basemap setup will live here. This first step only adds the local management shell.";
+
+  const mapLayersPlaceholder = document.createElement("div");
+  mapLayersPlaceholder.className = "map-layers-placeholder";
+  mapLayersPlaceholder.textContent = "No user basemaps yet.";
+
+  const mapLayersActions = document.createElement("div");
+  mapLayersActions.className = "settings-actions";
+
+  const mapLayersCloseButton = document.createElement("button");
+  mapLayersCloseButton.type = "submit";
+  mapLayersCloseButton.className = "toolbar-button";
+  mapLayersCloseButton.textContent = "Close";
+
+  mapLayersActions.append(mapLayersCloseButton);
+  mapLayersForm.append(
+    mapLayersHeading,
+    mapLayersIntro,
+    mapLayersPlaceholder,
+    mapLayersActions,
+  );
+  mapLayersDialog.append(mapLayersForm);
 
   const mapPointSource = new VectorSource();
   const mapLineSource = new VectorSource();
@@ -491,6 +501,12 @@ export function createMapPaneView(
 
   connectMapLinesToggle.addEventListener("change", rerenderMap);
   mapLayerSelect.addEventListener("change", () => {
+    if (mapLayerSelect.value === manageMapLayersKey) {
+      mapLayerSelect.value = selectedMapLayerKey;
+      mapLayersDialog.showModal();
+      return;
+    }
+
     const nextKey = mapLayerSelect.value as MapLayerKey;
     selectedMapLayerKey = nextKey;
     localStorage.setItem(mapLayerStorageKey, selectedMapLayerKey);
@@ -501,7 +517,7 @@ export function createMapPaneView(
     rerenderMap();
   });
 
-  pane.body.append(mapMeta, mapControls, mapElement, mapResizeHandle);
+  pane.body.append(mapMeta, mapControls, mapElement, mapResizeHandle, mapLayersDialog);
 
   return {
     pane,
