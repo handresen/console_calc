@@ -9,7 +9,7 @@ import { Tile as TileLayer, Vector as VectorLayer } from "ol/layer";
 import OlMap from "ol/Map";
 import View from "ol/View";
 import { fromLonLat } from "ol/proj";
-import { OSM, Vector as VectorSource } from "ol/source";
+import { OSM, Vector as VectorSource, XYZ } from "ol/source";
 import { Circle as CircleStyle, Fill, Stroke, Style } from "ol/style";
 import type { DisplaySettings } from "./display-settings";
 import { createPane } from "./pane-controls";
@@ -66,6 +66,40 @@ const mapPalette = [
   },
 ];
 
+const mapLayerStorageKey = "console-calc-map-layer";
+
+const mapLayerOptions = [
+  {
+    key: "osm-standard",
+    label: "OSM Standard",
+    createSource: () => new OSM(),
+  },
+  {
+    key: "open-topo",
+    label: "OpenTopoMap",
+    createSource: () =>
+      new XYZ({
+        urls: [
+          "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
+          "https://b.tile.opentopomap.org/{z}/{x}/{y}.png",
+          "https://c.tile.opentopomap.org/{z}/{x}/{y}.png",
+        ],
+        attributions:
+          'Kartendaten: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap-Mitwirkende</a>, SRTM | Kartendarstellung: &copy; <a href="https://opentopomap.org/about">OpenTopoMap</a> (CC-BY-SA)',
+        maxZoom: 17,
+      }),
+  },
+] as const;
+
+type MapLayerKey = (typeof mapLayerOptions)[number]["key"];
+
+function readStoredMapLayer(): MapLayerKey {
+  const rawValue = localStorage.getItem(mapLayerStorageKey);
+  return mapLayerOptions.some((option) => option.key === rawValue)
+    ? (rawValue as MapLayerKey)
+    : "osm-standard";
+}
+
 export function createMapPaneView(
   onToggle: (expanded: boolean) => void,
   initialDisplaySettings: DisplaySettings,
@@ -74,12 +108,37 @@ export function createMapPaneView(
   let latestStack: BindingStackEntry[] = [];
   let latestMapGroup: PlotGroup | null = null;
   let latestMapSignature = "";
+  let selectedMapLayerKey = readStoredMapLayer();
 
   const mapMeta = document.createElement("div");
   mapMeta.className = "map-meta";
 
-  const mapControls = document.createElement("label");
-  mapControls.className = "plot-controls";
+  const mapControls = document.createElement("div");
+  mapControls.className = "plot-controls map-controls";
+
+  const mapStats = document.createElement("span");
+  mapStats.className = "map-stats";
+
+  const mapLayerLabel = document.createElement("label");
+  mapLayerLabel.className = "plot-toggle";
+
+  const mapLayerSelect = document.createElement("select");
+  mapLayerSelect.className = "map-layer-select";
+  mapLayerOptions.forEach((option) => {
+    const element = document.createElement("option");
+    element.value = option.key;
+    element.textContent = option.label;
+    mapLayerSelect.append(element);
+  });
+  mapLayerSelect.value = selectedMapLayerKey;
+
+  const mapLayerText = document.createElement("span");
+  mapLayerText.textContent = "Layer";
+
+  mapLayerLabel.append(mapLayerText, mapLayerSelect);
+
+  const mapLineToggleLabel = document.createElement("label");
+  mapLineToggleLabel.className = "plot-toggle";
 
   const connectMapLinesToggle = document.createElement("input");
   connectMapLinesToggle.type = "checkbox";
@@ -88,7 +147,8 @@ export function createMapPaneView(
   const connectMapLinesLabel = document.createElement("span");
   connectMapLinesLabel.textContent = "Connect lines";
 
-  mapControls.append(connectMapLinesToggle, connectMapLinesLabel);
+  mapLineToggleLabel.append(connectMapLinesToggle, connectMapLinesLabel);
+  mapControls.append(mapLayerLabel, mapLineToggleLabel, mapStats);
 
   const mapElement = document.createElement("div");
   mapElement.className = "map-canvas";
@@ -143,12 +203,16 @@ export function createMapPaneView(
     },
   });
 
+  const baseLayer = new TileLayer({
+    source:
+      mapLayerOptions.find((option) => option.key === selectedMapLayerKey)?.createSource() ??
+      new OSM(),
+  });
+
   const map = new OlMap({
     target: mapElement,
     layers: [
-      new TileLayer({
-        source: new OSM(),
-      }),
+      baseLayer,
       mapAreaLayer,
       mapLineLayer,
       mapPointLayer,
@@ -187,6 +251,9 @@ export function createMapPaneView(
       },
     );
   };
+
+  const currentMapLayerLabel = () =>
+    mapLayerOptions.find((option) => option.key === selectedMapLayerKey)?.label ?? "OSM Standard";
 
   const buildMapSignature = (group: PlotGroup | null) => {
     if (group == null || group.kind !== "position") {
@@ -256,7 +323,8 @@ export function createMapPaneView(
     latestMapSignature = nextSignature;
 
     if (currentGroup == null || currentGroup.kind !== "position") {
-      mapMeta.textContent = "World view";
+      mapMeta.textContent = "";
+      mapStats.textContent = "world";
       mapAreaSource.clear();
       mapPointSource.clear();
       mapLineSource.clear();
@@ -272,7 +340,8 @@ export function createMapPaneView(
       (sum, series) => sum + series.points.length,
       0,
     );
-    mapMeta.textContent = `${currentGroup.label} | ${seriesList.length} paths | ${totalPositions} positions`;
+    mapMeta.textContent = currentGroup.label;
+    mapStats.textContent = `${seriesList.length} paths | ${totalPositions} points`;
     mapAreaSource.clear();
     mapPointSource.clear();
     mapLineSource.clear();
@@ -357,6 +426,16 @@ export function createMapPaneView(
   });
 
   connectMapLinesToggle.addEventListener("change", rerenderMap);
+  mapLayerSelect.addEventListener("change", () => {
+    const nextKey = mapLayerSelect.value as MapLayerKey;
+    selectedMapLayerKey = nextKey;
+    localStorage.setItem(mapLayerStorageKey, selectedMapLayerKey);
+    baseLayer.setSource(
+      mapLayerOptions.find((option) => option.key === selectedMapLayerKey)?.createSource() ??
+        new OSM(),
+    );
+    rerenderMap();
+  });
 
   pane.body.append(mapMeta, mapControls, mapElement, mapResizeHandle);
 

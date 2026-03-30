@@ -726,10 +726,33 @@ body.is-resizing-shell {
   flex-wrap: wrap;
 }
 
+.map-controls {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
 .plot-toggle {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.map-layer-select {
+  max-width: 10.5rem;
+  padding: 0.18rem 0.35rem;
+  border: 1px solid rgba(29, 36, 28, 0.14);
+  border-radius: 0.4rem;
+  background: rgba(255, 255, 255, 0.72);
+  color: inherit;
+  font: inherit;
+}
+
+.map-stats {
+  min-width: 0;
+  margin-left: auto;
+  color: #5e5a4c;
+  white-space: nowrap;
 }
 
 .map-meta {
