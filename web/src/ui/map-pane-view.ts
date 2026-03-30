@@ -89,6 +89,70 @@ const mapLayerOptions = [
         maxZoom: 17,
       }),
   },
+  {
+    key: "carto-positron",
+    label: "CARTO Positron",
+    createSource: () =>
+      new XYZ({
+        urls: [
+          "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+          "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+          "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+          "https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+        ],
+        attributions:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 20,
+      }),
+  },
+  {
+    key: "carto-voyager",
+    label: "CARTO Voyager",
+    createSource: () =>
+      new XYZ({
+        urls: [
+          "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+          "https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+          "https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+          "https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
+        ],
+        attributions:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 20,
+      }),
+  },
+  {
+    key: "carto-dark-matter",
+    label: "CARTO Dark Matter",
+    createSource: () =>
+      new XYZ({
+        urls: [
+          "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+          "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+          "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+          "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        ],
+        attributions:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 20,
+      }),
+  },
+  {
+    key: "carto-voyager-no-labels",
+    label: "CARTO Voyager No Labels",
+    createSource: () =>
+      new XYZ({
+        urls: [
+          "https://a.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png",
+          "https://b.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png",
+          "https://c.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png",
+          "https://d.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png",
+        ],
+        attributions:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        maxZoom: 20,
+      }),
+  },
 ] as const;
 
 type MapLayerKey = (typeof mapLayerOptions)[number]["key"];
